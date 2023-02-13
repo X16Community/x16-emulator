@@ -25,7 +25,7 @@ jobs:
       - name: Download latest ROM
         id: download
         run: |
-          gh run download -R commanderx16/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,7 +63,7 @@ jobs:
       - name: Download latest ROM
         id: download
         run: |
-          gh run download -R commanderx16/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
       - name: Download latest ROM
         id: download
         run: |
-          gh run download -R commanderx16/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM
@@ -120,7 +120,7 @@ jobs:
       - name: Download latest ROM
         id: download
         run: |
-          gh run download -R commanderx16/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM
@@ -149,7 +149,7 @@ jobs:
       - name: Download latest ROM
         id: download
         run: |
-          gh run download -R commanderx16/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM
@@ -170,7 +170,7 @@ jobs:
       - name: Download latest ROM
         id: download
         run: |
-          gh run download -R commanderx16/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Emulator
@@ -184,5 +184,5 @@ jobs:
           file emu_binaries/*
       - uses: actions/upload-artifact@v3
         with:
-          name: X16-Emu Webassembly
+          name: X16-Emu WebAssembly
           path: emu_binaries/*
