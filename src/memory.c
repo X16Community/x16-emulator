@@ -255,7 +255,7 @@ memory_get_ram_bank()
 void
 memory_set_rom_bank(uint8_t bank)
 {
-	rom_bank = bank & 0xff;;
+	rom_bank = bank;
 }
 
 uint8_t
@@ -377,7 +377,7 @@ emu_read(uint8_t reg, bool debugOn)
 
 void cartridge_attach(void)
 {
-	size_t ret = SIZE_MAX;
+	size_t ret = -1;
 	size_t i = 0;
 
 	if (cartridge_file) {
