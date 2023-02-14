@@ -21,7 +21,7 @@ uint8_t rom_bank;
 
 uint8_t *RAM;
 uint8_t ROM[ROM_SIZE];
-uint8_t *CART;
+uint8_t *CART = NULL;
 
 static uint8_t addr_ym = 0;
 
