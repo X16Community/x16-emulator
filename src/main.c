@@ -118,6 +118,7 @@ char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
 bool testbench = false;
+SDL_RWops *cartridge_file;
 
 #ifdef TRACE
 bool trace_mode = false;
@@ -406,6 +407,8 @@ usage()
 	printf("\tEnable a specific keyboard layout decode table.\n");
 	printf("-sdcard <sdcard.img>\n");
 	printf("\tSpecify SD card image (partition map + FAT32)\n");
+	printf("-cart <cart.bin>\n");
+	printf("\tSpecify cartridge binary, which is loaded into ROM bank 32 and above\n");
 	printf("-serial\n");
 	printf("\tConnect host fs through Serial Bus [experimental]\n");
 	printf("-nohostieee\n");
@@ -527,6 +530,7 @@ main(int argc, char **argv)
 	char *prg_path = NULL;
 	char *bas_path = NULL;
 	char *sdcard_path = NULL;
+	char *cartridge_path = NULL;
 	bool run_geos = false;
 	bool run_test = false;
 	int test_number = 0;
@@ -639,6 +643,15 @@ main(int argc, char **argv)
 				usage();
 			}
 			sdcard_path = argv[0];
+			argc--;
+			argv++;
+		} else if (!strcmp(argv[0], "-cart")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			cartridge_path = argv[0];
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-warp")) {
@@ -924,6 +937,15 @@ main(int argc, char **argv)
 			exit(1);
 		}
 		sdcard_attach();
+	}
+
+	if (cartridge_path) {
+		cartridge_file = SDL_RWFromFile(cartridge_path, "r+b");
+		if (!cartridge_file) {
+			printf("Cannot open %s!\n", cartridge_path);
+			exit(1);
+		}
+		cartridge_attach();
 	}
 
 	prg_override_start = -1;

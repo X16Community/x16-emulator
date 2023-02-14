@@ -16,9 +16,11 @@
 
 #define NUM_MAX_RAM_BANKS 256
 #define NUM_ROM_BANKS 32
+#define NUM_CART_BANKS (256 - 32)
 
 #define RAM_SIZE (0xa000 + num_ram_banks * 8192) /* $0000-$9FFF + banks at $A000-$BFFF */
 #define ROM_SIZE (NUM_ROM_BANKS * 16384)   /* banks at $C000-$FFFF */
+#define CART_SIZE (NUM_CART_BANKS * 16384)  /* expansion banks at $C000-$FFFF */
 
 typedef enum {
 	ECHO_MODE_NONE,
@@ -46,6 +48,7 @@ extern uint8_t a, x, y, sp, status;
 extern uint16_t pc;
 extern uint8_t *RAM;
 extern uint8_t ROM[];
+extern uint8_t *CART;
 
 extern uint16_t num_ram_banks;
 
