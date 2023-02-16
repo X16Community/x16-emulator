@@ -9,6 +9,7 @@
 
 extern SDL_RWops *sdcard_file;
 extern bool sdcard_attached;
+extern Sint64 sdcard_size;
 
 void sdcard_attach();
 void sdcard_detach();
