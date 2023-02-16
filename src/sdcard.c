@@ -2,7 +2,8 @@
 // Copyright (c) 2019 Michael Steil
 // Copyright (c) 2020 Frank van den Hoef
 // All rights reserved. License: 2-clause BSD
-
+#define _POSIX_C_SOURCE 1
+#include <limits.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "sdcard.h"
