@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "sdcard.h"
+#include "files.h"
 
 //#define VERBOSE 1
 
@@ -34,7 +35,12 @@ enum {
 	CMD58  = 58,        // READ_OCR
 };
 
-SDL_RWops *sdcard_file = NULL;
+static char sdcard_path[PATH_MAX] = "";
+static uint8_t *sdcard_data = NULL;
+static int sdcard_size = 0;
+static int sdcard_pos = 0;
+bool sdcard_compressed = false;
+bool sdcard_changed = false;
 bool sdcard_attached = false;
 
 static uint8_t rxbuf[3 + 512];
@@ -52,9 +58,58 @@ static int response_counter = 0;
 static bool selected = false;
 
 void
+sdcard_shutdown()
+{
+	if(sdcard_attached) {
+		sdcard_detach();
+	}
+}
+
+void
+sdcard_set_path(char const *path)
+{
+	sdcard_detach();
+
+	strncpy(sdcard_path, path, PATH_MAX);
+	sdcard_path[PATH_MAX-1] = '\0';
+
+	sdcard_compressed = file_is_compressed_type(sdcard_path);
+	sdcard_attach();
+}
+
+bool
+sdcard_path_is_set()
+{
+	return strlen(sdcard_path) > 0;
+}
+
+void
 sdcard_attach()
 {
-	if (!sdcard_attached && sdcard_file) {
+	if (!sdcard_attached && sdcard_path_is_set()) {
+		gzFile f = gzopen(sdcard_path, "rb");
+		if(f == Z_NULL) {
+			printf("Cannot open SDCard file %s!\n", sdcard_path);
+			return;
+		}
+
+		sdcard_size = gzsize(f);
+		sdcard_data = malloc(sdcard_size);
+		if(gzread(f, sdcard_data, sdcard_size) != sdcard_size) {
+			free(sdcard_data);
+			sdcard_data = NULL;
+		}
+
+		gzclose(f);
+
+		if(sdcard_data == NULL) {
+			printf("Could not read SDCard file %s!\n", sdcard_path);
+			return;
+		}
+
+		sdcard_pos = 0;
+		sdcard_changed = false;
+
 		printf("SD card attached.\n");
 		sdcard_attached = true;
 		is_initialized = false;
@@ -65,9 +120,24 @@ void
 sdcard_detach()
 {
 	if (sdcard_attached) {
+		if(sdcard_changed) {
+			gzFile f = gzopen(sdcard_path, sdcard_compressed ? "wb9" : "wb0");
+			gzwrite(f, sdcard_data, sdcard_size);
+			gzclose(f);
+		}
+
+		free(sdcard_data);
+		sdcard_data = NULL;
+
 		printf("SD card detached.\n");
 		sdcard_attached = false;
 	}
+}
+
+bool
+sdcard_is_attached()
+{
+	return sdcard_data && sdcard_attached;
 }
 
 void
@@ -122,7 +192,7 @@ set_response_r7(void)
 uint8_t
 sdcard_handle(uint8_t inbyte)
 {
-	if (!selected || sdcard_file == NULL) {
+	if (!selected || sdcard_data == NULL) {
 		return 0xFF;
 	}
 	// printf("sdcard_handle: %02X\n", inbyte);
@@ -203,11 +273,12 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 					printf("*** SD Reading LBA %d\n", lba);
 #endif
-					SDL_RWseek(sdcard_file, lba * 512, SEEK_SET);
-					int bytes_read = SDL_RWread(sdcard_file, &read_block_response[2], 1, 512);
-					if (bytes_read != 512) {
+					sdcard_pos = lba * 512;
+					const int to_end = sdcard_size - sdcard_pos;
+					if(to_end < 512) {
 						printf("Warning: short read!\n");
 					}
+					memcpy(&read_block_response[2], sdcard_data + sdcard_pos, (512 < to_end) ? 512 : to_end);
 
 					response = read_block_response;
 					response_length = 2 + 512 + 2;
@@ -255,11 +326,13 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 				printf("*** SD Writing LBA %d\n", lba);
 #endif
-				SDL_RWseek(sdcard_file, lba * 512, SEEK_SET);
-				int bytes_written = SDL_RWwrite(sdcard_file, rxbuf + 1, 1, 512);
-				if (bytes_written != 512) {
+				sdcard_pos = lba * 512;
+				int to_end = sdcard_size - sdcard_pos;
+				if(to_end < 512) {
 					printf("Warning: short write!\n");
 				}
+				memcpy(sdcard_data + sdcard_pos, rxbuf + 1, 512 < to_end ? 512 : to_end);
+				sdcard_changed = true;
 			}
 		}
 	}
