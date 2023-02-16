@@ -204,11 +204,11 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 					printf("*** SD Reading LBA %d\n", lba);
 #endif
-					if (lba * 512 >= sdcard_size) {
+					if ((Sint64)lba * 512 >= sdcard_size) {
 						read_block_response[1] = 0x08; // out of range
 						response_length = 2;
 					} else {
-						SDL_RWseek(sdcard_file, lba * 512, SEEK_SET);
+						SDL_RWseek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
 						int bytes_read = SDL_RWread(sdcard_file, &read_block_response[2], 1, 512);
 						if (bytes_read != 512) {
 							printf("Warning: short read!\n");
@@ -261,10 +261,10 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 				printf("*** SD Writing LBA %d\n", lba);
 #endif
-				if (lba * 512 >= sdcard_size) {
+				if ((Sint64)lba * 512 >= sdcard_size) {
 					// do nothing?
 				} else {
-					SDL_RWseek(sdcard_file, lba * 512, SEEK_SET);
+					SDL_RWseek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
 					int bytes_written = SDL_RWwrite(sdcard_file, rxbuf + 1, 1, 512);
 					if (bytes_written != 512) {
 						printf("Warning: short write!\n");
