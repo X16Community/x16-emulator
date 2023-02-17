@@ -14,14 +14,6 @@ jobs:
           msystem: MINGW64
           update: true
           install: make mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
-      - name: Build Emulator
-        run: |
-          CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
-          mkdir emu_binaries
-          cp $(which SDL2.dll) emu_binaries/.
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu.exe emu_binaries/.
-          file emu_binaries/*
       - name: Download latest ROM
         id: download
         run: |
@@ -29,6 +21,17 @@ jobs:
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          TRACE=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
+          mkdir emu_binaries
+          cp $(which SDL2.dll) emu_binaries/.
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu.exe emu_binaries/.
+          file emu_binaries/*
       - name: Copy ROM
         run: |
           cp latest_rom/rom.bin emu_binaries/.
@@ -52,14 +55,6 @@ jobs:
           path-type: inherit
       - name: Add /mingw32/bin to path
         run: echo "/mingw32/bin" >> $GITHUB_PATH
-      - name: Build Emulator
-        run: |
-          WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
-          mkdir emu_binaries
-          cp $(which SDL2.dll) emu_binaries/.
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu.exe emu_binaries/.
-          file emu_binaries/*
       - name: Download latest ROM
         id: download
         run: |
@@ -67,6 +62,17 @@ jobs:
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          TRACE=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
+          mkdir emu_binaries
+          cp $(which SDL2.dll) emu_binaries/.
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu.exe emu_binaries/.
+          file emu_binaries/*
       - name: Copy ROM
         run: |
           cp latest_rom/rom.bin emu_binaries/.
@@ -81,19 +87,23 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
-      - name: Build Emulator
-        run: |
-          make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          file emu_binaries/*
       - name: Download latest ROM
         id: download
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          TRACE=1 make V=1 -j3
+          mkdir emu_binaries
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu emu_binaries/.
+          file emu_binaries/*
       - name: Copy ROM
         run: |
           cp latest_rom/rom.bin emu_binaries/.
@@ -110,19 +120,23 @@ jobs:
       - name: Install Dependencies
         run: | 
           brew install make sdl2 
-      - name: Build Emulator
-        run: |
-          MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          file emu_binaries/*
       - name: Download latest ROM
         id: download
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
+          mkdir emu_binaries
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu emu_binaries/.
+          file emu_binaries/*
       - name: Copy ROM
         run: |
           cp latest_rom/rom.bin emu_binaries/.
@@ -139,19 +153,23 @@ jobs:
       - name: Install Dependencies
         run: | 
           brew install make sdl2 
-      - name: Build Emulator
-        run: |
-          MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          file emu_binaries/*
       - name: Download latest ROM
         id: download
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
+          mkdir emu_binaries
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu emu_binaries/.
+          file emu_binaries/*
       - name: Copy ROM
         run: |
           cp latest_rom/rom.bin emu_binaries/.
