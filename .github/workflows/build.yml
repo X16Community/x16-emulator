@@ -91,7 +91,6 @@ jobs:
         id: download
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -124,7 +123,6 @@ jobs:
         id: download
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -157,7 +155,6 @@ jobs:
         id: download
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
