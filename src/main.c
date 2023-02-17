@@ -923,6 +923,7 @@ main(int argc, char **argv)
 			printf("Cannot open %s!\n", sdcard_path);
 			exit(1);
 		}
+		sdcard_size = SDL_RWseek(sdcard_file, 0, SEEK_END);
 		sdcard_attach();
 	}
 

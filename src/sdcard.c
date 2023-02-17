@@ -36,6 +36,7 @@ enum {
 
 SDL_RWops *sdcard_file = NULL;
 bool sdcard_attached = false;
+Sint64 sdcard_size;
 
 static uint8_t rxbuf[3 + 512];
 static int rxbuf_idx;
@@ -203,21 +204,32 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 					printf("*** SD Reading LBA %d\n", lba);
 #endif
-					SDL_RWseek(sdcard_file, lba * 512, SEEK_SET);
-					int bytes_read = SDL_RWread(sdcard_file, &read_block_response[2], 1, 512);
-					if (bytes_read != 512) {
-						printf("Warning: short read!\n");
-					}
+					if ((Sint64)lba * 512 >= sdcard_size) {
+						read_block_response[1] = 0x08; // out of range
+						response_length = 2;
+					} else {
+						SDL_RWseek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
+						int bytes_read = SDL_RWread(sdcard_file, &read_block_response[2], 1, 512);
+						if (bytes_read != 512) {
+							printf("Warning: short read!\n");
+						}
 
-					response = read_block_response;
-					response_length = 2 + 512 + 2;
+						response = read_block_response;
+						response_length = 2 + 512 + 2;
+					}
 					break;
 				}
 
 				case CMD24: {
 					// WRITE_BLOCK
 					lba = (rxbuf[1] << 24) | (rxbuf[2] << 16) | (rxbuf[3] << 8) | rxbuf[4];
-					set_response_r1();
+					if (rxbuf_idx > 4 && (Sint64)lba * 512 >= sdcard_size) {
+						static uint8_t bad_lba[2] = {0x00, 0x08};
+						response = bad_lba;
+						response_length = 2;
+					} else {
+						set_response_r1();
+					}
 					break;
 				}
 
@@ -255,10 +267,14 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 				printf("*** SD Writing LBA %d\n", lba);
 #endif
-				SDL_RWseek(sdcard_file, lba * 512, SEEK_SET);
-				int bytes_written = SDL_RWwrite(sdcard_file, rxbuf + 1, 1, 512);
-				if (bytes_written != 512) {
-					printf("Warning: short write!\n");
+				if ((Sint64)lba * 512 >= sdcard_size) {
+					// do nothing?
+				} else {
+					SDL_RWseek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
+					int bytes_written = SDL_RWwrite(sdcard_file, rxbuf + 1, 1, 512);
+					if (bytes_written != 512) {
+						printf("Warning: short write!\n");
+					}
 				}
 			}
 		}
