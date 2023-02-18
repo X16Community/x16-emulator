@@ -47,7 +47,8 @@ struct lba_block {
 	struct lba_block *next;
 };
 
-#define MAX_TABLE_ENTRIES 512
+#define MAX_TABLE_ENTRIES (128 * 1024)
+
 struct changed_blocks_table
 {
 	struct lba_block *blocks[MAX_TABLE_ENTRIES];
@@ -81,6 +82,11 @@ static int
 sdcard_hash(int key)
 {
 	return (key * 0x9e3779b9) >> 23;
+}
+
+static bool sdcard_table_is_dense()
+{
+	return sdcard_changes.num_contained > (MAX_TABLE_ENTRIES >> 1);
 }
 
 static char *
@@ -435,6 +441,11 @@ sdcard_handle(uint8_t inbyte)
 					printf("Warning: short write!\n");
 				}
 				memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
+
+				if(sdcard_table_is_dense()) {
+					sdcard_detach();
+					sdcard_attach();
+				}
 			}
 		}
 	}
