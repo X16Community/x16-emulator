@@ -84,7 +84,8 @@ sdcard_hash(int key)
 	return (key * 0x9e3779b9) >> 23;
 }
 
-static bool sdcard_table_is_dense()
+static bool 
+sdcard_table_is_dense()
 {
 	return sdcard_changes.num_contained > (MAX_TABLE_ENTRIES >> 1);
 }
@@ -236,12 +237,6 @@ sdcard_detach()
 		printf("SD card detached.\n");
 		sdcard_attached = false;
 	}
-}
-
-bool
-sdcard_is_attached()
-{
-	return (sdcard_file != Z_NULL) && sdcard_attached;
 }
 
 void

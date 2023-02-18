@@ -917,6 +917,7 @@ main(int argc, char **argv)
 		}
 	}
 
+	sdcard_init();
 	if (sdcard_path) {
 		sdcard_set_path(sdcard_path);
 	}
@@ -1087,13 +1088,13 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	if (sdcard_is_attached() && !prg_file) {
+	if (sdcard_attached && !prg_file) {
 		// if should emulate an SD card (and don't need to
 		// hack a PRG into RAM), we'll always skip host fs
 		return false;
 	}
 
-	if (sdcard_is_attached() && prg_file && prg_finished_loading) {
+	if (sdcard_attached && prg_file && prg_finished_loading) {
 		// also skip if we should do SD card and we're done
 		// with the PRG hack
 		return false;
