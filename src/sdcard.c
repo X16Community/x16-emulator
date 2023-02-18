@@ -47,8 +47,7 @@ struct lba_block {
 	struct lba_block *next;
 };
 
-//#define MAX_TABLE_ENTRIES (128 * 1024)
-#define MAX_TABLE_ENTRIES (32)
+#define MAX_TABLE_ENTRIES (128 * 1024) // Suggest sizing this down to something reasonable like "32" when testing.
 
 struct changed_blocks_table
 {
