@@ -413,17 +413,17 @@ sdcard_handle(uint8_t inbyte)
 						read_block_response[1] = 0x08; // out of range
 						response_length = 2;
 					} else {
-            int sdcard_pos = lba * 512;
-            int remaining = sdcard_size - sdcard_pos;
-            if (remaining < 512) {
-              printf("Warning: short read!");
-            }
-            if (sdcard_table_contains(lba)) {
-              memcpy(&read_block_response[2], sdcard_table_get(lba), (remaining < 512 ? remaining : 512));
-            } else {
-              gzseek(sdcard_file, sdcard_pos, SEEK_SET);
-              gzread(sdcard_file, &read_block_response[2], 512);
-            }
+						int sdcard_pos = lba * 512;
+						int remaining = sdcard_size - sdcard_pos;
+						if (remaining < 512) {
+							printf("Warning: short read!");
+						}
+						if (sdcard_table_contains(lba)) {
+							memcpy(&read_block_response[2], sdcard_table_get(lba), (remaining < 512 ? remaining : 512));
+						} else {
+							gzseek(sdcard_file, sdcard_pos, SEEK_SET);
+							gzread(sdcard_file, &read_block_response[2], 512);
+						}
 						response = read_block_response;
 						response_length = 2 + 512 + 2;
 					}
@@ -480,16 +480,16 @@ sdcard_handle(uint8_t inbyte)
 				if ((Sint64)lba * 512 >= sdcard_size) {
 					// do nothing?
 				} else {
-          int sdcard_pos = lba * 512;
-          int remaining = sdcard_size - sdcard_pos;
-          if(remaining < 512) {
-            printf("Warning: short write!\n");
-          }
-          memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
-          if(sdcard_table_is_dense()) {
-            sdcard_swap(true);
-          }
-        }
+					int sdcard_pos = lba * 512;
+					int remaining = sdcard_size - sdcard_pos;
+					if(remaining < 512) {
+						printf("Warning: short write!\n");
+					}
+					memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
+					if(sdcard_table_is_dense()) {
+						sdcard_swap(true);
+					}
+				}
 			}
 		}
 	}
