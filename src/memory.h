@@ -30,4 +30,8 @@ uint8_t memory_get_rom_bank();
 uint8_t emu_read(uint8_t reg, bool debugOn);
 void emu_write(uint8_t reg, uint8_t value);
 
+void cartridge_attach(void);
+
+extern SDL_RWops *cartridge_file;
+
 #endif
