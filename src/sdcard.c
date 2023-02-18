@@ -180,13 +180,13 @@ void
 sdcard_attach()
 {
 	if (!sdcard_attached && sdcard_path_is_set()) {
-		gzFile f = gzopen(sdcard_path, "rb");
-		if(f == Z_NULL) {
+		sdcard_file = gzopen(sdcard_path, "rb");
+		if(sdcard_file == Z_NULL) {
 			printf("Cannot open SDCard file %s!\n", sdcard_path);
 			return;
 		}
 
-		sdcard_size = gzsize(f);
+		sdcard_size = gzsize(sdcard_file);
 		sdcard_table_clear();
 
 		printf("SD card attached.\n");

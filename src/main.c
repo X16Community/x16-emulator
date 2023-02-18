@@ -992,8 +992,8 @@ main(int argc, char **argv)
 	emulator_loop(NULL);
 #endif
 
+	sdcard_shutdown();
 	if (!headless){
-		sdcard_shutdown();
 		wav_recorder_shutdown();
 		audio_close();
 		video_end();
