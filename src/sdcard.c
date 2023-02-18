@@ -47,7 +47,8 @@ struct lba_block {
 	struct lba_block *next;
 };
 
-#define MAX_TABLE_ENTRIES (128 * 1024)
+//#define MAX_TABLE_ENTRIES (128 * 1024)
+#define MAX_TABLE_ENTRIES (32)
 
 struct changed_blocks_table
 {
@@ -63,6 +64,7 @@ static gzFile sdcard_file = Z_NULL;
 static int sdcard_size = 0;
 static bool sdcard_compressed = false;
 bool sdcard_attached = false;
+static bool sdcard_is_swp = false;
 
 static uint8_t rxbuf[3 + 512];
 static int rxbuf_idx;
@@ -191,7 +193,74 @@ sdcard_attach()
 
 		printf("SD card attached.\n");
 		sdcard_attached = true;
+		sdcard_is_swp = false;
 		is_initialized = false;
+	}
+}
+
+static void 
+get_tmp_name(char *path_buffer, char const *extension)
+{
+	strncpy(path_buffer, sdcard_path, PATH_MAX);
+	path_buffer[PATH_MAX-1]='\0';
+
+	strncat(path_buffer, extension, PATH_MAX - strlen(path_buffer));
+	path_buffer[PATH_MAX-1]='\0';
+}
+
+static void
+sdcard_swap(bool reopen)
+{
+	char temp_file_path[PATH_MAX];
+	get_tmp_name(temp_file_path, ".tmp");
+
+	printf("SD card swapping %d blocks to %s.\n", sdcard_changes.num_contained, temp_file_path);
+
+	gzFile f = gzopen(temp_file_path, sdcard_compressed ? "wb9" : "wb0");
+	gzseek(sdcard_file, 0, SEEK_SET);
+
+	char buffer[64 * 1024];
+
+	int read = gzread(sdcard_file, buffer, sizeof(buffer));
+	int lba = 0;
+
+	while (read > 0) {
+		const int lba0 = lba;
+		const int lba1 = lba + ((read + 511) >> 9);
+		for (int l = lba0; l < lba1; ++l) {
+			if (sdcard_table_contains(l)) {
+				memcpy(&buffer[(l - lba0) << 9], sdcard_table_get(l), 512);
+			}
+		}
+		lba = lba1;
+		gzwrite(f, buffer, read);
+		read = gzread(sdcard_file, buffer, sizeof(buffer));
+	}
+	gzclose(f);
+	gzclose(sdcard_file);
+
+	if(reopen) {
+		char swap_file_path[PATH_MAX];
+		get_tmp_name(swap_file_path, ".swp");
+
+		rename(temp_file_path, swap_file_path);
+
+		printf("SD card re-mounting %s.\n", swap_file_path);
+		sdcard_file = gzopen(swap_file_path, "rb");
+		sdcard_size = gzsize(sdcard_file);
+		sdcard_table_clear();
+		sdcard_is_swp = true;
+	} else {
+		printf("SD card updating %s.\n", sdcard_path);
+		sdcard_file = Z_NULL;
+		rename(temp_file_path, sdcard_path);
+		if(sdcard_is_swp) {
+			char swap_file_path[PATH_MAX];
+			get_tmp_name(swap_file_path, ".swp");
+
+			printf("SD card clearing %s.\n", swap_file_path);
+			unlink(swap_file_path);
+		}
 	}
 }
 
@@ -200,38 +269,7 @@ sdcard_detach()
 {
 	if (sdcard_attached) {
 		if(sdcard_changes.num_contained > 0) {
-			char temp_file_path[PATH_MAX];
-			strncpy(temp_file_path, sdcard_path, PATH_MAX);
-			temp_file_path[PATH_MAX-1]='\0';
-
-			strncat(temp_file_path, ".tmp", PATH_MAX - strlen(temp_file_path));
-			temp_file_path[PATH_MAX-1]='\0';
-
-			gzFile f = gzopen(temp_file_path, sdcard_compressed ? "wb9" : "wb0");
-			gzseek(sdcard_file, 0, SEEK_SET);
-
-			char buffer[64 * 1024];
-
-			int read = gzread(sdcard_file, buffer, sizeof(buffer));
-			int lba = 0;
-
-			while (read > 0) {
-				const int lba0 = lba;
-				const int lba1 = lba + ((read + 511) >> 9);
-				for (int l = lba0; l < lba1; ++l) {
-					if (sdcard_table_contains(l)) {
-						memcpy(&buffer[(l - lba0) << 9], sdcard_table_get(l), 512);
-					}
-				}
-				lba = lba1;
-				gzwrite(f, buffer, read);
-				read = gzread(sdcard_file, buffer, sizeof(buffer));
-			}
-			gzclose(f);
-			gzclose(sdcard_file);
-			sdcard_file = Z_NULL;
-
-			rename(temp_file_path, sdcard_path);
+			sdcard_swap(false);
 		}
 
 		printf("SD card detached.\n");
@@ -438,8 +476,7 @@ sdcard_handle(uint8_t inbyte)
 				memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
 
 				if(sdcard_table_is_dense()) {
-					sdcard_detach();
-					sdcard_attach();
+					sdcard_swap(true);
 				}
 			}
 		}
