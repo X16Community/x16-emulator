@@ -409,27 +409,37 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 					printf("*** SD Reading LBA %d\n", lba);
 #endif
-					int sdcard_pos = lba * 512;
-					int remaining = sdcard_size - sdcard_pos;
-					if (remaining < 512) {
-						printf("Warning: short read!");
-					}
-					if (sdcard_table_contains(lba)) {
-						memcpy(&read_block_response[2], sdcard_table_get(lba), (remaining < 512 ? remaining : 512));
+					if ((Sint64)lba * 512 >= sdcard_size) {
+						read_block_response[1] = 0x08; // out of range
+						response_length = 2;
 					} else {
-						gzseek(sdcard_file, sdcard_pos, SEEK_SET);
-						gzread(sdcard_file, &read_block_response[2], 512);
+            int sdcard_pos = lba * 512;
+            int remaining = sdcard_size - sdcard_pos;
+            if (remaining < 512) {
+              printf("Warning: short read!");
+            }
+            if (sdcard_table_contains(lba)) {
+              memcpy(&read_block_response[2], sdcard_table_get(lba), (remaining < 512 ? remaining : 512));
+            } else {
+              gzseek(sdcard_file, sdcard_pos, SEEK_SET);
+              gzread(sdcard_file, &read_block_response[2], 512);
+            }
+						response = read_block_response;
+						response_length = 2 + 512 + 2;
 					}
-
-					response = read_block_response;
-					response_length = 2 + 512 + 2;
 					break;
 				}
 
 				case CMD24: {
 					// WRITE_BLOCK
 					lba = (rxbuf[1] << 24) | (rxbuf[2] << 16) | (rxbuf[3] << 8) | rxbuf[4];
-					set_response_r1();
+					if (rxbuf_idx > 4 && (Sint64)lba * 512 >= sdcard_size) {
+						static uint8_t bad_lba[2] = {0x00, 0x08};
+						response = bad_lba;
+						response_length = 2;
+					} else {
+						set_response_r1();
+					}
 					break;
 				}
 
@@ -467,16 +477,19 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 				printf("*** SD Writing LBA %d\n", lba);
 #endif
-				int sdcard_pos = lba * 512;
-				int remaining = sdcard_size - sdcard_pos;
-				if(remaining < 512) {
-					printf("Warning: short write!\n");
-				}
-				memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
-
-				if(sdcard_table_is_dense()) {
-					sdcard_swap(true);
-				}
+				if ((Sint64)lba * 512 >= sdcard_size) {
+					// do nothing?
+				} else {
+          int sdcard_pos = lba * 512;
+          int remaining = sdcard_size - sdcard_pos;
+          if(remaining < 512) {
+            printf("Warning: short write!\n");
+          }
+          memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
+          if(sdcard_table_is_dense()) {
+            sdcard_swap(true);
+          }
+        }
 			}
 		}
 	}
