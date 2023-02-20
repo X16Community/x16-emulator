@@ -40,30 +40,9 @@ enum {
 	CMD58  = 58,        // READ_OCR
 };
 
-struct lba_block {
-	int index;
-	char data[512];
-
-	struct lba_block *next;
-};
-
-#define MAX_TABLE_ENTRIES (128 * 1024) // Suggest sizing this down to something reasonable like "32" when testing.
-
-struct changed_blocks_table
-{
-	struct lba_block *blocks[MAX_TABLE_ENTRIES];
-	struct lba_block *first;
-	int num_contained;
-};
-
-struct changed_blocks_table sdcard_changes;
-
 static char sdcard_path[PATH_MAX] = "";
-static gzFile sdcard_file = Z_NULL;
-static int sdcard_size = 0;
-static bool sdcard_compressed = false;
+static struct x16file *sdcard_file = NULL;
 bool sdcard_attached = false;
-static bool sdcard_is_swp = false;
 
 static uint8_t rxbuf[3 + 512];
 static int rxbuf_idx;
@@ -79,86 +58,6 @@ static int response_counter = 0;
 
 static bool selected = false;
 
-static int
-sdcard_hash(int key)
-{
-	return (key * 0x9e3779b9) >> 23;
-}
-
-static bool 
-sdcard_table_is_dense()
-{
-	return sdcard_changes.num_contained > (MAX_TABLE_ENTRIES >> 1);
-}
-
-static char *
-sdcard_table_get(int block_index)
-{
-	int hash = sdcard_hash(block_index);
-	for(int i=0; i<MAX_TABLE_ENTRIES; ++i) {
-		const int j = (hash + i) & (MAX_TABLE_ENTRIES-1);
-		if(sdcard_changes.blocks[j] == NULL) {
-			struct lba_block *block = malloc(sizeof(struct lba_block));
-			block->index = block_index;
-			block->next = sdcard_changes.first;
-			sdcard_changes.first = block;
-			++sdcard_changes.num_contained;
-
-			sdcard_changes.blocks[j] = block;
-			return block->data;
-		} else if(sdcard_changes.blocks[j]->index == block_index) {
-			return sdcard_changes.blocks[j]->data;
-		}
-	}
-	// Table was full, this is really bad.
-	return NULL;
-}
-
-static bool
-sdcard_table_contains(int block_index)
-{
-	const int hash = sdcard_hash(block_index);
-	for(int i=0; i<MAX_TABLE_ENTRIES; ++i) {
-		const int j = (hash + i) & (MAX_TABLE_ENTRIES-1);
-		if(sdcard_changes.blocks[j] == NULL) {
-			return false;
-		} else if(sdcard_changes.blocks[j]->index == block_index) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-static void
-sdcard_table_clear()
-{
-	if(sdcard_changes.first != NULL) {
-		struct lba_block *b = sdcard_changes.first;
-		struct lba_block *next_b = b->next;
-		for(; b != NULL; b = next_b) {
-			next_b = b->next;
-			free(b);
-		}
-	}
-	memset(&sdcard_changes, 0, sizeof(struct changed_blocks_table));
-}
-
-void 
-sdcard_init()
-{
-	sdcard_changes.first = NULL; // Minimum necessary for sdcard_table_clear() to work
-	sdcard_table_clear();
-}
-
-void
-sdcard_shutdown()
-{
-	if(sdcard_attached) {
-		sdcard_detach();
-	}
-}
-
 void
 sdcard_set_path(char const *path)
 {
@@ -167,7 +66,6 @@ sdcard_set_path(char const *path)
 	strncpy(sdcard_path, path, PATH_MAX);
 	sdcard_path[PATH_MAX-1] = '\0';
 
-	sdcard_compressed = file_is_compressed_type(sdcard_path);
 	sdcard_attach();
 }
 
@@ -181,85 +79,15 @@ void
 sdcard_attach()
 {
 	if (!sdcard_attached && sdcard_path_is_set()) {
-		sdcard_file = gzopen(sdcard_path, "rb");
-		if(sdcard_file == Z_NULL) {
+		sdcard_file = x16open(sdcard_path, "rb");
+		if(sdcard_file == NULL) {
 			printf("Cannot open SDCard file %s!\n", sdcard_path);
 			return;
 		}
 
-		sdcard_size = gzsize(sdcard_file);
-		sdcard_table_clear();
-
 		printf("SD card attached.\n");
 		sdcard_attached = true;
-		sdcard_is_swp = false;
 		is_initialized = false;
-	}
-}
-
-static void 
-get_tmp_name(char *path_buffer, char const *extension)
-{
-	strncpy(path_buffer, sdcard_path, PATH_MAX);
-	path_buffer[PATH_MAX-1]='\0';
-
-	strncat(path_buffer, extension, PATH_MAX - strlen(path_buffer));
-	path_buffer[PATH_MAX-1]='\0';
-}
-
-static void
-sdcard_swap(bool reopen)
-{
-	char temp_file_path[PATH_MAX];
-	get_tmp_name(temp_file_path, ".tmp");
-
-	printf("SD card swapping %d blocks to %s.\n", sdcard_changes.num_contained, temp_file_path);
-
-	gzFile f = gzopen(temp_file_path, sdcard_compressed ? "wb9" : "wb0");
-	gzseek(sdcard_file, 0, SEEK_SET);
-
-	char buffer[64 * 1024];
-
-	int read = gzread(sdcard_file, buffer, sizeof(buffer));
-	int lba = 0;
-
-	while (read > 0) {
-		const int lba0 = lba;
-		const int lba1 = lba + ((read + 511) >> 9);
-		for (int l = lba0; l < lba1; ++l) {
-			if (sdcard_table_contains(l)) {
-				memcpy(&buffer[(l - lba0) << 9], sdcard_table_get(l), 512);
-			}
-		}
-		lba = lba1;
-		gzwrite(f, buffer, read);
-		read = gzread(sdcard_file, buffer, sizeof(buffer));
-	}
-	gzclose(f);
-	gzclose(sdcard_file);
-
-	if(reopen) {
-		char swap_file_path[PATH_MAX];
-		get_tmp_name(swap_file_path, ".swp");
-
-		rename(temp_file_path, swap_file_path);
-
-		printf("SD card re-mounting %s.\n", swap_file_path);
-		sdcard_file = gzopen(swap_file_path, "rb");
-		sdcard_size = gzsize(sdcard_file);
-		sdcard_table_clear();
-		sdcard_is_swp = true;
-	} else {
-		printf("SD card updating %s.\n", sdcard_path);
-		sdcard_file = Z_NULL;
-		rename(temp_file_path, sdcard_path);
-		if(sdcard_is_swp) {
-			char swap_file_path[PATH_MAX];
-			get_tmp_name(swap_file_path, ".swp");
-
-			printf("SD card clearing %s.\n", swap_file_path);
-			unlink(swap_file_path);
-		}
 	}
 }
 
@@ -267,9 +95,8 @@ void
 sdcard_detach()
 {
 	if (sdcard_attached) {
-		if(sdcard_changes.num_contained > 0) {
-			sdcard_swap(false);
-		}
+		x16close(sdcard_file);
+		sdcard_file = NULL;
 
 		printf("SD card detached.\n");
 		sdcard_attached = false;
@@ -328,7 +155,7 @@ set_response_r7(void)
 uint8_t
 sdcard_handle(uint8_t inbyte)
 {
-	if (!selected || (sdcard_file == Z_NULL)) {
+	if (!selected || (sdcard_file == NULL)) {
 		return 0xFF;
 	}
 	// printf("sdcard_handle: %02X\n", inbyte);
@@ -409,21 +236,16 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 					printf("*** SD Reading LBA %d\n", lba);
 #endif
-					if ((Sint64)lba * 512 >= sdcard_size) {
+					if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
 						read_block_response[1] = 0x08; // out of range
 						response_length = 2;
 					} else {
-						int sdcard_pos = lba * 512;
-						int remaining = sdcard_size - sdcard_pos;
-						if (remaining < 512) {
-							printf("Warning: short read!");
+						x16seek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
+						int bytes_read = x16read(sdcard_file, &read_block_response[2], 1, 512);
+						if (bytes_read != 512) {
+							printf("Warning: short read!\n");
 						}
-						if (sdcard_table_contains(lba)) {
-							memcpy(&read_block_response[2], sdcard_table_get(lba), (remaining < 512 ? remaining : 512));
-						} else {
-							gzseek(sdcard_file, sdcard_pos, SEEK_SET);
-							gzread(sdcard_file, &read_block_response[2], 512);
-						}
+
 						response = read_block_response;
 						response_length = 2 + 512 + 2;
 					}
@@ -433,7 +255,7 @@ sdcard_handle(uint8_t inbyte)
 				case CMD24: {
 					// WRITE_BLOCK
 					lba = (rxbuf[1] << 24) | (rxbuf[2] << 16) | (rxbuf[3] << 8) | rxbuf[4];
-					if (rxbuf_idx > 4 && (Sint64)lba * 512 >= sdcard_size) {
+					if (rxbuf_idx > 4 && (Sint64)lba * 512 >= x16size(sdcard_file)) {
 						static uint8_t bad_lba[2] = {0x00, 0x08};
 						response = bad_lba;
 						response_length = 2;
@@ -477,17 +299,13 @@ sdcard_handle(uint8_t inbyte)
 #ifdef VERBOSE
 				printf("*** SD Writing LBA %d\n", lba);
 #endif
-				if ((Sint64)lba * 512 >= sdcard_size) {
+				if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
 					// do nothing?
 				} else {
-					int sdcard_pos = lba * 512;
-					int remaining = sdcard_size - sdcard_pos;
-					if(remaining < 512) {
+					x16seek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
+					int bytes_written = x16write(sdcard_file, rxbuf + 1, 1, 512);
+					if (bytes_written != 512) {
 						printf("Warning: short write!\n");
-					}
-					memcpy(sdcard_table_get(lba), rxbuf + 1, remaining < 512 ? remaining : 512);
-					if(sdcard_table_is_dense()) {
-						sdcard_swap(true);
 					}
 				}
 			}

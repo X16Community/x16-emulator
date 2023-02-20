@@ -19,6 +19,7 @@
 #include "cpu/fake6502.h"
 #include "timing.h"
 #include "disasm.h"
+#include "files.h"
 #include "memory.h"
 #include "video.h"
 #include "via.h"
@@ -917,7 +918,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	sdcard_init();
 	if (sdcard_path) {
 		sdcard_set_path(sdcard_path);
 	}
@@ -992,13 +992,13 @@ main(int argc, char **argv)
 	emulator_loop(NULL);
 #endif
 
-	sdcard_shutdown();
 	if (!headless){
 		wav_recorder_shutdown();
 		audio_close();
 		video_end();
 		SDL_Quit();
 	}
+	files_shutdown();
 
 #ifdef PERFSTAT
 	for (int pc = 0xc000; pc < sizeof(stat)/sizeof(*stat); pc++) {
