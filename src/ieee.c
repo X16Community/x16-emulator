@@ -1296,15 +1296,18 @@ ieee_init()
 	set_error(0x73, 0, 0);
 }
 
-void
+int
 SECOND(uint8_t a)
 {
+	int ret = -1;
 	if (log_ieee) {
 		printf("%s $%02x\n", __func__, a);
 	}
 	if (listening) {
 		channel = a & 0xf;
 		opening = false;
+		if (channel == 15)
+			ret = 0;
 		switch(a & 0xf0) {
 			case 0x60:
 				if (log_ieee) {
@@ -1323,6 +1326,7 @@ SECOND(uint8_t a)
 				break;
 		}
 	}
+	return ret;
 }
 
 void
@@ -1340,7 +1344,7 @@ TKSA(uint8_t a)
 int
 ACPTR(uint8_t *a)
 {
-	int ret = -1;
+	int ret = 0;
 	if (channel == 15) {
 		if (error_pos >= error_len) {
 			clear_error();
@@ -1364,7 +1368,20 @@ ACPTR(uint8_t *a)
 		} else if (channels[channel].f) {
 			if (SDL_RWread(channels[channel].f, a, 1, 1) != 1) {
 				ret = 0x40;
+				*a = 0;
+			} else {
+				// We need to send EOI on the last byte of the file.
+				// We have to check every time since CMDR-DOS
+				// supports random access R/W mode
+				
+				Sint64 curpos = SDL_RWtell(channels[channel].f);
+				if (curpos == SDL_RWseek(channels[channel].f, 0, RW_SEEK_END)) {
+					ret = 0x40;
+				}
+				SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
 			}
+		} else {
+			ret = 0x40;
 		}
 	} else {
 		ret = 2; // FNF
@@ -1378,7 +1395,7 @@ ACPTR(uint8_t *a)
 int
 CIOUT(uint8_t a)
 {
-	int ret = -1;
+	int ret = 0;
 	if (log_ieee) {
 		printf("%s $%02x\n", __func__, a);
 	}
@@ -1463,16 +1480,13 @@ TALK(uint8_t a)
 int
 MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {
-	int ret = -1;
+	int ret = 0;
 	int count = *c ?: 256;
 	uint8_t ram_bank = read6502(0);
 	int i = 0;
 	do {
 		uint8_t byte = 0;
 		ret = ACPTR(&byte);
-		if (ret >= 0) {
-			break;
-		}
 		write6502(addr, byte);
 		i++;
 		if (!stream_mode) {
@@ -1482,6 +1496,9 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 				ram_bank++;
 				write6502(0, ram_bank);
 			}
+		}
+		if (ret > 0) {
+			break;
 		}
 	} while(i < count);
 	*c = i;

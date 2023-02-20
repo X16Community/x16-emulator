@@ -1144,7 +1144,7 @@ handle_ieee_intercept()
 			break;
 		}
 		case 0xFF93:
-			SECOND(a);
+			s=SECOND(a);
 			break;
 		case 0xFF96:
 			TKSA(a);
