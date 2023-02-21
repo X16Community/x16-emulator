@@ -8,8 +8,6 @@
 #include <SDL.h>
 
 extern bool sdcard_attached;
-void sdcard_init();
-void sdcard_shutdown();
 void sdcard_set_path(char const *path);
 bool sdcard_path_is_set();
 void sdcard_attach();

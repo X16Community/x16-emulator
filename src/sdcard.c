@@ -240,7 +240,7 @@ sdcard_handle(uint8_t inbyte)
 						read_block_response[1] = 0x08; // out of range
 						response_length = 2;
 					} else {
-						x16seek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
+						x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
 						int bytes_read = x16read(sdcard_file, &read_block_response[2], 1, 512);
 						if (bytes_read != 512) {
 							printf("Warning: short read!\n");
@@ -302,7 +302,7 @@ sdcard_handle(uint8_t inbyte)
 				if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
 					// do nothing?
 				} else {
-					x16seek(sdcard_file, (Sint64)lba * 512, SEEK_SET);
+					x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
 					int bytes_written = x16write(sdcard_file, rxbuf + 1, 1, 512);
 					if (bytes_written != 512) {
 						printf("Warning: short write!\n");
