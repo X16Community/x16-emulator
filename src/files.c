@@ -156,11 +156,9 @@ x16close(struct x16file *f)
 		char *buffer = malloc(buffer_size);
 
 		int read = SDL_RWread(tfile, buffer, 1, buffer_size);
-		int64_t total_read = read;
 		while(read > 0) {
 			gzwrite(zfile, buffer, read);
 			read = SDL_RWread(tfile, buffer, 1, buffer_size);
-			total_read += read;
 		}
 
 		free(buffer);
