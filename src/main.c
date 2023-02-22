@@ -19,6 +19,7 @@
 #include "cpu/fake6502.h"
 #include "timing.h"
 #include "disasm.h"
+#include "files.h"
 #include "memory.h"
 #include "video.h"
 #include "via.h"
@@ -932,13 +933,7 @@ main(int argc, char **argv)
 	}
 
 	if (sdcard_path) {
-		sdcard_file = SDL_RWFromFile(sdcard_path, "r+b");
-		if (!sdcard_file) {
-			printf("Cannot open %s!\n", sdcard_path);
-			exit(1);
-		}
-		sdcard_size = SDL_RWseek(sdcard_file, 0, SEEK_END);
-		sdcard_attach();
+		sdcard_set_path(sdcard_path);
 	}
 
 	if (cartridge_path) {
@@ -1026,6 +1021,7 @@ main(int argc, char **argv)
 		video_end();
 		SDL_Quit();
 	}
+	files_shutdown();
 
 #ifdef PERFSTAT
 	for (int pc = 0xc000; pc < sizeof(stat)/sizeof(*stat); pc++) {
@@ -1115,13 +1111,13 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	if (sdcard_file && !prg_file) {
+	if (sdcard_attached && !prg_file) {
 		// if should emulate an SD card (and don't need to
 		// hack a PRG into RAM), we'll always skip host fs
 		return false;
 	}
 
-	if (sdcard_file && prg_file && prg_finished_loading) {
+	if (sdcard_attached && prg_file && prg_finished_loading) {
 		// also skip if we should do SD card and we're done
 		// with the PRG hack
 		return false;
@@ -1162,7 +1158,7 @@ handle_ieee_intercept()
 			break;
 		case 0xFFAE:
 			s=UNLSN();
-			if (prg_file && sdcard_file && ++count_unlistn == 4) {
+			if (prg_file && sdcard_path_is_set() && ++count_unlistn == 4) {
 				// after auto-loading a PRG from the host fs,
 				// switch to the SD card if requested
 				// 4x UNLISTEN:
