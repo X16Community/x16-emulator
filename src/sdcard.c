@@ -79,7 +79,7 @@ void
 sdcard_attach()
 {
 	if (!sdcard_attached && sdcard_path_is_set()) {
-		sdcard_file = x16open(sdcard_path, "rb");
+		sdcard_file = x16open(sdcard_path, "r+b");
 		if(sdcard_file == NULL) {
 			printf("Cannot open SDCard file %s!\n", sdcard_path);
 			return;

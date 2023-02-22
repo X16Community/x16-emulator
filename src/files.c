@@ -18,6 +18,7 @@ struct x16file
 	SDL_RWops *file;
 	int64_t size;
 	int64_t pos;
+	bool modified;
 
 	struct x16file *next;
 };
@@ -56,12 +57,10 @@ void
 files_shutdown()
 {
 	struct x16file *f = open_files;
-	struct x16file *next_f = f ? f->next : NULL;
+	struct x16file *next_f = NULL;
 	for(; f != NULL; f = next_f) {
 		next_f = f->next;
-
-		SDL_RWclose(f->file);
-		free(f);
+		x16close(f);
 	}
 }
 
@@ -91,28 +90,45 @@ x16open(const char *path, const char *attribs)
 			goto error;
 		}
 
+		printf("Decompressing %s\n", path);
+
 		const int buffer_size = 16 * 1024 * 1024;
 		char *buffer = malloc(buffer_size);
 
 		int read = gzread(zfile, buffer, buffer_size);
 		int64_t total_read = read;
+		const int64_t progress_increment = 128 * 1024 * 1024;
+		int64_t progress_threshold = progress_increment;
 		while(read > 0) {
+			if(total_read > progress_threshold) {
+				printf("%ld MB\n", total_read / (1024 * 1024));
+				progress_threshold += progress_increment;
+			}
 			SDL_RWwrite(tfile, buffer, read, 1);
 			read = gzread(zfile, buffer, buffer_size);
 			total_read += read;
 		}
+		printf("%ld MB\n", total_read / (1024 * 1024));
 
 		SDL_RWclose(tfile);
 		gzclose(zfile);
 		free(buffer);
 
 		f->file = SDL_RWFromFile(tmp_path, attribs);
+		if(f->file == NULL) {
+			unlink(tmp_path);
+			goto error;
+		}
 		f->size = total_read;
 	} else {
 		f->file = SDL_RWFromFile(path, attribs);
+		if(f->file == NULL) {
+			goto error;
+		}
 		f->size = SDL_RWsize(f->file);
 	}
 	f->pos = 0;
+	f->modified = false;
 	f->next = open_files ? open_files : NULL;
 	open_files = f;
 
@@ -136,7 +152,11 @@ x16close(struct x16file *f)
 		char tmp_path[PATH_MAX];
 		if(!get_tmp_name(tmp_path, f->path, ".tmp")) {
 			printf("Path too long, cannot create temp file: %s\n", f->path);
-			goto zfile_error;
+			goto tmp_path_error;
+		}
+
+		if(f->modified == false) {
+			goto zfile_clean;
 		}
 
 		gzFile zfile = gzopen(f->path, "wb9");
@@ -152,13 +172,23 @@ x16close(struct x16file *f)
 			goto tfile_error;
 		}
 
+		printf("Recompressing %s\n", f->path);
+
 		const int buffer_size = 16 * 1024 * 1024;
 		char *buffer = malloc(buffer_size);
 
+		const int64_t progress_increment = 128 * 1024 * 1024;
+		int64_t progress_threshold = progress_increment;
 		int read = SDL_RWread(tfile, buffer, 1, buffer_size);
+		int64_t total_read = read;
 		while(read > 0) {
+			if(total_read > progress_threshold) {
+				printf("%d%%\n", (int)(total_read * 100 / f->size));
+				progress_threshold += progress_increment;
+			}
 			gzwrite(zfile, buffer, read);
 			read = SDL_RWread(tfile, buffer, 1, buffer_size);
+			total_read += read;
 		}
 
 		free(buffer);
@@ -171,8 +201,12 @@ x16close(struct x16file *f)
 		if(zfile != Z_NULL) {
 			gzclose(zfile);
 		}
+
+	zfile_error: // fall-through
+	zfile_clean:
+		unlink(tmp_path);
 	}
-zfile_error:
+tmp_path_error:
 	free(f);
 }
 
@@ -297,6 +331,9 @@ x16write(struct x16file *f, const uint8_t *data, uint64_t data_size, uint64_t da
 		return 0;
 	}
 	int64_t written = SDL_RWwrite(f->file, data, data_size, data_count);
+	if(written) {
+		f->modified = true;
+	}
 	f->pos += written * data_size;
 	return written;
 }
