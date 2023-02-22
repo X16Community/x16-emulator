@@ -168,6 +168,8 @@ ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
 			return 0x78;
 		case SDL_SCANCODE_F12:
 			return 0x07;
+		case SDL_SCANCODE_SCROLLLOCK:
+			return 0x7e;
 		case SDL_SCANCODE_RSHIFT:
 			return 0x59;
 		case SDL_SCANCODE_LSHIFT:
