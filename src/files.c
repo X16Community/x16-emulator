@@ -102,14 +102,14 @@ x16open(const char *path, const char *attribs)
 		int64_t progress_threshold = progress_increment;
 		while(read > 0) {
 			if(total_read > progress_threshold) {
-				printf(PRId64 " MB\n", total_read / (1024 * 1024));
+				printf("%" PRId64 " MB\n", total_read / (1024 * 1024));
 				progress_threshold += progress_increment;
 			}
 			SDL_RWwrite(tfile, buffer, read, 1);
 			read = gzread(zfile, buffer, buffer_size);
 			total_read += read;
 		}
-		printf(PRId64 " MB\n", total_read / (1024 * 1024));
+		printf("%" PRId64 " MB\n", total_read / (1024 * 1024));
 
 		SDL_RWclose(tfile);
 		gzclose(zfile);
