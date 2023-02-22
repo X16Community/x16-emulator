@@ -19,6 +19,7 @@ jobs:
           CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
+          cp $(which zlib1.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
           file emu_binaries/*
@@ -57,6 +58,7 @@ jobs:
           WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
+          cp $(which zlib1.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
           file emu_binaries/*

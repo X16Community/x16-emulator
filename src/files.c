@@ -160,7 +160,7 @@ x16close(struct x16file *f)
 			goto zfile_clean;
 		}
 
-		gzFile zfile = gzopen(f->path, "wb9");
+		gzFile zfile = gzopen(f->path, "wb6");
 		if(zfile == Z_NULL) {
 			printf("Could not open file for compression: %s\n", f->path);
 			goto zfile_error;
@@ -276,28 +276,6 @@ x16write8(struct x16file *f, uint8_t val)
 	return written;
 }
 
-int 
-x16write16(struct x16file *f, uint16_t val)
-{
-	if(f == NULL) {
-		return 0;
-	}
-	int written = SDL_RWwrite(f->file, &val, 1, 2);
-	f->pos += written;
-	return written;
-}
-
-int 
-x16write32(struct x16file *f, uint32_t val)
-{
-	if(f == NULL) {
-		return 0;
-	}
-	int written = SDL_RWwrite(f->file, &val, 1, 4);
-	f->pos += written;
-	return written;
-}
-
 uint8_t 
 x16read8(struct x16file *f)
 {
@@ -309,31 +287,6 @@ x16read8(struct x16file *f)
 	f->pos += read;
 	return read;
 }
-
-uint16_t 
-x16read16(struct x16file *f)
-{
-	if(f == NULL) {
-		return 0;
-	}
-	uint16_t val;
-	int read = SDL_RWread(f->file, &val, 1, 2);
-	f->pos += read;
-	return read;
-}
-
-uint32_t 
-x16read32(struct x16file *f)
-{
-	if(f == NULL) {
-		return 0;
-	}
-	uint32_t val;
-	int read = SDL_RWread(f->file, &val, 1, 4);
-	f->pos += read;
-	return read;
-}
-
 
 uint64_t 
 x16write(struct x16file *f, const uint8_t *data, uint64_t data_size, uint64_t data_count)
