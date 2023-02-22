@@ -208,6 +208,16 @@ x16close(struct x16file *f)
 		unlink(tmp_path);
 	}
 tmp_path_error:
+	if(f == open_files) {
+		open_files = f->next;
+	} else {
+		for(struct x16file *fi = open_files; fi != NULL; fi = fi->next) {
+			if(fi->next == f) {
+				fi->next = f->next;
+				break;
+			}
+		}
+	}
 	free(f);
 }
 
