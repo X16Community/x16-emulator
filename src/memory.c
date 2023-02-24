@@ -21,7 +21,7 @@ uint8_t rom_bank;
 
 uint8_t *RAM;
 uint8_t ROM[ROM_SIZE];
-uint8_t *CART = NULL;
+extern uint8_t *CART;
 
 static uint8_t addr_ym = 0;
 
@@ -68,14 +68,28 @@ memory_reset()
 	memory_set_rom_bank(0);
 }
 
-void memory_report_uninitialized_access(bool value)
+void
+memory_report_uninitialized_access(bool value)
 {
 	reportUninitializedAccess = value;
 }
 
-void memory_randomize_ram(bool value)
+void
+memory_randomize_ram(bool value)
 {
 	randomizeRAM = value;
+}
+
+void
+memory_initialize_cart(uint8_t *mem)
+{
+	if(randomizeRAM) {
+		for(int i=0; i<0x4000; ++i) {
+			mem[i] = rand();
+		}
+	} else {
+		memset(mem, 0, 0x4000);
+	}
 }
 
 static uint8_t
@@ -213,8 +227,8 @@ write6502(uint16_t address, uint8_t value)
 	} else if (address < 0xc000) { // banked RAM
 		RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
 	} else { // ROM
-		if (rom_bank >= 32 && CART) { // Cartridge ROM/RAM
-			CART[((rom_bank - 32) << 14) + address - 0xc000] = value;
+		if (rom_bank >= 32) { // Cartridge ROM/RAM
+			cartridge_write(address, rom_bank-32, value);
 		}
 		// ignore if base ROM (banks 0-31)
 	}
@@ -373,18 +387,4 @@ emu_read(uint8_t reg, bool debugOn)
 	}
 	if (!debugOn) printf("WARN: Invalid register %x\n", DEVICE_EMULATOR + reg);
 	return -1;
-}
-
-void cartridge_attach(void)
-{
-	size_t ret = -1;
-	size_t i = 0;
-
-	if (cartridge_file) {
-		CART = calloc(CART_SIZE, sizeof(uint8_t));
-		while (ret) {
-			ret = SDL_RWread(cartridge_file, &CART[i], 1, CART_SIZE - i);
-			i += ret;
-		}
-	}
 }
