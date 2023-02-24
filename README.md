@@ -325,11 +325,11 @@ CRT File Format
 
 The Commander X16 will support cartridge ROMs, including auto-booting game cartridges. On the Gen-1 Developer board, the first slot will be used for cartridges. On the Gen-2 console machine, there is only one slot. ROM carts should work on both systems. 
 
-The CRT format is intended for the emulator, only, and is not required or used by the hardware. You can, however, use the MakeCart tool to convert between a single CRT file and BIN files that can be used to program a ROM burner. 
+This CRT format is intended for the emulator, and it is not required or used by the hardware. You can, however, use the MakeCart tool to convert between a single CRT file and BIN files that can be used to program a ROM burner. Also, note that this is different from the CRT format used the VICE emualtor, so files are not interchangable.
 
 Commander X16 cartridges will occupy the same address space as the Commander's KERNAL and BASIC ROMs. You can control the active bank by writing to address $0001 on the computer. Banks 0-31 are the built-in ROM banks, and banks 32-255 will select the cartridge ROMs. 
 
-The Major version (byte 2) will increment with a non-backward compatible change to the format. The Minor version will change with addtions that do not break existing features.
+The Major version (byte 2) will increment with a non-backward compatible change to the format. The Minor version will change with addtions that do not break existing features. 
 
 ### Header Layout
 
