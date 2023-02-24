@@ -329,35 +329,123 @@ This CRT format is intended for the emulator, and it is not required or used by 
 
 Commander X16 cartridges will occupy the same address space as the Commander's KERNAL and BASIC ROMs. You can control the active bank by writing to address $0001 on the computer. Banks 0-31 are the built-in ROM banks, and banks 32-255 will select the cartridge ROMs. 
 
-The Major version (byte 2) will increment with a non-backward compatible change to the format. The Minor version will change with addtions that do not break existing features. 
-
 ### Header Layout
 
-| Location | Description  
-|----------|-------------
-| `00-01`  | "XC" in PETSCII. ($58 $43)                                                 
-| `02`     | Major Version (Current version is $01)                                     
-| `03`     | Minor Version (Current is $01)                                             
-| `04-31`  | Cartridge title and copyright info. 28 bytes of freeform data.             
-| `32-255` | Bank Flags for ROM banks 32-255. 
-|          | 00: Not Present. No data is present in the emulator or in the file.
-|          | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
-|          | 02: RAM: No data in file. Bank is read/write in emulator.
-|          | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. (Useful for testing.)
-|          | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.
-|          | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.
-| `255-n`  | Bank data. Each bank must be exactly 16384 bytes long. 
+This is the cartridge header. The first 256 bytes is ASCII data and Human readable. The second 256 bytes is bank data; these are byte integers. We recommend ending the text fields with a newline sequence (\r\n) to make the file easy to read in text editors.
 
-For types 04 and 05: On shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
+| Location  | Length | Description  
+|-----------|--------|-----
+| `00-15`   | 16     | ASCII text: CX16 CARTRIDGE\r\n
+| `16-31`   | 16     | CRT format version. ASCII digits in format 01.02, space padded.
+| `32-63`   | 32     | Name. ASCII text.
+| `64-95`   | 32     | Programmer/Developer. ASCII text.
+| `96-127`  | 32     | Copyright information. ASCII text.
+| `128-191` | 32     | Program version. ASCII text. 
+| `192-255` | 64     | Empty.
+| `256-287` | 32     | Fill with zeros. 
+| `288-511` | 224    | Bank Flags.
+|           |        | 00: Not Present. No data is present in the emulator or in the file.
+|           |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
+|           |        | 02: RAM: No data in file. Bank is read/write in emulator.
+|           |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing.
+|           |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.
+|           |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.
+| `512-end` |        | Payload data. 
+|           |        | 16384 bytes per bank for types 1, 3, and 5. 
+|           |        | 0 bytes for types 0,2, and 4.
+
+For NVRAM banks: on shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
 
 For types 00, 02, and 04: The file does *not* contain data for these bank types. Instead, the file skips straight to the next bank with initialized data (01, 03, or 05). 
 
 For all "No Data" banks, the data in RAM is *undefined*. While the emulator currently initializes RAM to 0 bytes, the hardware will have random values. In addition, unpopulated addresses will be "open collector" and will have unpredicatable results. 
 
 ### Vectors
+
 Since the ROM banks occupy the same address range as the system ROMs, this affects the vectors the system interrupts, as well as the BRK and COP instructions. Programmers are advised to reserve the last 16 bytes of each bank. Use the following values to populate this block: 
 
 TODO: include vectors from BASIC ROM. 
+
+## MakeCart Conversion Tool
+
+(TODO: review after code completion)
+
+A conversion tool to pack cartridge data into a CRT file is underway. This is a work in progress.
+
+`-cfg <filename.cfg>` 
+Use this file to pack the cartridge data. Config file is simply the command line switches, one per line.
+
+`-desc "Name/Description"` 
+Set the description field of the cartridge file. Up to 32 bytes of ASCII text.
+
+`-author "Author Information"`
+Set the author information field of the cartridge file. Up to 32 bytes of ASCII text.
+
+`-copyright "Copyright Information"`
+Set the copyright information field of the cartridge file. Up to 32 bytes of ASCII text.
+
+`-version "version"`
+Set the version information field of the cartridge file. Up to 32 bytes of ASCII text.
+
+`-fill <value>` 
+Set the fill value to use with any partially-filled banks of cartridge memory. Value can be defined in decimal, or in hexadecimal with a '$' or '0x' prefix. 8-bit values will be repeated every byte, 16-bit values every two bytes, and 32-bit values every 4 bytes.
+
+`-rom_file <start_bank> [<filename.bin> [<filename.bin>] ... ]` 
+
+Define rom banks (Type 1) from the specified list of files. File data is tightly packed -- if a file does not end on a 16KB interval, the next file will be inserted immediately after it within the same bank. If the last file does not end on a 16KB interval, the remainder of the rom will be filled with the value set by '-fill'. 
+
+Valid bank numbers are 32 - 255.
+
+`-ram <start_bank> [<end bank>]`
+Define one or more banks of RAM. (Type 2) RAM banks are not included in the payload.
+
+`-ram_init <start_bank> [<filename.bin> [<filename.bin>] ... ]`
+Define one or more banks of initialized RAM. (Type 3) Note that Initialized RAM banks are not saved to the NVRAM file at shutdown. 
+
+`-nvram <start_bank> [<end_bank>]`
+Define one or more uninitalized nvram banks. (Type 4). 
+
+`-nvram_value <start_bank> <end_bank>`
+Define pre-initialized nvram banks (Type 5) with the value set by '-fill'. Repeated payload bytes will be written to the file.
+
+`-nvram_file <start_bank> [<filename.bin> [<filename.bin>] ... ]`
+
+Define pre-initialized nvram banks (Type 5) from the specified list of files. File data is tightly packed like with -rom. If the last file does not end on a 16KB interval, the remainder of the rom will be filled with the value set by '-fill'.
+
+`-none <start_bank> [<end_bank>]`
+Define one or more unpopulated banks (Type 0) of the cartridge. By default, all banks are unpopulated unless specified by a previous command-line option. These banks are not present in the payload and only popualte the bank header in the CRT file.
+
+`-o <output.crt>`
+Set the filename of the output cartridge file.
+
+All options can be specified multiple times, and are applied  in-order from left to right. For -desc and -o, it is legal to specify them multiple times but only the right-most instances of each will have effect.
+
+`-unpack <input.crt> [<rom_size>]` 
+Unpacks the binary data from the cartridge file into `<rom_size>` slices. (for use with an EPROM programmer.) The ouptut files will be the same filename as the input file, with _### appended. This will also create a .cfg file that can be used to re-pack the files into a new CRT if needed. 
+
+The config file is just a series of command-line switches, with one item per line. This example assumes ladder.bin uses 3 banks, for a total of 48K, and that each level map is 4KB in size.
+
+```
+-o ladder.crt
+-name "Ladder"
+-author "Yahoo Software"
+-copyright "(c) 1982, 1983 Yahoo Software"
+-version "1.30TP" 
+-rom_file 32 ladder.bin
+-rom_file 35 level_01.bin level_02.bin level_03.bin level_04.bin
+-nvram 37
+-fill 0
+```
+
+This would create file with 
+
+* 512 byte header
+* 5 ROM banks 
+  * 3 for the 48K ladder.bin 
+  * 1 for the four 4KB level files.
+* 1 empty NVRAM bank
+
+Since the NVRAM bank is not initialized, it is not included in the file. This makes the file a total of 66,048 bytes long. (512 bytes, plus four 16KB banks.)
 
 
 Web Site
