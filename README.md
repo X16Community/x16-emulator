@@ -91,18 +91,24 @@ You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the co
 
 * When starting `x16emu` without arguments, it will pick up the system ROM (`rom.bin`) from the executable's directory.
 * The system ROM filename/path can be overridden with the `-rom` command line argument.
-* `-ram <ramsize>` specifies banked RAM size in KB (8, 16, 32, ..., 2048). The default is 512.
-* `-nvram` lets you specify a 64 byte file for the system's non-volatile RAM. If it does not exist, it will be created once the NVRAM is modified.
-* `-keymap` tells the KERNAL to switch to a specific keyboard layout. Use it without an argument to view the supported layouts.
-* `-sdcard` lets you specify an SD card image (partition table + FAT32). Without this option, drive 8 will interface to the current directory on the host.
-* `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].
-* `-nohostieee` disables IEEE API interception to access the host fs.
 * `-prg` lets you specify a `.prg` file that gets loaded after start. It is fetched from the host filesystem, even if an SD card is attached!
 * `-bas` lets you specify a BASIC program in ASCII format that automatically typed in (and tokenized).
 * `-run` executes the application specified through `-prg` or `-bas` using `RUN` or `SYS`, depending on the load address.
-* `-geos` launches GEOS at startup.
 * `-scale` scales video output to an integer multiple of 640x480
+* `-rtc` causes the real-time-clock set to the system's time and date.
 * `-echo [{iso|raw}]` causes all KERNAL/BASIC output to be printed to the host's terminal. Enable this and use the BASIC command "LIST" to convert a BASIC program to ASCII (detokenize).
+* `-rom <rom.bin>` Override KERNAL/BASIC/* ROM file.
+* `-ram <ramsize>` specifies banked RAM size in KB (8, 16, 32, ..., 2048). The default is 512.
+* `-cartcrt <crtfile.crt>` loads a cartridge file. This requires a specially formatted cartridge file, as specified in the documentation.
+* `-cartbin <romfile.bin>` loads a raw cartridge file. This will be loaded starting at ROM bank 32. 
+* `-joy1` , `-joy2`, `-joy3`, `-joy4` enables binding a gamepad to that SNES controller port
+* `-nvram` lets you specify a 64 byte file for the system's non-volatile RAM. If it does not exist, it will be created once the NVRAM is modified.
+* `-keymap` tells the KERNAL to switch to a specific keyboard layout. Use it without an argument to view the supported layouts.
+* `-sdcard` lets you specify an SD card image (partition table + FAT32). Without this option, drive 8 will interface to the current directory on the host.
+* `-fsroot <dir>` specifies a file system root for the HostFS interface. This lets you save and load files without an SD card image. (As of R42, this is the preferred method.)
+* `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].
+* `-nohostieee` disables IEEE API interception to access the host fs.
+* `-geos` launches GEOS at startup.
 * `-warp` causes the emulator to run as fast as possible, possibly faster than a real X16.
 * `-gif <filename>[,wait]` to record the screen into a GIF. See below for more info.
 * `-wav <filename>[{,wait|,auto}]` to record audio into a WAV. See below for more info.
@@ -120,16 +126,13 @@ You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the co
 	* `R`: RAM (40 KiB)
 	* `B`: Banked RAM (2 MiB)
 	* `V`: Video RAM and registers (128 KiB VRAM, 32 B composer registers, 512 B palette, 16 B layer0 registers, 16 B layer1 registers, 16 B sprite registers, 2 KiB sprite attributes)
-* `-joy1` , `-joy2`, `-joy3`, `-joy4` enables binding a gamepad to that SNES controller port
 * `-sound` can be used to specify the output sound device.
 * `-abufs` can be used to specify the number of audio buffers (defaults to 8). If you're experiencing stuttering in the audio try to increase this number. This will result in additional audio latency though.
-* `-rtc` causes the real-time-clock set to the system's time and date.
 * `-via2` installs the second VIA chip expansion at $9F10.
 * `-version` prints additional version information of the emulator and ROM.
 * When compiled with `#define TRACE`, `-trace` will enable an instruction trace on stdout.
 
 Run `x16emu -h` to see all command line options.
-
 
 Keyboard Layout
 ---------------
@@ -234,7 +237,13 @@ On Linux, you can use the command line:
 	# sudo umount /mnt
 	# sudo losetup -d /dev/loop21
 
-On Windows, you can use the [OSFMount](https://www.osforensics.com/tools/mount-disk-images.html) tool.
+On Windows, you can use the [OSFMount](https://www.osforensics.com/tools/mount-disk-images.html) tool. Windows VHD files can also be created using the built-in Disk Manager. Careful attention should be paid to the settings when creating and formatting the VHD: 
+
+ * The file must be at least 32MB and must be fixed size. Expanding VHDs are not supported.
+ * Use an MBR partition tables. The Commander X16 does not recognize GPT partition tables.
+ * You must format the VHD with FAT32. Other file formats are not supported.
+ 
+ This is a trick, since Fixed-size VHD files contain the data first, with the metadata in a footer at the end. Since the emulator does not read or edit that medatada, it will only work with fixed-size files that are fully populated. 
 
 
 Host Filesystem Interface
@@ -256,6 +265,7 @@ To avoid incompatibility problems between the PETSCII and ASCII encodings, you c
 * use `Ctrl+O` to switch to the X16 to ISO mode for ASCII compatibility.
 * use `Ctrl+N` to switch to the upper/lower character set for a workaround.
 
+As of R42, the Host Filesystem interface (or HostFS) is the preferred method of accessing files. It does not require creating or managing an SDcard image, and it supports all of the CMDR-DOS commands. However, it is not cycle-accurate, since the emulator traps calls to DOS and performs the same actions in the host environment. If performance and hardware accuracy is required, you will want to perform final testing using an SD card image. 
 
 Dealing with BASIC Programs
 ---------------------------
@@ -310,17 +320,53 @@ When `-debug` is selected the STP instruction (opcode $DB) will break into the d
 
 Effectively keyboard routines only work when the debugger is running normally. Single stepping through keyboard code will not work at present.
 
+CRT File Format
+---------------
+
+The Commander X16 will support cartridge ROMs, including auto-booting game cartridges. On the Gen-1 Developer board, the first slot will be used for cartridges. On the Gen-2 console machine, there is only one slot. ROM carts should work on both systems. 
+
+The CRT format is intended for the emulator, only, and is not required or used by the hardware. You can, however, use the MakeCart tool to convert between a single CRT file and BIN files that can be used to program a ROM burner. 
+
+Commander X16 cartridges will occupy the same address space as the Commander's KERNAL and BASIC ROMs. You can control the active bank by writing to address $0001 on the computer. Banks 0-31 are the built-in ROM banks, and banks 32-255 will select the cartridge ROMs. 
+
+The Major version (byte 2) will increment with a non-backward compatible change to the format. The Minor version will change with addtions that do not break existing features.
+
+### Header Layout
+
+| Location | Description  
+|----------|-------------
+| `00-01`  | "XC" in PETSCII. ($58 $43)                                                 
+| `02`     | Major Version (Current version is $01)                                     
+| `03`     | Minor Version (Current is $01)                                             
+| `04-31`  | Cartridge title and copyright info. 28 bytes of freeform data.             
+| `32-255` | Bank Flags:                                                                
+|          | 00: Not Present.                                                   
+|          | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
+|          | 02: RAM: No data in file. Bank is read/write in emulator.
+|          | 03: NVRAM, Initialized: File data populates this bank, memory is writeable.
+|          | 04: NVRAM, Unitialized: No data in file. Memory is writeable. Emulator will save to a parallel file.
+|          | 05-255: Unimplemented. 
+| `255-n`  | Bank data. Each bank must be exactly 16384 bytes long. 
+
+On shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
+
+For bank types 0, 2, and 4: the CRT file will *not* contain data in the payload section for these banks.
+
+### Vectors
+Since the ROM banks occupy the same address range as the system ROMs, this affects the vectors the system interrupts, as well as the BRK and COP instructions. Programmers are advised to reserve the last 16 bytes of each bank. Use the following values to populate this block: 
+
+TODO: include vectors from BASIC ROM. 
+
+
+Web Site
+--------
+
+[https://commanderx16.com](https://commanderx16.com)
 
 Forum
 -----
 
-[https://www.commanderx16.com/forum/](https://www.commanderx16.com/forum/)
-
-
-Wiki
-----
-
-[https://github.com/commanderx16/x16-emulator/wiki](https://github.com/commanderx16/x16-emulator/wiki)
+[https://https://cx16forum.com/forum](https://cx16forum.com/forum/forum/)
 
 
 License
