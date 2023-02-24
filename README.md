@@ -339,18 +339,20 @@ The Major version (byte 2) will increment with a non-backward compatible change 
 | `02`     | Major Version (Current version is $01)                                     
 | `03`     | Minor Version (Current is $01)                                             
 | `04-31`  | Cartridge title and copyright info. 28 bytes of freeform data.             
-| `32-255` | Bank Flags:                                                                
-|          | 00: Not Present.                                                   
+| `32-255` | Bank Flags for ROM banks 32-255. 
+|          | 00: Not Present. No data is present in the emulator or in the file.
 |          | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
 |          | 02: RAM: No data in file. Bank is read/write in emulator.
-|          | 03: NVRAM, Initialized: File data populates this bank, memory is writeable.
-|          | 04: NVRAM, Unitialized: No data in file. Memory is writeable. Emulator will save to a parallel file.
-|          | 05-255: Unimplemented. 
+|          | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. (Useful for testing.)
+|          | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.
+|          | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.
 | `255-n`  | Bank data. Each bank must be exactly 16384 bytes long. 
 
-On shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
+For types 04 and 05: On shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
 
-For bank types 0, 2, and 4: the CRT file will *not* contain data in the payload section for these banks.
+For types 00, 02, and 04: The file does *not* contain data for these bank types. Instead, the file skips straight to the next bank with initialized data (01, 03, or 05). 
+
+For all "No Data" banks, the data in RAM is *undefined*. While the emulator currently initializes RAM to 0 bytes, the hardware will have random values. In addition, unpopulated addresses will be "open collector" and will have unpredicatable results. 
 
 ### Vectors
 Since the ROM banks occupy the same address range as the system ROMs, this affects the vectors the system interrupts, as well as the BRK and COP instructions. Programmers are advised to reserve the last 16 bytes of each bank. Use the following values to populate this block: 
