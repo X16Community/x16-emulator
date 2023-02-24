@@ -331,26 +331,26 @@ Commander X16 cartridges will occupy the same address space as the Commander's K
 
 ### Header Layout
 
-This is the cartridge header. The first 256 bytes is ASCII data and Human readable. The second 256 bytes is bank data; these are byte integers. We recommend ending the text fields with a newline sequence (\r\n) to make the file easy to read in text editors.
+This is the cartridge header. The first 256 bytes are ASCII data and Human readable. The second 256 bytes are bank data; these are byte integers. Text fields are set to 16 or 32-byte boundaries for ease of formatting.
 
 | Location  | Length | Description  
 |-----------|--------|-----
-| `00-15`   | 16     | ASCII text: CX16 CARTRIDGE\r\n
-| `16-31`   | 16     | CRT format version. ASCII digits in format 01.02, space padded.
-| `32-63`   | 32     | Name. ASCII text.
-| `64-95`   | 32     | Programmer/Developer. ASCII text.
-| `96-127`  | 32     | Copyright information. ASCII text.
-| `128-191` | 32     | Program version. ASCII text. 
-| `192-255` | 64     | Empty.
-| `256-287` | 32     | Fill with zeros. 
-| `288-511` | 224    | Bank Flags.
+| 00-15     | 16     | ASCII text: CX16 CARTRIDGE\r\n
+| 16-31     | 16     | CRT format version. ASCII digits in format 01.02, space padded.
+| 32-63     | 32     | Name. ASCII text.
+| 64-95     | 32     | Programmer/Developer. ASCII text.
+| 96-127    | 32     | Copyright information. ASCII text.
+| 128-191   | 32     | Program version. ASCII text. 
+| 192-255   | 64     | Empty.
+| 256-287   | 32     | Fill with zeros. 
+| 288-511   | 224    | Bank Flags.
 |           |        | 00: Not Present. No data is present in the emulator or in the file.
 |           |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
 |           |        | 02: RAM: No data in file. Bank is read/write in emulator.
 |           |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing.
 |           |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.
 |           |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.
-| `512-end` |        | Payload data. 
+| 512-end   |        | Payload data. 
 |           |        | 16384 bytes per bank for types 1, 3, and 5. 
 |           |        | 0 bytes for types 0,2, and 4.
 
