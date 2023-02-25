@@ -1,6 +1,7 @@
 #include "cartridge.h"
 #include "files.h"
 
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,27 +13,6 @@ char *Cartridge_nvram_path = NULL;
 
 const char Cartridge_magic_number[CART_MAGIC_NUMBER_SIZE] = { 'C', 'X', '1', '6', ' ', 'C', 'A', 'R', 'T', 'R', 'I', 'D', 'G', 'E', '\r', '\n' };
 const char Cartridge_current_version[CART_VERSION_SIZE]   = { '0', '1', '.', '0', '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
-
-static const char *
-find_extension(const char *path, const char *mark)
-{
-	if(path == NULL) {
-		return NULL;
-	}
-
-	if(mark == NULL) {
-		mark = path + strlen(path);
-	}
-
-	while(mark > path) {
-		if(*mark == '.') {
-			return mark;
-		}
-		--mark;
-	}
-
-	return NULL;
-}
 
 static void 
 initialize_cart_bank(uint8_t *mem, bool randomize)
@@ -49,11 +29,7 @@ initialize_cart_bank(uint8_t *mem, bool randomize)
 bool 
 cartridge_load(const char *path, bool randomize)
 {
-	const char *extension = find_extension(path, NULL);
-	if(strcmp(extension, ".gz") == 0) {
-		extension = find_extension(path, extension-1);
-	}
-
+	const char *extension = file_find_extension(path, NULL);
 	if(strncmp(extension, ".crt", 4) != 0) {
 		printf("Path \"%s\" does not appear to be a cartridge (.crt) file.\n", path);
 		return false;
@@ -89,7 +65,7 @@ cartridge_load(const char *path, bool randomize)
 	if(CART != NULL) {
 		free(CART);
 	}
-	CART = malloc(CART_BANK_SIZE * CART_MAX_BANKS);
+	CART = malloc(CART_MAX_SIZE);
 
 	uint8_t *mem = CART;
 	for(uint8_t t=0; ok && t<CART_MAX_BANKS; ++t) {
@@ -154,7 +130,7 @@ cartridge_new()
 	memcpy(Cartridge_info.magic_number, Cartridge_magic_number, CART_MAGIC_NUMBER_SIZE);
 	memcpy(Cartridge_info.cart_version, Cartridge_current_version, CART_VERSION_SIZE);
 
-	CART = malloc(CART_BANK_SIZE * CART_MAX_BANKS);
+	CART = malloc(CART_MAX_SIZE);
 }
 
 void 
@@ -169,7 +145,7 @@ cartridge_set_desc(const char *name)
 		namelen = CART_DESCRIPTION_SIZE;
 	}
 
-	memset(Cartridge_info.description, 0, CART_DESCRIPTION_SIZE);
+	memset(Cartridge_info.description, 0x20202020, CART_DESCRIPTION_SIZE);
 	memcpy(Cartridge_info.description, name, namelen);
 }
 
@@ -185,7 +161,7 @@ cartridge_set_author(const char *name)
 		namelen = CART_AUTHOR_SIZE;
 	}
 
-	memset(Cartridge_info.author, 0, CART_AUTHOR_SIZE);
+	memset(Cartridge_info.author, 0x20202020, CART_AUTHOR_SIZE);
 	memcpy(Cartridge_info.author, name, namelen);
 }
 
@@ -201,7 +177,7 @@ cartridge_set_copyright(const char *name)
 		namelen = CART_COPYRIGHT_SIZE;
 	}
 
-	memset(Cartridge_info.copyright, 0, CART_COPYRIGHT_SIZE);
+	memset(Cartridge_info.copyright, 0x20202020, CART_COPYRIGHT_SIZE);
 	memcpy(Cartridge_info.copyright, name, namelen);
 
 }
@@ -218,8 +194,79 @@ cartridge_set_program_version(const char *name)
 		namelen = CART_PROGRAM_VERSION_SIZE;
 	}
 
-	memset(Cartridge_info.prg_version, 0, CART_PROGRAM_VERSION_SIZE);
+	memset(Cartridge_info.prg_version, 0x20202020, CART_PROGRAM_VERSION_SIZE);
 	memcpy(Cartridge_info.prg_version, name, namelen);
+}
+
+static char *
+rtrim(char *str)
+{
+    char *c = str + strlen(str);
+    while(isspace(*c)) {
+		--c;
+	}
+    *(c + 1) = '\0';
+	return str;
+}
+
+void 
+cartridge_get_desc(char *buffer, size_t buffer_size)
+{
+	if(buffer == NULL) {
+		return;
+	}
+
+	if(buffer_size > CART_DESCRIPTION_SIZE) {
+		buffer_size = CART_DESCRIPTION_SIZE;
+	}
+
+	memcpy(buffer, Cartridge_info.description, CART_DESCRIPTION_SIZE);
+	rtrim(buffer);
+}
+
+void
+cartridge_get_author(char *buffer, size_t buffer_size)
+{
+	if(buffer == NULL) {
+		return;
+	}
+
+	if(buffer_size > CART_AUTHOR_SIZE) {
+		buffer_size = CART_AUTHOR_SIZE;
+	}
+
+	memcpy(buffer, Cartridge_info.author, CART_AUTHOR_SIZE);
+	rtrim(buffer);
+}
+
+void
+cartridge_get_copyright(char *buffer, size_t buffer_size)
+{
+	if(buffer == NULL) {
+		return;
+	}
+
+	if(buffer_size > CART_COPYRIGHT_SIZE) {
+		buffer_size = CART_COPYRIGHT_SIZE;
+	}
+
+	memcpy(buffer, Cartridge_info.copyright, CART_COPYRIGHT_SIZE);
+	rtrim(buffer);
+}
+
+void
+cartridge_get_program_version(char *buffer, size_t buffer_size)
+{
+	if(buffer == NULL) {
+		return;
+	}
+
+	if(buffer_size > CART_PROGRAM_VERSION_SIZE) {
+		buffer_size = CART_PROGRAM_VERSION_SIZE;
+	}
+
+	memcpy(buffer, Cartridge_info.prg_version, CART_PROGRAM_VERSION_SIZE);
+	rtrim(buffer);
 }
 
 bool 
@@ -274,7 +321,7 @@ cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint
 	}
 
 	uint32_t start_address = ((uint32_t)start_bank) << 14;
-	uint32_t available_size = CART_BANK_SIZE * CART_MAX_BANKS - start_address;
+	uint32_t available_size = CART_MAX_SIZE - start_address;
 
 	for(int i=0; i<num_files; ++i) {
 		if(available_size == 0) {
@@ -294,8 +341,8 @@ cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint
 	}
 
 	uint32_t fill_end = (start_address + CART_BANK_SIZE - 1) & (0xffUL << 14);
-	if(fill_end > CART_BANK_SIZE * CART_MAX_BANKS) {
-		fill_end = CART_BANK_SIZE * CART_MAX_BANKS;
+	if(fill_end > CART_MAX_SIZE) {
+		fill_end = CART_MAX_SIZE;
 	}
 	memset(CART + start_address, fill_value, fill_end - start_address);
 	
@@ -346,13 +393,8 @@ cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint32_t
 bool 
 cartridge_save(const char *path)
 {
-	const char *extension = find_extension(path, NULL);
-	bool compressed = false;
-	if(strcmp(extension, ".gz") == 0) {
-		extension = find_extension(path, extension-1);
-		compressed = true;
-	}
-
+	bool compressed = file_is_compressed_type(path);
+	const char *extension = file_find_extension(path, NULL);
 	if(strncmp(extension, ".crt", 4) != 0) {
 		printf("Path \"%s\" does not appear to be a cartridge (.crt) file.\n", path);
 		return false;
@@ -436,6 +478,10 @@ cartridge_write(uint16_t address, uint8_t bank, uint8_t value)
 
 	bank -= 32;
 
+	if(bank >= CART_MAX_BANKS) {
+		return;
+	}
+
 	switch(Cartridge_info.bank_info[bank]) {
 		case CART_BANK_NONE: // fall-through
 		case CART_BANK_ROM:
@@ -464,5 +510,25 @@ cartridge_read(uint16_t address, uint8_t bank)
 
 	bank -= 32;
 
+	if(bank >= CART_MAX_BANKS) {
+		return 0;
+	}
+
 	return CART[((uint32_t)bank << 14) + address - 0xc000];
+}
+
+uint8_t
+cartridge_get_bank_type(uint8_t bank)
+{
+	if(bank < 32) {
+		return CART_BANK_NONE;
+	}
+
+	bank -= 32;
+
+	if(bank >= CART_MAX_BANKS) {
+		return CART_BANK_NONE;
+	}
+
+	return Cartridge_info.bank_info[bank];
 }

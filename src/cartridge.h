@@ -4,11 +4,13 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #define CART_MAX_BANKS 224
 #define CART_BANK_SIZE 0x4000
+#define CART_MAX_SIZE (CART_BANK_SIZE * CART_MAX_BANKS)
 
 #define CART_MAGIC_NUMBER_SIZE 16
 #define CART_VERSION_SIZE 16
@@ -43,10 +45,17 @@ struct cartridge_import;
 bool cartridge_load(const char *cartridge_file, bool randomize);
 void cartridge_unload();
 void cartridge_new();
+
 void cartridge_set_desc(const char *name);
 void cartridge_set_author(const char *name);
 void cartridge_set_copyright(const char *name);
 void cartridge_set_program_version(const char *name);
+
+void cartridge_get_desc(char *buffer, size_t buffer_size);
+void cartridge_get_author(char *buffer, size_t buffer_size);
+void cartridge_get_copyright(char *buffer, size_t buffer_size);
+void cartridge_get_program_version(char *buffer, size_t buffer_size);
+
 bool cartridge_define_bank_range(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type);
 bool cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type, uint32_t fill_value);
 bool cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint32_t fill_value);
@@ -55,3 +64,4 @@ bool cartridge_save(const char *cartridge_file);
 
 uint8_t cartridge_read(uint16_t address, uint8_t bank);
 void cartridge_write(uint16_t address, uint8_t bank, uint8_t value);
+uint8_t cartridge_get_bank_type(uint8_t bank);

@@ -1,4 +1,7 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "../src/cartridge.h"
+#include "../src/files.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -90,15 +93,131 @@ unpack_cart(const char *path, uint32_t bank_size)
 		printf("Warning: rom_size specified to -unpack was not 16KB-aligned, the resulting config file will not be trustworthy.\n");
 	}
 
+	const char *extension = file_find_extension(path, NULL);
+	size_t extlen = strlen(extension);
+
+	size_t root_pathlen = strlen(path) - extlen;
+	char *root_path = malloc(root_pathlen + 1);
+	memcpy(root_path, path, root_pathlen);
+	root_path[root_pathlen] = '\0';
+
+	size_t outpath_len = root_pathlen + 8; // strlen("_000.bin");
+	char *outpath = malloc(outpath_len + 1);
+
+	size_t cfgpath_len = root_pathlen + 4; // strlen(".cfg");
+	char *cfgpath = malloc(cfgpath_len + 1);
+	sprintf(cfgpath, "%s.cfg", root_path);
+
+	FILE *cfg = fopen(cfgpath, "wb");
+	if(cfg == NULL) {
+		printf("Error: Could not open config file for writing: %s\n", cfgpath);
+	} else {
+		char buffer[65];
+
+		cartridge_get_desc(buffer, 65);
+		fprintf(cfg, "-desc \"%s\"\n", buffer);
+
+		cartridge_get_author(buffer, 65);
+		fprintf(cfg, "-author \"%s\"\n", buffer);
+
+		cartridge_get_copyright(buffer, 65);
+		fprintf(cfg, "-copyright \"%s\"\n", buffer);
+
+		cartridge_get_program_version(buffer, 65);
+		fprintf(cfg, "-prg_version \"%s\"\n", buffer);
+	}
+
 	cartridge_new();
 	if(cartridge_load(path, false)) {
+		uint32_t bank_idx = 0;
+		for(uint32_t offset = 0; offset < CART_MAX_SIZE; offset += bank_size) {
+			sprintf(outpath, "%s_%03d.bin", root_path, bank_idx);
+			++bank_idx;
+
+			struct x16file *f = x16open(outpath, "wb");
+			if(f == NULL) {
+				printf("Error opening file for write: %s\n", outpath);
+				continue;
+			}
+			size_t avail = CART_MAX_SIZE - offset;
+			if(!x16write(f, CART + offset, bank_size > avail ? avail : bank_size, 1)) {
+				printf("Error writing to file: %s\n", outpath);
+			}
+			x16close(f);
+
+			uint32_t start_bank = offset >> 14;
+			uint32_t end_bank = ((offset + bank_size) >> 14) - 1;
+
+			uint8_t start_bank_type = cartridge_get_bank_type(start_bank + 32);
+			bool conflicted = false;
+			for(uint32_t bank = start_bank + 1; bank <= end_bank; ++bank) {
+				uint8_t bank_type = cartridge_get_bank_type(bank + 32);
+				if(bank_type != start_bank_type) {
+					if(!conflicted) {
+						printf("Warning: Discovered bank type mismatch while writing file: %s\n", outpath);
+						printf("\tFile starts at offset $%08x, which is banks %d through %d\n", offset, start_bank, end_bank);
+						conflicted = true;
+					}
+					if(start_bank == bank - 1) {
+						printf("\tBank %d is type %d\n", start_bank + 32, start_bank_type);
+					} else {
+						printf("\tBanks %d through %d are type %d\n", start_bank + 32, bank + 32 - 1, start_bank_type);
+					}
+					start_bank_type = bank_type;
+					start_bank = bank;
+				}
+			}
+			if(conflicted) {
+				if(start_bank == end_bank) {
+					printf("\tBank %d is type %d\n", start_bank + 32, start_bank_type);
+				} else {
+					printf("\tBanks %d through %d are type %d\n", start_bank + 32, end_bank + 32, start_bank_type);
+				}
+				printf("\tThe resulting config file will not be trustworthy.");
+			}
+
+			if(cfg != NULL) {
+				start_bank = offset >> 14;
+				switch(cartridge_get_bank_type(offset >> 14)) {
+					case CART_BANK_NONE: /* skip */ break;
+					case CART_BANK_ROM: fprintf(cfg, "-rom_file %d \"%s\"\n", start_bank, outpath);
+					case CART_BANK_UNINITIALIZED_RAM: fprintf(cfg, "-ram %d %d\n", start_bank, end_bank);
+					case CART_BANK_INITIALIZED_RAM: fprintf(cfg, "-ram_file %d \"%s\"\n", start_bank, outpath);
+					case CART_BANK_UNINITIALIZED_NVRAM: fprintf(cfg, "-nvram %d %d\n", start_bank, end_bank);
+					case CART_BANK_INITIALIZED_NVRAM: fprintf(cfg, "-nvram_file %d \"%s\"\n", start_bank, outpath);
+					default: /* error */ break;
+				}
+			}
+		}
 	}
+
+	fclose(cfg);
+
+	free(cfgpath);
+	free(outpath);
+	free(root_path);
 }
 
 static void
 parse_config(const char *path)
 {
-	
+	FILE *cfg = fopen(path, "rb");
+	if(cfg == NULL) {
+		printf("Error opening file for read: %s", path);
+		return;
+	}
+
+	char *line = NULL;
+	size_t n = 0;
+	while(getline(&line, &n, cfg)) {
+		if(strncmp(line, "-rom_file", 9) == 0) { // strlen("-rom_file")
+		} else if(strncmp(line, "-rom_file", 9) == 0) {
+		}
+	}
+
+	if(line != NULL) {
+		free(line);
+	}
 }
 
 int 
@@ -187,7 +306,21 @@ main(int argc, char **argv)
 				usage();
 			}
 
-			fill_value = atoi(argv[0]);
+			if(argv[0][0] == '$') {
+				fill_value = strtol(argv[0] + 1, NULL, 16);
+			} else if(argv[0][0] == '%') {
+				fill_value = strtol(argv[0] + 1, NULL, 2);
+			} else if(argv[0][0] == '0') {
+				if(argv[0][1] == 'x') {
+					fill_value = strtol(argv[0] + 2, NULL, 16);
+				} else if(argv[0][1] == 'b') {
+					fill_value = strtol(argv[0] + 2, NULL, 2);
+				} else {
+					fill_value = strtol(argv[0] + 1, NULL, 8);
+				}
+			} else {
+				fill_value = strtol(argv[0], NULL, 10);
+			}
 			++argv;
 			--argc;
 
@@ -396,6 +529,24 @@ main(int argc, char **argv)
 			unpack_size = atoi(argv[0]);
 			++argv;
 			--argc;
+
+		} else if(!strcmp(argv[0], "-testbins")) {
+			++argv;
+			--argc;
+
+			char test_path[256];
+			for(uint8_t b=0; b<CART_MAX_BANKS; ++b) {
+				sprintf(test_path, "test-%03d.bin", b);
+				struct x16file *f = x16open(test_path, "wb");
+				if(f == NULL) {
+					printf("Error opening file for write: %s\n", test_path);
+					continue;
+				}
+				for(int i=0; i<CART_BANK_SIZE; ++i) {
+					x16write(f, &b, 1, 1);
+				}
+				x16close(f);
+			}
 		}
 	}
 
