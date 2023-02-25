@@ -399,7 +399,7 @@ Valid bank numbers are 32 - 255.
 `-ram <start_bank> [<end bank>]`
 Define one or more banks of RAM. (Type 2) RAM banks are not included in the payload.
 
-`-ram_init <start_bank> [<filename.bin> [<filename.bin>] ... ]`
+`-ram_file <start_bank> [<filename.bin> [<filename.bin>] ... ]`
 Define one or more banks of initialized RAM. (Type 3) Note that Initialized RAM banks are not saved to the NVRAM file at shutdown. 
 
 `-nvram <start_bank> [<end_bank>]`
