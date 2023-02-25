@@ -74,7 +74,7 @@ ifneq ("$(wildcard ./src/rom_labels.h)","")
 X16_HEADERS+=src/rom_labels.h
 endif
 
-_MAKECART_OBJS = makecart.o files.o cartridge.o
+_MAKECART_OBJS = makecart.o files.o cartridge.o makecart_javascript_interface.o
 _MAKECART_HEADERS = files.h cartridge.h
 
 MAKECART_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_MAKECART_OBJS))

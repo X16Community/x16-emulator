@@ -86,6 +86,10 @@ usage()
 static void
 unpack_cart(const char *path, uint32_t bank_size)
 {
+	if(bank_size & 0x3fff) {
+		printf("Warning: rom_size specified to -unpack was not 16KB-aligned, the resulting config file will not be trustworthy.\n");
+	}
+
 	cartridge_new();
 	if(cartridge_load(path, false)) {
 	}
