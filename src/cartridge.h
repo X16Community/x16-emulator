@@ -9,31 +9,47 @@
 
 #define CART_MAX_BANKS 224
 #define CART_BANK_SIZE 0x4000
-#define CART_DESCRIPTION_SIZE 28
+
+#define CART_MAGIC_NUMBER_SIZE 16
+#define CART_VERSION_SIZE 16
+#define CART_DESCRIPTION_SIZE 32
+#define CART_AUTHOR_SIZE 32
+#define CART_COPYRIGHT_SIZE 32
+#define CART_PROGRAM_VERSION_SIZE 32
+#define CART_RESERVED_SIZE (64 + 32)
 
 #define CART_BANK_NONE 0
 #define CART_BANK_ROM 1
-#define CART_BANK_RAM 2
-#define CART_BANK_INITIALIZED_NVRAM 3
+#define CART_BANK_UNINITIALIZED_RAM 2
+#define CART_BANK_INITIALIZED_RAM 3
 #define CART_BANK_UNINITIALIZED_NVRAM 4
+#define CART_BANK_INITIALIZED_NVRAM 5
+#define CART_NUM_BANK_TYPES 5
 
 struct x16cartridge_header
 {
-	uint8_t magic_number[2];
-	uint8_t major_version;
-	uint8_t minor_version;
+	char magic_number[CART_MAGIC_NUMBER_SIZE];
+	char cart_version[CART_VERSION_SIZE];
 	char description[CART_DESCRIPTION_SIZE];
+	char author[CART_AUTHOR_SIZE];
+	char copyright[CART_COPYRIGHT_SIZE];
+	char prg_version[CART_PROGRAM_VERSION_SIZE];
+	char reserved[CART_RESERVED_SIZE];
 	uint8_t bank_info[CART_MAX_BANKS];
 };
 
 struct cartridge_import;
 
-bool cartridge_load(const char *cartridge_file);
+bool cartridge_load(const char *cartridge_file, bool randomize);
+void cartridge_unload();
 void cartridge_new();
 void cartridge_set_desc(const char *name);
-void cartridge_define_banks(uint8_t start_bank, uint8_t num_banks, uint8_t bank_type);
-void cartridge_define_bank_range(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type);
-bool cartridge_import_files(const char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type);
+void cartridge_set_author(const char *name);
+void cartridge_set_copyright(const char *name);
+void cartridge_set_program_version(const char *name);
+bool cartridge_define_bank_range(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type);
+bool cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type, uint32_t fill_value);
+bool cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint32_t fill_value);
 
 bool cartridge_save(const char *cartridge_file);
 

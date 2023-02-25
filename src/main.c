@@ -40,6 +40,7 @@
 #include "version.h"
 #include "wav_recorder.h"
 #include "testbench.h"
+#include "cartridge.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -537,6 +538,7 @@ main(int argc, char **argv)
 	bool run_test = false;
 	int test_number = 0;
 	int audio_buffers = 8;
+	bool randram = false;
 
 	const char *audio_dev_name = NULL;
 
@@ -763,6 +765,7 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			memory_randomize_ram(true);
+			randram = true;
 		} else if (!strcmp(argv[0], "-wuninit")) {
 			argc--;
 			argv++;
@@ -937,12 +940,10 @@ main(int argc, char **argv)
 	}
 
 	if (cartridge_path) {
-		cartridge_file = SDL_RWFromFile(cartridge_path, "r+b");
-		if (!cartridge_file) {
+		if (!cartridge_load(cartridge_path, randram)) {
 			printf("Cannot open %s!\n", cartridge_path);
 			exit(1);
-		}
-		cartridge_attach();
+		}		
 	}
 
 	prg_override_start = -1;

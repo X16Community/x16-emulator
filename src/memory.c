@@ -15,6 +15,7 @@
 #include "cpu/fake6502.h"
 #include "wav_recorder.h"
 #include "audio.h"
+#include "cartridge.h"
 
 uint8_t ram_bank;
 uint8_t rom_bank;
