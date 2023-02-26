@@ -1158,6 +1158,11 @@ handle_ieee_intercept()
 			break;
 		case 0xFFAE:
 			s=UNLSN();
+			if (s == -2) { // special error behavior
+				status = (status | 1); // SEC
+			} else {
+				status = (status & ~1); // CLC
+			}
 			if (prg_file && sdcard_path_is_set() && ++count_unlistn == 4) {
 				// after auto-loading a PRG from the host fs,
 				// switch to the SD card if requested

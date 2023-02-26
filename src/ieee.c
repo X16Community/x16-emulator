@@ -1176,7 +1176,7 @@ copen(int channel)
 		} else {
 			if ((parsed_filename = parse_dos_filename(channels[channel].name)) == NULL) {
 				set_error(0x32, 0, 0); // Didn't parse out properly
-				return 2; 
+				return -2; 
 			}
 
 			resolved_filename = resolve_path(parsed_filename, false);
@@ -1184,13 +1184,13 @@ copen(int channel)
 
 			if (resolved_filename == NULL) {
 				// Resolve the path, if we get a null ptr back, error is already set.
-				return 2;
+				return -2;
 			}
 
 			if (path_exists && !overwrite && !append && !channels[channel].read) {
 				free(resolved_filename);
 				set_error(0x63, 0, 0); // forbid overwrite unless requested
-				return 2;
+				return -1;
 			}
 		
 			if (channels[channel].read && channels[channel].write) {
@@ -1207,7 +1207,7 @@ copen(int channel)
 				printf("  FILE NOT FOUND\n");
 			}
 			set_error(0x62, 0, 0);
-			ret = 2; // FNF
+			ret = -2; // FNF
 		} else {
 			if (append) {
 				SDL_RWseek(channels[channel].f, 0, RW_SEEK_END);
@@ -1367,7 +1367,7 @@ ACPTR(uint8_t *a)
 			}
 		} else if (channels[channel].f) {
 			if (SDL_RWread(channels[channel].f, a, 1, 1) != 1) {
-				ret = 0x40;
+				ret = 0x42;
 				*a = 0;
 			} else {
 				// We need to send EOI on the last byte of the file.
@@ -1381,10 +1381,10 @@ ACPTR(uint8_t *a)
 				SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
 			}
 		} else {
-			ret = 0x40;
+			ret = 0x42;
 		}
 	} else {
-		ret = 2; // FNF
+		ret = 0x42; // FNF
 	}
 	if (log_ieee) {
 		printf("%s-> $%02x\n", __func__, *a);
