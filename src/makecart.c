@@ -6,8 +6,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 extern uint8_t *CART;
+
+uint32_t fill_value = 0;
+
+static void parse_cmdline(int argc, char **argv);
 
 void
 usage()
@@ -80,8 +85,7 @@ usage()
 	printf("\t.cfg file that can be used to re-pack the files into a new CRT if needed.\n");
 	printf("\n");
 	printf("All options can be specified multiple times, and are applied  in-order from\n");
-	printf("\tleft to right. For -desc, -o, and -unpack, it is legal to specify them\n");
-	printf("\tmultiple times but only the right-most instances of each will have effect.\n");
+	printf("\tleft to right.\n");
 
 	exit(1);
 }
@@ -198,6 +202,44 @@ unpack_cart(const char *path, uint32_t bank_size)
 	free(root_path);
 }
 
+static char *
+next_token(char **token)
+{
+	if(**token == '\0') {
+		return NULL;
+	}
+	char *start = *token;
+	while(!isgraph(*start) && *start) {
+		++start;
+	}
+
+	char *next = start;
+	if(*next == '"') {
+		++next;
+		while(*next != '"' && *next) {
+			if(*next == '\\') {
+				++next;
+			}
+			++next;
+		}
+	} else {
+		while(isgraph(*next) && *next) {
+			if(*next == '\\') {
+				++next;
+			}
+			++next;
+		}
+	}
+	if(*next) {
+		*next = '\0';
+		*token = next+1;
+	} else {
+		*token = next;
+	}
+	
+	return start;
+}
+
 static void
 parse_config(const char *path)
 {
@@ -207,11 +249,22 @@ parse_config(const char *path)
 		return;
 	}
 
+	size_t argslen = 32;
+	char **argv = malloc(argslen * sizeof(char **));
+
 	char *line = NULL;
 	size_t n = 0;
 	while(getline(&line, &n, cfg)) {
-		if(strncmp(line, "-rom_file", 9) == 0) { // strlen("-rom_file")
-		} else if(strncmp(line, "-rom_file", 9) == 0) {
+		int argc = 0;
+		char *cmd;
+
+		while((cmd = next_token(&line))) {
+			if(argc >= argslen) {
+				argslen <<= 1;
+				argv = realloc(argv, argslen * sizeof(char **));
+			}
+			argv[argc] = cmd;
+			++argc;
 		}
 	}
 
@@ -220,20 +273,9 @@ parse_config(const char *path)
 	}
 }
 
-int 
-main(int argc, char **argv)
+static void 
+parse_cmdline(int argc, char **argv)
 {
-	argc--;
-	argv++;
-
-	char *config_file = NULL;
-	char *output_file = NULL;
-	char *unpack_file = NULL;
-	uint32_t unpack_size = CART_BANK_SIZE;
-	uint32_t fill_value = 0;
-
-	cartridge_new();
-
 	while(argc > 0) {
 		if (!strcmp(argv[0], "-help")) {
 			usage();
@@ -246,7 +288,7 @@ main(int argc, char **argv)
 				usage();
 			}
 
-			config_file = argv[0];
+			parse_config(argv[0]);
 			++argv;
 			--argc;
 
@@ -506,7 +548,7 @@ main(int argc, char **argv)
 				usage();
 			}
 
-			output_file = argv[0];
+			cartridge_save(argv[0]);
 			++argv;
 			--argc;
 
@@ -518,17 +560,20 @@ main(int argc, char **argv)
 				usage();
 			}
 
-			unpack_file = argv[0];
+			char *unpack_file = argv[0];
 			++argv;
 			--argc;
 
 			if (!argc || argv[0][0] == '-') {
+				unpack_cart(unpack_file, CART_BANK_SIZE);
 				continue;
 			}
 
-			unpack_size = atoi(argv[0]);
+			uint32_t unpack_size = atoi(argv[0]);
 			++argv;
 			--argc;
+
+			unpack_cart(unpack_file, unpack_size);
 
 		} else if(!strcmp(argv[0], "-testbins")) {
 			++argv;
@@ -549,18 +594,16 @@ main(int argc, char **argv)
 			}
 		}
 	}
+}
 
-	if(config_file) {
-		parse_config(config_file);
-	}
+int 
+main(int argc, char **argv)
+{
+	argc--;
+	argv++;
 
-	if(output_file) {
-		cartridge_save(output_file);
-	}
-
-	if(unpack_file) {
-		unpack_cart(unpack_file, unpack_size);
-	}
+	cartridge_new();
+	parse_cmdline(argc, argv);
 
 	return 0;
 }
