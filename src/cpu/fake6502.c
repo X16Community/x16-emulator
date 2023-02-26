@@ -77,7 +77,7 @@
  * void step6502()                                   *
  *   - Execute a single instrution.                  *
  *                                                   *
- * void irq6502()                                    *
+ * bool irq6502()                                    *
  *   - Trigger a hardware IRQ in the 6502 core.      *
  *                                                   *
  * void nmi6502()                                    *
@@ -104,6 +104,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 //6502 defines
 #define UNDOCUMENTED //when this is defined, undocumented opcodes are handled.
@@ -175,18 +176,23 @@ void nmi6502() {
     setinterrupt();
     cleardecimal();
     pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
+    clockticks6502 += 7; // consumed by CPU to process interrupt
     waiting = 0;
 }
 
-void irq6502() {
+bool irq6502() {
+    bool ret = false;
     if (!(status & FLAG_INTERRUPT)) {
         push16(pc);
         push8(status & ~FLAG_BREAK);
         setinterrupt();
         cleardecimal();
         pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+        clockticks6502 += 7; // consumed by CPU to process interrupt
+        ret = true;
     }
     waiting = 0;
+    return ret;
 }
 
 uint8_t callexternal = 0;

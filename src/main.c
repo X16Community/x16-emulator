@@ -1315,7 +1315,15 @@ emulator_loop(void *param)
 		}
 
 		uint32_t old_clockticks6502 = clockticks6502;
-		step6502();
+		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq())) {
+//			printf("IRQ!\n");
+			if (!irq6502()) {
+				step6502();
+			}
+			
+		} else {
+			step6502();
+		}
 		uint8_t clocks = clockticks6502 - old_clockticks6502;
 		bool new_frame = false;
 		via1_step(clocks);
@@ -1327,7 +1335,7 @@ emulator_loop(void *param)
 			via2_step(clocks);
 		}
 		if (!headless) {
-			new_frame |= video_step(MHZ, clocks);
+			new_frame |= video_step(MHZ, clocks, false);
 		}
 
 		for (uint8_t i = 0; i < clocks; i++) {
@@ -1360,11 +1368,6 @@ emulator_loop(void *param)
 			// After completing a frame we yield back control to the browser to stay responsive
 			return 0;
 #endif
-		}
-
-		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq())) {
-//			printf("IRQ!\n");
-			irq6502();
 		}
 
 		if (pc == 0xffff) {
