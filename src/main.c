@@ -1206,6 +1206,7 @@ emscripten_main_loop(void) {
 void *
 emulator_loop(void *param)
 {
+	uint32_t old_clockticks6502 = clockticks6502;
 	for (;;) {
 
 		if (testbench && pc == 0xfffd){
@@ -1314,9 +1315,9 @@ emulator_loop(void *param)
 			continue;
 		}
 
-		uint32_t old_clockticks6502 = clockticks6502;
 		step6502();
 		uint8_t clocks = clockticks6502 - old_clockticks6502;
+		old_clockticks6502 = clockticks6502;
 		bool new_frame = false;
 		via1_step(clocks);
 		vera_spi_step(clocks);
@@ -1327,7 +1328,7 @@ emulator_loop(void *param)
 			via2_step(clocks);
 		}
 		if (!headless) {
-			new_frame |= video_step(MHZ, clocks);
+			new_frame |= video_step(MHZ, clocks, false);
 		}
 
 		for (uint8_t i = 0; i < clocks; i++) {
