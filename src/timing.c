@@ -15,7 +15,7 @@ uint32_t last_perf_update;
 uint32_t clockticks6502_old;
 int64_t cpu_ticks;
 int64_t last_perf_cpu_ticks;
-char window_title[30];
+char window_title[255];
 
 void
 timing_init() {
@@ -47,11 +47,13 @@ timing_update()
 		uint32_t perf = (cpu_ticks - last_perf_cpu_ticks) / (MHZ * 50000);
 
 		if (perf < 100 || warp_mode) {
-			sprintf(window_title, "Commander X16 (%d%%)", perf);
-			video_update_title(window_title);
+			sprintf(window_title, WINDOW_TITLE " (%d%%)%s", perf, mouse_grabbed ? MOUSE_GRAB_MSG : "");
 		} else {
-			video_update_title("Commander X16");
+			sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
+			
 		}
+
+		video_update_title(window_title);
 
 		last_perf_cpu_ticks = cpu_ticks;
 		last_perf_update = sdlTicks;

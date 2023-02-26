@@ -22,6 +22,14 @@
 #define ROM_SIZE (NUM_ROM_BANKS * 16384)   /* banks at $C000-$FFFF */
 #define CART_SIZE (NUM_CART_BANKS * 16384)  /* expansion banks at $C000-$FFFF */
 
+#define WINDOW_TITLE "Commander X16"
+
+#ifdef __APPLE__
+#define MOUSE_GRAB_MSG " (\xE2\x8C\x98+M to release mouse)"
+#else
+#define MOUSE_GRAB_MSG " (Ctrl+M to release mouse)"
+#endif
+
 typedef enum {
 	ECHO_MODE_NONE,
 	ECHO_MODE_RAW,
@@ -83,4 +91,6 @@ extern uint8_t activity_led;
 extern bool nvram_dirty;
 extern uint8_t nvram[0x40];
 
+extern bool mouse_grabbed;
+extern char window_title[];
 #endif

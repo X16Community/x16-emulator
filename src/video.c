@@ -75,6 +75,7 @@ static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *sdlTexture;
 static bool is_fullscreen = false;
+bool mouse_grabbed = false;
 
 static uint8_t video_ram[0x20000];
 static uint8_t palette[256 * 2];
@@ -400,6 +401,14 @@ struct video_sprite_properties
 
 	uint16_t palette_offset;
 };
+
+void
+mousegrab_toggle() {
+	mouse_grabbed = !mouse_grabbed;
+	SDL_SetRelativeMouseMode(mouse_grabbed);
+	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
+	video_update_title(window_title);
+}
 
 struct video_sprite_properties sprite_properties[128];
 
@@ -1217,6 +1226,9 @@ video_update()
 					consumed = true;
 				} else if (event.key.keysym.sym == SDLK_d) {
 					sdcard_detach();
+					consumed = true;
+				} else if (event.key.keysym.sym == SDLK_m) {
+					mousegrab_toggle();
 					consumed = true;
 				}
 			}
