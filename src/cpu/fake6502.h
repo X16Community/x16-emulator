@@ -10,7 +10,7 @@
 extern void reset6502();
 extern void step6502();
 extern void exec6502(uint32_t tickcount);
-extern bool irq6502();
+extern void irq6502();
 extern void nmi6502();
 extern uint32_t clockticks6502;
 

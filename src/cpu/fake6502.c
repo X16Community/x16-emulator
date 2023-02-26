@@ -104,7 +104,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 //6502 defines
 #define UNDOCUMENTED //when this is defined, undocumented opcodes are handled.
@@ -180,8 +179,7 @@ void nmi6502() {
     waiting = 0;
 }
 
-bool irq6502() {
-    bool ret = false;
+void irq6502() {
     if (!(status & FLAG_INTERRUPT)) {
         push16(pc);
         push8(status & ~FLAG_BREAK);
@@ -189,10 +187,8 @@ bool irq6502() {
         cleardecimal();
         pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
         clockticks6502 += 7; // consumed by CPU to process interrupt
-        ret = true;
     }
     waiting = 0;
-    return ret;
 }
 
 uint8_t callexternal = 0;
