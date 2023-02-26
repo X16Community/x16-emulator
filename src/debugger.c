@@ -607,7 +607,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == pc ? col_highlight : col_data);
-		initialPC += size;										// Forward to next
+		initialPC = (initialPC + size) & 0xffff;										// Forward to next
 	}
 }
 
