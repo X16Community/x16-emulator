@@ -949,18 +949,18 @@ render_line(uint16_t y, float scan_pos_x)
 	}
 
 	if (layer_line_enable[0]) {
-		if (layer_properties[0].text_mode) {
+		if (prev_layer_properties[1][0].text_mode) {
 			render_layer_line_text(0, eff_y);
-		} else if (layer_properties[0].bitmap_mode) {
+		} else if (prev_layer_properties[1][0].bitmap_mode) {
 			render_layer_line_bitmap(0, eff_y);
 		} else {
 			render_layer_line_tile(0, eff_y);
 		}
 	}
 	if (layer_line_enable[1]) {
-		if (layer_properties[1].text_mode) {
+		if (prev_layer_properties[1][1].text_mode) {
 			render_layer_line_text(1, eff_y);
-		} else if (layer_properties[1].bitmap_mode) {
+		} else if (prev_layer_properties[1][1].bitmap_mode) {
 			render_layer_line_bitmap(1, eff_y);
 		} else {
 			render_layer_line_tile(1, eff_y);

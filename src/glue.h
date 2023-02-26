@@ -22,6 +22,8 @@
 #define ROM_SIZE (NUM_ROM_BANKS * 16384)   /* banks at $C000-$FFFF */
 #define CART_SIZE (NUM_CART_BANKS * 16384)  /* expansion banks at $C000-$FFFF */
 
+#define OPEN_BUS_READ 0xC0 // Proto 4 open data bus read behavior, according to David Murray
+
 #define WINDOW_TITLE "Commander X16"
 
 #ifdef __APPLE__

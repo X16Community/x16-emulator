@@ -81,7 +81,7 @@ void memory_randomize_ram(bool value)
 static uint8_t
 effective_ram_bank()
 {
-	return ram_bank % num_ram_banks;
+	return ram_bank;
 }
 
 //
@@ -108,7 +108,7 @@ read6502(uint16_t address) {
 				printf("Warning: %02X:%04X accessed uninitialized RAM address 00:%04X\n", pc_bank, pc, address);
 			}
 		} else if (address >= 0xa000 && address < 0xc000) {
-			if (RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] == false){
+			if (effective_ram_bank() < num_ram_banks && RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] == false){
 				printf("Warning: %02X:%04X accessed uninitialized RAM address %02X:%04X\n", pc_bank, pc, memory_get_ram_bank(), address);
 			}
 		}
@@ -149,8 +149,12 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 			return 0;
 		}
 	} else if (address < 0xc000) { // banked RAM
-		int ramBank = debugOn ? bank % num_ram_banks : effective_ram_bank();
-		return	RAM[0xa000 + (ramBank << 13) + address - 0xa000];
+		int ramBank = debugOn ? bank : effective_ram_bank();
+		if (ramBank < num_ram_banks) {
+			return RAM[0xa000 + (ramBank << 13) + address - 0xa000];
+		} else {
+			return OPEN_BUS_READ;
+		}
 
 
 	} else { // banked ROM
@@ -159,7 +163,7 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 			return ROM[(romBank << 14) + address - 0xc000];
 		} else {
 			if (!CART)
-				return 0;
+				return OPEN_BUS_READ;
 			return CART[((romBank - 32) << 14) + address - 0xc000];
 		}
 	}
@@ -173,7 +177,8 @@ write6502(uint16_t address, uint8_t value)
 		if (address < 0xa000) {
 			RAM_access_flags[address] = true;
 		} else if (address < 0xc000) {
-			RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = true;
+			if (effective_ram_bank() < num_ram_banks)
+				RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = true;
 		}
 	}
 
@@ -211,7 +216,8 @@ write6502(uint16_t address, uint8_t value)
 			// future expansion
 		}
 	} else if (address < 0xc000) { // banked RAM
-		RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
+		if (effective_ram_bank() < num_ram_banks)
+			RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
 	} else { // ROM
 		if (rom_bank >= 32 && CART) { // Cartridge ROM/RAM
 			CART[((rom_bank - 32) << 14) + address - 0xc000] = value;
