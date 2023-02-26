@@ -77,7 +77,7 @@
  * void step6502()                                   *
  *   - Execute a single instrution.                  *
  *                                                   *
- * bool irq6502()                                    *
+ * void irq6502()                                    *
  *   - Trigger a hardware IRQ in the 6502 core.      *
  *                                                   *
  * void nmi6502()                                    *
