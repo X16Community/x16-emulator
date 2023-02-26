@@ -181,7 +181,7 @@ video_reset()
 }
 
 bool
-video_init(int window_scale, double screen_x_scale, char *quality)
+video_init(int window_scale, float screen_x_scale, char *quality)
 {
 	uint32_t window_flags = SDL_WINDOW_ALLOW_HIGHDPI;
 
@@ -1148,15 +1148,14 @@ video_update()
 	bool mouse_changed = false;
 
 	// for activity LED, overlay red 8x4 square into top right of framebuffer
-	float factivity_led = (float)activity_led / 255;
 	for (int y = 0; y < 4; y++) {
 		for (int x = SCREEN_WIDTH - 8; x < SCREEN_WIDTH; x++) {
 			uint8_t b = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 0];
 			uint8_t g = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 1];
 			uint8_t r = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 2];
-			r = r * (1 - factivity_led) + activity_led;
-			g = g * (1 - factivity_led);
-			b = b * (1 - factivity_led);
+			r = (uint32_t)r * (255 - activity_led) / 255 + activity_led;
+			g = (uint32_t)g * (255 - activity_led) / 255;
+			b = (uint32_t)b * (255 - activity_led) / 255;
 			framebuffer[(y * SCREEN_WIDTH + x) * 4 + 0] = b;
 			framebuffer[(y * SCREEN_WIDTH + x) * 4 + 1] = g;
 			framebuffer[(y * SCREEN_WIDTH + x) * 4 + 2] = r;
