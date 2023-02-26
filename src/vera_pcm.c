@@ -13,7 +13,7 @@ static unsigned fifo_cnt;
 static uint8_t ctrl;
 static uint8_t rate;
 
-static uint8_t volume_lut[16] = {0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 23, 30, 38, 49, 64};
+static uint8_t volume_lut[16] = {0, 2, 4, 6, 8, 10, 12, 16, 21, 27, 35, 45, 59, 76, 99, 128};
 
 static int16_t cur_l, cur_r;
 static uint8_t phase;
@@ -137,7 +137,7 @@ pcm_render(int32_t *buf, unsigned num_samples)
 				}
 			}
 		}
-		*(buf++) = (int32_t)cur_l * volume_lut[ctrl & 0xF] << 1;
-		*(buf++) = (int32_t)cur_r * volume_lut[ctrl & 0xF] << 1;
+		*(buf++) = (int32_t)cur_l * volume_lut[ctrl & 0xF];
+		*(buf++) = (int32_t)cur_r * volume_lut[ctrl & 0xF];
 	}
 }

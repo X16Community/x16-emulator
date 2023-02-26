@@ -114,7 +114,7 @@ char *fsroot_path = NULL;
 char *startin_path = NULL;
 uint8_t keymap = 0; // KERNAL's default
 int window_scale = 1;
-double screen_x_scale = 1.0;
+float screen_x_scale = 1.0;
 char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
@@ -841,7 +841,7 @@ main(int argc, char **argv)
 		} else if (!strcmp(argv[0], "-widescreen")) {
 			argc--;
 			argv++;
-			screen_x_scale = 1.333;
+			screen_x_scale = 4.0/3;
 		} else if (!strcmp(argv[0], "-sound")) {
 			argc--;
 			argv++;
