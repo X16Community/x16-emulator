@@ -25,3 +25,4 @@ makecart.html.mem
 makecart.js
 makecart.wasm
 makecart.worker.js
+test*.bin

@@ -201,7 +201,7 @@ cartridge_set_program_version(const char *name)
 static char *
 rtrim(char *str)
 {
-    char *c = str + strlen(str);
+    char *c = str + strlen(str) - 1;
     while(isspace(*c)) {
 		--c;
 	}
@@ -216,11 +216,13 @@ cartridge_get_desc(char *buffer, size_t buffer_size)
 		return;
 	}
 
-	if(buffer_size > CART_DESCRIPTION_SIZE) {
-		buffer_size = CART_DESCRIPTION_SIZE;
+	if(buffer_size > CART_DESCRIPTION_SIZE + 1) {
+		buffer_size = CART_DESCRIPTION_SIZE + 1;
 	}
 
-	memcpy(buffer, Cartridge_info.description, CART_DESCRIPTION_SIZE);
+	memcpy(buffer, Cartridge_info.description, buffer_size - 1);
+	buffer[buffer_size - 1] = '\0';
+
 	rtrim(buffer);
 }
 
@@ -231,11 +233,13 @@ cartridge_get_author(char *buffer, size_t buffer_size)
 		return;
 	}
 
-	if(buffer_size > CART_AUTHOR_SIZE) {
-		buffer_size = CART_AUTHOR_SIZE;
+	if(buffer_size > CART_AUTHOR_SIZE + 1) {
+		buffer_size = CART_AUTHOR_SIZE + 1;
 	}
 
-	memcpy(buffer, Cartridge_info.author, CART_AUTHOR_SIZE);
+	memcpy(buffer, Cartridge_info.author, buffer_size - 1);
+	buffer[buffer_size - 1] = '\0';
+
 	rtrim(buffer);
 }
 
@@ -246,11 +250,13 @@ cartridge_get_copyright(char *buffer, size_t buffer_size)
 		return;
 	}
 
-	if(buffer_size > CART_COPYRIGHT_SIZE) {
-		buffer_size = CART_COPYRIGHT_SIZE;
+	if(buffer_size > CART_COPYRIGHT_SIZE + 1) {
+		buffer_size = CART_COPYRIGHT_SIZE + 1;
 	}
 
-	memcpy(buffer, Cartridge_info.copyright, CART_COPYRIGHT_SIZE);
+	memcpy(buffer, Cartridge_info.copyright, buffer_size - 1);
+	buffer[buffer_size - 1] = '\0';
+
 	rtrim(buffer);
 }
 
@@ -261,11 +267,13 @@ cartridge_get_program_version(char *buffer, size_t buffer_size)
 		return;
 	}
 
-	if(buffer_size > CART_PROGRAM_VERSION_SIZE) {
-		buffer_size = CART_PROGRAM_VERSION_SIZE;
+	if(buffer_size > CART_PROGRAM_VERSION_SIZE + 1) {
+		buffer_size = CART_PROGRAM_VERSION_SIZE + 1;
 	}
 
-	memcpy(buffer, Cartridge_info.prg_version, CART_PROGRAM_VERSION_SIZE);
+	memcpy(buffer, Cartridge_info.prg_version, buffer_size - 1);
+	buffer[buffer_size - 1] = '\0';
+
 	rtrim(buffer);
 }
 

@@ -115,24 +115,26 @@ unpack_cart(const char *path, uint32_t bank_size)
 	FILE *cfg = fopen(cfgpath, "wb");
 	if(cfg == NULL) {
 		printf("Error: Could not open config file for writing: %s\n", cfgpath);
-	} else {
-		char buffer[65];
-
-		cartridge_get_desc(buffer, 65);
-		fprintf(cfg, "-desc \"%s\"\n", buffer);
-
-		cartridge_get_author(buffer, 65);
-		fprintf(cfg, "-author \"%s\"\n", buffer);
-
-		cartridge_get_copyright(buffer, 65);
-		fprintf(cfg, "-copyright \"%s\"\n", buffer);
-
-		cartridge_get_program_version(buffer, 65);
-		fprintf(cfg, "-prg_version \"%s\"\n", buffer);
-	}
+	} 
 
 	cartridge_new();
 	if(cartridge_load(path, false)) {
+		if(cfg != NULL) {
+			char buffer[65];
+
+			cartridge_get_desc(buffer, 65);
+			fprintf(cfg, "-desc \"%s\"\n", buffer);
+
+			cartridge_get_author(buffer, 65);
+			fprintf(cfg, "-author \"%s\"\n", buffer);
+
+			cartridge_get_copyright(buffer, 65);
+			fprintf(cfg, "-copyright \"%s\"\n", buffer);
+
+			cartridge_get_program_version(buffer, 65);
+			fprintf(cfg, "-prg_version \"%s\"\n", buffer);
+		}
+		
 		uint32_t bank_idx = 0;
 		for(uint32_t offset = 0; offset < CART_MAX_SIZE; offset += bank_size) {
 			sprintf(outpath, "%s_%03d.bin", root_path, bank_idx);
@@ -184,11 +186,11 @@ unpack_cart(const char *path, uint32_t bank_size)
 				start_bank = offset >> 14;
 				switch(cartridge_get_bank_type(offset >> 14)) {
 					case CART_BANK_NONE: /* skip */ break;
-					case CART_BANK_ROM: fprintf(cfg, "-rom_file %d \"%s\"\n", start_bank, outpath);
-					case CART_BANK_UNINITIALIZED_RAM: fprintf(cfg, "-ram %d %d\n", start_bank, end_bank);
-					case CART_BANK_INITIALIZED_RAM: fprintf(cfg, "-ram_file %d \"%s\"\n", start_bank, outpath);
-					case CART_BANK_UNINITIALIZED_NVRAM: fprintf(cfg, "-nvram %d %d\n", start_bank, end_bank);
-					case CART_BANK_INITIALIZED_NVRAM: fprintf(cfg, "-nvram_file %d \"%s\"\n", start_bank, outpath);
+					case CART_BANK_ROM: fprintf(cfg, "-rom_file %d \"%s\"\n", start_bank, outpath); break;
+					case CART_BANK_UNINITIALIZED_RAM: fprintf(cfg, "-ram %d %d\n", start_bank, end_bank); break;
+					case CART_BANK_INITIALIZED_RAM: fprintf(cfg, "-ram_file %d \"%s\"\n", start_bank, outpath); break;
+					case CART_BANK_UNINITIALIZED_NVRAM: fprintf(cfg, "-nvram %d %d\n", start_bank, end_bank); break;
+					case CART_BANK_INITIALIZED_NVRAM: fprintf(cfg, "-nvram_file %d \"%s\"\n", start_bank, outpath); break;
 					default: /* error */ break;
 				}
 			}
@@ -205,7 +207,7 @@ unpack_cart(const char *path, uint32_t bank_size)
 static char *
 next_token(char **token)
 {
-	if(**token == '\0') {
+	if(**token == '\0' || **token == '\r' || **token == '\n') {
 		return NULL;
 	}
 	char *start = *token;
@@ -215,6 +217,7 @@ next_token(char **token)
 
 	char *next = start;
 	if(*next == '"') {
+		++start;
 		++next;
 		while(*next != '"' && *next) {
 			if(*next == '\\') {
@@ -254,11 +257,14 @@ parse_config(const char *path)
 
 	char *line = NULL;
 	size_t n = 0;
-	while(getline(&line, &n, cfg)) {
+	while(getline(&line, &n, cfg) >= 0) {
 		int argc = 0;
 		char *cmd;
 
 		while((cmd = next_token(&line))) {
+			if(strlen(cmd) == 0) {
+				continue;
+			}
 			if(argc >= argslen) {
 				argslen <<= 1;
 				argv = realloc(argv, argslen * sizeof(char **));
@@ -266,11 +272,14 @@ parse_config(const char *path)
 			argv[argc] = cmd;
 			++argc;
 		}
+
+		if(argc > 0) {
+			parse_cmdline(argc, argv);
+		}
 	}
 
-	if(line != NULL) {
-		free(line);
-	}
+	//free(line);
+	free(argv);
 }
 
 static void 
@@ -507,7 +516,7 @@ parse_cmdline(int argc, char **argv)
 			--argc;
 
 			if (!argc || argv[0][0] == '-') {
-				cartridge_fill(start_bank, start_bank, CART_BANK_UNINITIALIZED_NVRAM, fill_value);
+				cartridge_fill(start_bank, start_bank, CART_BANK_INITIALIZED_NVRAM, fill_value);
 				continue;
 			}
 
@@ -515,7 +524,7 @@ parse_cmdline(int argc, char **argv)
 			++argv;
 			--argc;
 
-			cartridge_fill(start_bank, end_bank, CART_BANK_UNINITIALIZED_NVRAM, fill_value);
+			cartridge_fill(start_bank, end_bank, CART_BANK_INITIALIZED_NVRAM, fill_value);
 
 		} else if(!strcmp(argv[0], "-none")) {
 			++argv;
