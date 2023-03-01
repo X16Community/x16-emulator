@@ -436,8 +436,7 @@ usage()
 	printf("\tInject a BASIC program in ASCII encoding through the\n");
 	printf("\tkeyboard.\n");
 	printf("-run\n");
-	printf("\tStart the -prg/-bas program using RUN or SYS, depending\n");
-	printf("\ton the load address.\n");
+	printf("\tStart the -prg/-bas program using RUN\n");
 	printf("-geos\n");
 	printf("\tLaunch GEOS at startup.\n");
 	printf("-warp\n");

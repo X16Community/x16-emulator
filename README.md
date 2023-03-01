@@ -93,7 +93,7 @@ You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the co
 * The system ROM filename/path can be overridden with the `-rom` command line argument.
 * `-prg` lets you specify a `.prg` file that gets loaded after start. It is fetched from the host filesystem, even if an SD card is attached!
 * `-bas` lets you specify a BASIC program in ASCII format that automatically typed in (and tokenized).
-* `-run` executes the application specified through `-prg` or `-bas` using `RUN` or `SYS`, depending on the load address.
+* `-run` executes the application specified through `-prg` or `-bas` using `RUN`.
 * `-scale` scales video output to an integer multiple of 640x480
 * `-rtc` causes the real-time-clock set to the system's time and date.
 * `-echo [{iso|raw}]` causes all KERNAL/BASIC output to be printed to the host's terminal. Enable this and use the BASIC command "LIST" to convert a BASIC program to ASCII (detokenize).
