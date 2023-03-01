@@ -175,7 +175,7 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 		} else {
 			if (!CART)
 				return 0;
-			return CART[((romBank - 32) << 14) + address - 0xc000];
+			return cartridge_read(address, romBank);
 		}
 	}
 }
@@ -229,7 +229,7 @@ write6502(uint16_t address, uint8_t value)
 		RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
 	} else { // ROM
 		if (rom_bank >= 32) { // Cartridge ROM/RAM
-			cartridge_write(address, rom_bank-32, value);
+			cartridge_write(address, rom_bank, value);
 		}
 		// ignore if base ROM (banks 0-31)
 	}
