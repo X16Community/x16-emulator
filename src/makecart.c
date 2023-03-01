@@ -14,6 +14,60 @@ uint32_t fill_value = 0;
 
 static void parse_cmdline(int argc, char **argv);
 
+static int x16_getline(char **line, size_t *n, FILE *f)
+{
+	if(line == NULL) {
+		return -1;
+	}
+	if(n == NULL) {
+		return -1;
+	}
+	if(f == NULL) {
+		return -1;
+	}
+	if(*line == NULL) {
+		*n = 64;
+		*line = malloc(*n);
+	} else if(*n == 0) {
+		*n = 64;
+		*line = realloc(*line, *n);
+	}
+
+	int i=EOF;
+	int c;
+	while((c = fgetc(f)) > EOF) {
+		++i;
+		if(i >= *n) {
+			*n <<= 1;
+			*line = realloc(*line, *n);
+		}
+		(*line)[i] = c;
+		if(c == '\n') {
+			break;
+		}
+	}
+	if(c < 0 && i >= 0) {
+		++i;
+		if(i >= *n) {
+			*n <<= 1;
+			*line = realloc(*line, *n);
+		}
+		(*line)[i] = '\0';
+	}
+	if(i > 0) {
+		if((*line)[i-1] == '\r') {
+			(*line)[i-1] = '\0';
+		} else {
+			(*line)[i] = '\0';
+		}
+		printf("%s\n", *line);
+	} else if(i == 0) {
+		(*line)[i] = '\0';
+		printf("%s\n", *line);
+	}
+	return i;
+}
+
 void
 usage()
 {
@@ -257,11 +311,12 @@ parse_config(const char *path)
 
 	char *line = NULL;
 	size_t n = 0;
-	while(getline(&line, &n, cfg) >= 0) {
+	while(x16_getline(&line, &n, cfg) >= 0) {
+		char *token = line;
 		int argc = 0;
 		char *cmd;
-
-		while((cmd = next_token(&line))) {
+		
+		while((cmd = next_token(&token))) {
 			if(strlen(cmd) == 0) {
 				continue;
 			}
@@ -278,7 +333,7 @@ parse_config(const char *path)
 		}
 	}
 
-	//free(line);
+	free(line);
 	free(argv);
 }
 
