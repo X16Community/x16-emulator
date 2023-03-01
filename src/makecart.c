@@ -60,10 +60,8 @@ static int x16_getline(char **line, size_t *n, FILE *f)
 		} else {
 			(*line)[i] = '\0';
 		}
-		printf("%s\n", *line);
 	} else if(i == 0) {
 		(*line)[i] = '\0';
-		printf("%s\n", *line);
 	}
 	return i;
 }
@@ -315,7 +313,7 @@ parse_config(const char *path)
 		char *token = line;
 		int argc = 0;
 		char *cmd;
-		
+
 		while((cmd = next_token(&token))) {
 			if(strlen(cmd) == 0) {
 				continue;
