@@ -1022,6 +1022,10 @@ main(int argc, char **argv)
 		video_end();
 		SDL_Quit();
 	}
+	if(cartridge_path) {
+		cartridge_save_nvram();
+		cartridge_unload();
+	}
 	files_shutdown();
 
 #ifdef PERFSTAT

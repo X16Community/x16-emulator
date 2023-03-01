@@ -61,6 +61,7 @@ bool cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank,
 bool cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint32_t fill_value);
 
 bool cartridge_save(const char *cartridge_file);
+bool cartridge_save_nvram();
 
 uint8_t cartridge_read(uint16_t address, uint8_t bank);
 void cartridge_write(uint16_t address, uint8_t bank, uint8_t value);

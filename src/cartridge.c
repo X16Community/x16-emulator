@@ -447,7 +447,7 @@ cartridge_save_nvram()
 		return false;
 	}
 
-	struct x16file *nvram = x16open(Cartridge_nvram_path, "rb");
+	struct x16file *nvram = x16open(Cartridge_nvram_path, "wb");
 
 	uint8_t *mem = CART;
 	bool ok = true;
