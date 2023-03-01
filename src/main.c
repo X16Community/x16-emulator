@@ -115,7 +115,7 @@ char *fsroot_path = NULL;
 char *startin_path = NULL;
 uint8_t keymap = 0; // KERNAL's default
 int window_scale = 1;
-double screen_x_scale = 1.0;
+float screen_x_scale = 1.0;
 char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
@@ -844,7 +844,7 @@ main(int argc, char **argv)
 		} else if (!strcmp(argv[0], "-widescreen")) {
 			argc--;
 			argv++;
-			screen_x_scale = 1.333;
+			screen_x_scale = 4.0/3;
 		} else if (!strcmp(argv[0], "-sound")) {
 			argc--;
 			argv++;
@@ -1163,6 +1163,11 @@ handle_ieee_intercept()
 			break;
 		case 0xFFAE:
 			s=UNLSN();
+			if (s == -2) { // special error behavior
+				status = (status | 1); // SEC
+			} else {
+				status = (status & ~1); // CLC
+			}
 			if (prg_file && sdcard_path_is_set() && ++count_unlistn == 4) {
 				// after auto-loading a PRG from the host fs,
 				// switch to the SD card if requested
@@ -1206,6 +1211,7 @@ emscripten_main_loop(void) {
 void *
 emulator_loop(void *param)
 {
+	uint32_t old_clockticks6502 = clockticks6502;
 	for (;;) {
 
 		if (testbench && pc == 0xfffd){
@@ -1314,9 +1320,9 @@ emulator_loop(void *param)
 			continue;
 		}
 
-		uint32_t old_clockticks6502 = clockticks6502;
 		step6502();
 		uint8_t clocks = clockticks6502 - old_clockticks6502;
+		old_clockticks6502 = clockticks6502;
 		bool new_frame = false;
 		via1_step(clocks);
 		vera_spi_step(clocks);
@@ -1327,7 +1333,7 @@ emulator_loop(void *param)
 			via2_step(clocks);
 		}
 		if (!headless) {
-			new_frame |= video_step(MHZ, clocks);
+			new_frame |= video_step(MHZ, clocks, false);
 		}
 
 		for (uint8_t i = 0; i < clocks; i++) {

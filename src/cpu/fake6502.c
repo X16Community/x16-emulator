@@ -175,6 +175,7 @@ void nmi6502() {
     setinterrupt();
     cleardecimal();
     pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
+    clockticks6502 += 7; // consumed by CPU to process interrupt
     waiting = 0;
 }
 
@@ -185,6 +186,7 @@ void irq6502() {
         setinterrupt();
         cleardecimal();
         pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+        clockticks6502 += 7; // consumed by CPU to process interrupt
     }
     waiting = 0;
 }
