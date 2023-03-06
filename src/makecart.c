@@ -1,7 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
-#include "../src/cartridge.h"
-#include "../src/files.h"
+#include "cartridge.h"
+#include "files.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -654,6 +654,8 @@ parse_cmdline(int argc, char **argv)
 				}
 				x16close(f);
 			}
+		} else {
+			return usage();
 		}
 	}
 }

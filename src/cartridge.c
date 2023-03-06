@@ -26,11 +26,25 @@ initialize_cart_bank(uint8_t *mem, bool randomize)
 	}
 }
 
+static int
+x16_strnicmp(char const *s0, char const *s1, int len)
+{
+	for(int i=0; (i<len) && (*s0 && *s1); ++i) {
+		if(tolower(*s0) != tolower(*s1)) {
+			break;
+		}
+		++s0;
+		++s1;
+	}
+
+	return *s0 - *s1;
+}
+
 bool 
 cartridge_load(const char *path, bool randomize)
 {
 	const char *extension = file_find_extension(path, NULL);
-	if(strncmp(extension, ".crt", 4) != 0) {
+	if(x16_strnicmp(extension, ".crt", 4) != 0) {
 		printf("Path \"%s\" does not appear to be a cartridge (.crt) file.\n", path);
 		return false;
 	}

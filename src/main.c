@@ -120,7 +120,6 @@ char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
 bool testbench = false;
-SDL_RWops *cartridge_file;
 
 #ifdef TRACE
 bool trace_mode = false;
