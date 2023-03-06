@@ -178,14 +178,21 @@ The following keys can be used for controlling games:
 Functions while running
 -----------------------
 
+#### Windows and Linux
 * `Ctrl` + `F` and `Ctrl` + `Return` will toggle full screen mode.
 * `Ctrl` + `M` will toggle mouse capture mode.
 * `Ctrl` + `R` will reset the computer.
-* `Ctrl` + `S` will save a system dump (configurable with `-dump`) to disk.
+* `Ctrl` + `S` will save a system dump configurable with `-dump`) to disk.
 * `Ctrl` + `V` will paste the clipboard by injecting key presses.
 * `Ctrl` + `=` and `Ctrl` + `+` will toggle warp mode.
 
-On the Mac, use the `⌘` key instead.
+#### Mac OS
+* `⌘F` and `⌘Return` will toggle full screen mode.
+* `⇧⌘M` will toggle mouse capture mode.
+* `⌘R` will reset the computer.
+* `⌘S` will save a system dump (configurable with `-dump`) to disk.
+* `⌘V` will paste the clipboard by injecting key presses.
+* `⌘=` and `⇧⌘+` will toggle warp mode.
 
 
 GIF Recording
