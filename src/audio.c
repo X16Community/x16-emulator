@@ -322,11 +322,11 @@ audio_render()
 		ym_out_r += samp[5] * filter[255 - filter_idx];
 		ym_out_l += samp[6] * filter[511 - filter_idx];
 		ym_out_r += samp[7] * filter[511 - filter_idx];
-		// Mixing is according to Proto3 hardware recording
+		// Mixing is according to the Developer Board
 		// Loudest single PSG channel is 1/8 times the max output
-		// mix = (psg + pcm) * 2 + ym / 2
-		int32_t mix_l = (vera_out_l >> 13) + (ym_out_l >> 16);
-		int32_t mix_r = (vera_out_r >> 13) + (ym_out_r >> 16);
+		// mix = (psg + pcm) * 2 + ym
+		int32_t mix_l = (vera_out_l >> 13) + (ym_out_l >> 15);
+		int32_t mix_r = (vera_out_r >> 13) + (ym_out_r >> 15);
 		uint32_t amp = SDL_max(SDL_abs(mix_l), SDL_abs(mix_r));
 		if (amp > 32767) {
 			uint32_t limiter_amp_new = (32767 << 16) / amp;
