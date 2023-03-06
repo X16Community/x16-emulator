@@ -17,3 +17,12 @@ x16emu.js
 x16emu.wasm
 x16emu.worker.js
 *.dll
+makecart
+makecart.exe
+makecart.data
+makecart.html
+makecart.html.mem
+makecart.js
+makecart.wasm
+makecart.worker.js
+test*.bin

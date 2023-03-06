@@ -54,6 +54,31 @@ file_is_compressed_type(char const *path)
 	return false;
 }
 
+const char *
+file_find_extension(const char *path, const char *mark)
+{
+	if(path == NULL) {
+		return NULL;
+	}
+
+	if(mark == NULL) {
+		mark = path + strlen(path);
+		if(file_is_compressed_type(path)) {
+			mark -= 3;
+		}
+	}
+
+	while(mark > path) {
+		if(*mark == '.') {
+			return mark;
+		}
+		--mark;
+	}
+
+	return NULL;
+}
+
+
 void
 files_shutdown()
 {

@@ -8,6 +8,7 @@ struct x16file;
 #define XSEEK_CUR	2
 
 bool file_is_compressed_type(char const *path);
+const char *file_find_extension(const char *path, const char *mark);
 
 void files_shutdown();
 
