@@ -619,7 +619,7 @@ render_layer_line_text(uint8_t layer, uint16_t y)
 		const uint32_t tile_offset = tile_start + y_add + x_add;
 
 		s           = video_space_read(props->tile_base + tile_offset);
-		color_shift = max_pixels_per_byte - xx;
+		color_shift = max_pixels_per_byte - (xx & 0x7);
 	}
 
 	// Render tile line.
