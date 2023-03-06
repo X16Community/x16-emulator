@@ -99,8 +99,8 @@ You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the co
 * `-echo [{iso|raw}]` causes all KERNAL/BASIC output to be printed to the host's terminal. Enable this and use the BASIC command "LIST" to convert a BASIC program to ASCII (detokenize).
 * `-rom <rom.bin>` Override KERNAL/BASIC/* ROM file.
 * `-ram <ramsize>` specifies banked RAM size in KB (8, 16, 32, ..., 2048). The default is 512.
-* `-cartcrt <crtfile.crt>` loads a cartridge file. This requires a specially formatted cartridge file, as specified in the documentation.
-* `-cartbin <romfile.bin>` loads a raw cartridge file. This will be loaded starting at ROM bank 32. 
+* `-cart <crtfile.crt>` loads a cartridge file. This requires a specially formatted cartridge file, as specified in the documentation.
+* `-cartbin <romfile.bin>` loads a raw cartridge file. This will be loaded starting at ROM bank 32. All cart banks will be flagged as RAM.
 * `-joy1` , `-joy2`, `-joy3`, `-joy4` enables binding a gamepad to that SNES controller port
 * `-nvram` lets you specify a 64 byte file for the system's non-volatile RAM. If it does not exist, it will be created once the NVRAM is modified.
 * `-keymap` tells the KERNAL to switch to a specific keyboard layout. Use it without an argument to view the supported layouts.
