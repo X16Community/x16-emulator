@@ -657,6 +657,17 @@ main(int argc, char **argv)
 			cartridge_path = argv[0];
 			argc--;
 			argv++;
+		} else if (!strcmp(argv[0], "-cartbin")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			cartridge_new();
+			cartridge_define_bank_range(32, 255, CART_BANK_UNINITIALIZED_RAM);
+			cartridge_import_files(argv, 1, 32, CART_BANK_INITIALIZED_RAM, 0);
+			argc--;
+			argv++;
 		} else if (!strcmp(argv[0], "-warp")) {
 			argc--;
 			argv++;
