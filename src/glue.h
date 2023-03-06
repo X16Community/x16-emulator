@@ -27,7 +27,7 @@
 #define WINDOW_TITLE "Commander X16"
 
 #ifdef __APPLE__
-#define MOUSE_GRAB_MSG " (\xE2\x8C\x98+M to release mouse)"
+#define MOUSE_GRAB_MSG " (\xE2\x87\xA7\xE2\x8C\x98M to release mouse)"
 #else
 #define MOUSE_GRAB_MSG " (Ctrl+M to release mouse)"
 #endif
