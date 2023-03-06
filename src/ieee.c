@@ -1193,7 +1193,9 @@ copen(int channel)
 				return -1;
 			}
 		
-			if (channels[channel].read && channels[channel].write) {
+			if (append) {
+				channels[channel].f = SDL_RWFromFile(resolved_filename, "ab+");
+			} else if (channels[channel].read && channels[channel].write) {
 				channels[channel].f = SDL_RWFromFile(resolved_filename, "rb+");
 			} else {
 				channels[channel].f = SDL_RWFromFile(resolved_filename, channels[channel].write ? "wb" : "rb");
@@ -1209,9 +1211,6 @@ copen(int channel)
 			set_error(0x62, 0, 0);
 			ret = -2; // FNF
 		} else {
-			if (append) {
-				SDL_RWseek(channels[channel].f, 0, RW_SEEK_END);
-			}
 			clear_error();
 		}
 	}
