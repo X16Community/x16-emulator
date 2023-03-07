@@ -3,7 +3,7 @@
 </p>
 
 [![Build Status](https://github.com/x16community/x16-emulator/actions/workflows/build.yml/badge.svg)](https://github.com/x16community/x16-emulator/actions/workflows/build.yml)
-[![Release](https://img.shields.io/github/v/release/commanderx16/x16-emulator)](https://github.com/commanderx16/x16-emulator/releases)
+[![Release](https://img.shields.io/github/v/release/commanderx16/x16-emulator)](https://github.com/x16community/x16-emulator/releases)
 [![License: BSD-Clause](https://img.shields.io/github/license/x16community/x16-emulator)](./LICENSE)
 [![Contributors](https://img.shields.io/github/contributors/x16community/x16-emulator.svg)](https://github.com/x16community/x16-emulator/graphs/contributors)
 
@@ -482,12 +482,12 @@ Release Notes
 This is the first release of x16-emulator by the X16Community team
 
 * Features
-	* Added testbench mode [stefan-b-jacobsson, indigodarkwolf]
+	* Added testbench mode [stefan-b-jakobsson, indigodarkwolf]
 	* Added `-noemucmdkeys` option [jestin]
 	* New `FIFO_EMPTY` flag in `PCM_CTRL` to reflect new VERA feature [ZeroByteOrg]
 	* Added `-widescreen` option to simulate stretched 640x480 output at a 16:9 aspect ratio [jestin]
 	* New `SCANLINE` VERA register behavior to reflect updated VERA feature [mooinglemur]
-	* Added `-randram` and `-wuninit` command line arguments to randomize RAM at boot, and to emit a console warning when uninitialized RAM is read, respectively. [stefan-b-jacobsson]
+	* Added `-randram` and `-wuninit` command line arguments to randomize RAM at boot, and to emit a console warning when uninitialized RAM is read, respectively. [stefan-b-jakobsson]
 	* Allow specifying non-power-of-2 argument to `-ram`, in increments of 8k [JimmyDansbo]
 	* Added `-via2` option to selectively enable a VIA at $9F10. [akumanatt]
 	* Added ROM cart loading with `-cart` and `-cartbin` [indigodarkwolf]
@@ -497,7 +497,7 @@ This is the first release of x16-emulator by the X16Community team
 	* New `-fsroot` and `-startin` options to specify the root of the emulated host fs, and the host directory to start in respectively. [mooinglemur]
 	* Many, many new features implemented in the [ROM](https://github.com/X16Community/x16-rom/#release-42-cambridge)
 * Other
-	* PS/2 devices now connected via SMC via I2C, I2C pins have moved to match hardware [stefan-b-jacobsson]
+	* PS/2 devices now connected via SMC via I2C, I2C pins have moved to match hardware [stefan-b-jakobsson]
 	* Recognize middle mouse button [ZeroByteOrg]
 	* Synchronized keymaps with ROM [megagrump]
 	* Build fixes [irmen]
