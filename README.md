@@ -477,6 +477,45 @@ All rights reserved. License: 2-clause BSD
 Release Notes
 -------------
 
+### Release 42 ("Cambridge")
+
+This is the first release of x16-emulator by the X16Community team
+
+* Features
+	* Added testbench mode [stefan-b-jacobsson, indigodarkwolf]
+	* Added `-noemucmdkeys` option [jestin]
+	* New `FIFO_EMPTY` flag in `PCM_CTRL` to reflect new VERA feature [ZeroByteOrg]
+	* Added `-widescreen` option to simulate stretched 640x480 output at a 16:9 aspect ratio [jestin]
+	* New `SCANLINE` VERA register behavior to reflect updated VERA feature [mooinglemur]
+	* Added `-randram` and `-wuninit` command line arguments to randomize RAM at boot, and to emit a console warning when uninitialized RAM is read, respectively. [stefan-b-jacobsson]
+	* Allow specifying non-power-of-2 argument to `-ram`, in increments of 8k [JimmyDansbo]
+	* Added `-via2` option to selectively enable a VIA at $9F10. [akumanatt]
+	* Added ROM cart loading with `-cart` and `-cartbin` [indigodarkwolf]
+	* New `makecart` utility for building `.crt` cartridge files [indigodarkwolf]
+	* Compressed SD card image support [indigodarkwolf]
+	* Mouse grab mode, press Ctrl+M (Mac: ⇧⌘M) to toggle. [mooinglemur]
+	* New `-fsroot` and `-startin` options to specify the root of the emulated host fs, and the host directory to start in respectively. [mooinglemur]
+	* Many, many new features implemented in the [ROM](https://github.com/X16Community/x16-rom/#release-42-cambridge)
+* Other
+	* PS/2 devices now connected via SMC via I2C, I2C pins have moved to match hardware [stefan-b-jacobsson]
+	* Recognize middle mouse button [ZeroByteOrg]
+	* Synchronized keymaps with ROM [megagrump]
+	* Build fixes [irmen]
+	* Show dialog when a `STP` instruction is encountered with debug turned off [akumanatt]
+	* Improved emulated behavior of `WAI` [LRFLEW]
+	* Clear D flag on interrupt entry [LRFLEW]
+	* Update BRK length in debugger [indigodarkwolf]
+	* IRQ/NMI entry clock cycles are now accounted for [mooinglemur]
+	* Add reason string to memory dump output [irmen]
+	* Clear sprite line buffer when disabling sprite layer [jestin]
+	* Improved audio balance between VERA and YM2151. Much improved mixing routines to reduce stutters and clicking. [akumanatt]
+	* To match hardware, VERA ISR bits are set at VSYNC, LINE, and SPRCOL regardless of whether their respective IEN bits are set [mooinglemur]
+	* Changes to match Proto 4, including moving VIA1 interrupt pin to IRQ [akumanatt]
+	* VERA mid-frame raster effects more closely match the timing of real hardware [mooinglemur]
+	* Enabled and built out CI/CD build workflows [maxgerhardt, indigodarkwolf, mooinglemur]
+	* Many host fs enhancements, bringing host fs very close to feature parity with SD card images [davidgiven, ZeroByteOrg, mooinglemur]
+	* Many documentation updates and fixes [veganaize, irmen, tomxp411]
+
 ### Release 41 ("Marrakech")
 
 * allow apps to intercept Cmd/Win, Menu and Caps-Lock keys
