@@ -382,9 +382,7 @@ Since the ROM banks occupy the same address range as the system ROMs, this affec
 
 ## MakeCart Conversion Tool
 
-(TODO: review after code completion)
-
-A conversion tool to pack cartridge data into a CRT file is underway. This is a work in progress.
+A conversion tool to pack cartridge data into a CRT file, `makecart`, is included in this release.
 
 `-cfg <filename.cfg>` 
 Use this file to pack the cartridge data. Config file is simply the command line switches, one per line.
