@@ -2,7 +2,7 @@ name: Build Binaries
 on: [push, pull_request]
 
 jobs:
-  build-win64:
+  build-win64-debug:
     runs-on: windows-latest
     defaults:
       run:
@@ -42,7 +42,7 @@ jobs:
         with:
           name: X16-Emu Windows 64-bit
           path: emu_binaries/*
-  build-win32:
+  build-win32-debug:
     runs-on: windows-latest
     defaults:
       run:
@@ -85,7 +85,7 @@ jobs:
         with:
           name: X16-Emu Windows 32-bit
           path: emu_binaries/*
-  build-lin64:
+  build-lin64-debug:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -116,7 +116,7 @@ jobs:
         with:
           name: X16-Emu Linux 64-bit
           path: emu_binaries/*
-  build-darwin-11-x64:
+  build-darwin-11-x64-debug:
     # this is currently macos-11, Big Sur
     runs-on: macos-11
     steps:
@@ -149,7 +149,7 @@ jobs:
         with:
           name: X16-Emu MacOS 11 Big Sur Intel 64-bit
           path: emu_binaries/*
-  build-darwin-12-x64:
+  build-darwin-12-x64-debug:
     # this is currently macos-12, Monterey
     runs-on: macos-12
     steps:
@@ -207,4 +207,108 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: X16-Emu WebAssembly
+          path: emu_binaries/*
+  build-win64-notrace:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: make mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
+      - name: Download latest ROM
+        id: download
+        run: |
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
+          mkdir emu_binaries
+          cp $(which SDL2.dll) emu_binaries/.
+          cp $(which zlib1.dll) emu_binaries/.
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu.exe emu_binaries/.
+          cp makecart.exe emu_binaries/.
+          file emu_binaries/*
+      - name: Copy ROM
+        run: |
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: X16-Emu Windows 64-bit (no -trace)
+          path: emu_binaries/*
+  build-darwin-11-x64-notrace:
+    # this is currently macos-11, Big Sur
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: | 
+          brew install make sdl2 
+      - name: Download latest ROM
+        id: download
+        run: |
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
+          mkdir emu_binaries
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu emu_binaries/.
+          cp makecart emu_binaries/.
+          file emu_binaries/*
+      - name: Copy ROM
+        run: |
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: X16-Emu MacOS 11 Big Sur Intel 64-bit (no -trace)
+          path: emu_binaries/*
+  build-lin64-notrace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
+      - name: Download latest ROM
+        id: download
+        run: |
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy ROM symbols
+        run: |
+          cp latest_rom/*.h src/.
+      - name: Build Emulator
+        run: |
+          make V=1 -j3
+          mkdir emu_binaries
+          cp sdcard.img.zip emu_binaries/.
+          cp x16emu emu_binaries/.
+          cp makecart emu_binaries/.
+          file emu_binaries/*
+      - name: Copy ROM
+        run: |
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: X16-Emu Linux 64-bit (no -trace)
           path: emu_binaries/*
