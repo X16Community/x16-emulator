@@ -470,7 +470,7 @@ All rights reserved. License: 2-clause BSD
 
 Release Notes
 -------------
-See [RELEASES](RELEASES.md) for the change log.
+See [RELEASES](RELEASES.md).
 
 
 <!-------------------------------------------------------------------->
