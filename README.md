@@ -370,9 +370,15 @@ For all "No Data" banks, the data in RAM is *undefined*. While the emulator curr
 
 ### Vectors
 
-Since the ROM banks occupy the same address range as the system ROMs, this affects the vectors the system interrupts, as well as the BRK and COP instructions. Programmers are advised to reserve the last 16 bytes of each bank. Use the following values to populate this block: 
+Since the ROM banks occupy the same address range as the system ROMs, this affects the vectors the system interrupts, as well as the BRK instruction. Programmers are strongly advised to reserve the last 6 bytes of each bank. Use the following values to populate this block: 
 
-TODO: include vectors from BASIC ROM. 
+```x86asm
+; These constants should be exposed in the last 6 bytes
+; accessible to the CPU starting at address $FFFA.
+.word $03B7 ; `banked_nmi` ram trampoline
+.word $FFFF ; dummy value, reset outside of bank 0 isn't ever used
+.word $038B ; `banked_irq` ram trampoline
+```
 
 ## MakeCart Conversion Tool
 
