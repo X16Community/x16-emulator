@@ -464,7 +464,7 @@ Web Site
 Forum
 -----
 
-[https://https://cx16forum.com/forum](https://cx16forum.com/forum/forum/)
+[https://cx16forum.com/forum](https://cx16forum.com/forum/forum/)
 
 
 License
