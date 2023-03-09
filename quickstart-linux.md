@@ -6,16 +6,26 @@ Installing the emulator
 
 ### Getting the emulator
 
-Obtain the X16 emulator by downloading an official release from the 'releases' tab in Github
-(note: currently no recent official releases are available).
-Alternatively, download a development build which are automatically created by github every time
-an update gets made to the emulator. You find these here: https://github.com/X16Community/x16-emulator/actions/workflows/build.yml?query=branch%3Amaster
-You'll need to be signed in into Github to access these files. Look for the Artifact called 'X16-Emu Linux 64-bit'.
+Obtain the X16 emulator by downloading it from the 'releases' tab in Github:
+https://github.com/X16Community/x16-emulator/actions/workflows/build.yml?query=branch%3Amaster
+You'll need to be signed in into Github to access these files. Look for the Artifact called 'x16emu_linux_...'
+for your correct CPU architecture, and download at least the R42 version or a newer development version.
+
+
+#### Alternative builds or other platform
+
+If for any reason you cannot run the official release of the emulator, there's a Snap package
+of it that you could try instead, available at https://snapcraft.io/x16emu
+
+It should avoid any shared library version incompatibilities that you could potentially run into with the
+official version, and is available for a broad range of platforms. Details and instructions on how to install
+this are on the linked page.
 
 Ofcourse, you could also compile the emulator from source, but that is outside the scope of this guide.
 
 
-### Installing the emulator
+
+### Installing the emulator and preparing for use
 
 * Extract the .zip file containing the emulator into an appropriate location such as `~/x16/emulator/`.
 For the rest of this guide we will assume this as the install location.
