@@ -2,8 +2,8 @@ name: Build Binaries
 on: [push, pull_request]
 
 jobs:
-  build-win64-debug:
-    runs-on: windows-latest
+  build-win-x86_64:
+    runs-on: windows-2019
     defaults:
       run:
         shell: msys2 {0}
@@ -13,17 +13,32 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: make mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
-      - name: Download latest ROM
-        id: download
+          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Build cc65
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          make -j4
+          make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          CA65_INC=/share/cc65/asminc make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') CA65_INC=/share/cc65/asminc make
       - name: Copy ROM symbols
         run: |
-          cp latest_rom/*.h src/.
+          cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
           TRACE=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
@@ -36,14 +51,14 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
+          cp x16-rom/build/x16/rom.bin emu_binaries/.
+          cp x16-rom/build/x16/*.sym emu_binaries/.
       - uses: actions/upload-artifact@v3
         with:
-          name: X16-Emu Windows 64-bit (Debug)
+          name: x16emu_win64
           path: emu_binaries/*
-  build-win32-debug:
-    runs-on: windows-latest
+  build-win-i686:
+    runs-on: windows-2019
     defaults:
       run:
         shell: msys2 {0}
@@ -53,20 +68,35 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: make mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2
+          install: make git mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2
           path-type: inherit
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
       - name: Add /mingw32/bin to path
         run: echo "/mingw32/bin" >> $GITHUB_PATH
-      - name: Download latest ROM
-        id: download
+      - name: Build cc65
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          make -j4
+          make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          CA65_INC=/share/cc65/asminc make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') CA65_INC=/share/cc65/asminc make
       - name: Copy ROM symbols
         run: |
-          cp latest_rom/*.h src/.
+          cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
           TRACE=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
@@ -79,27 +109,43 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
+          cp x16-rom/build/x16/rom.bin emu_binaries/.
+          cp x16-rom/build/x16/*.sym emu_binaries/.
       - uses: actions/upload-artifact@v3
         with:
-          name: X16-Emu Windows 32-bit (Debug)
+          name: x16emu_win32
           path: emu_binaries/*
-  build-lin64-debug:
-    runs-on: ubuntu-latest
+  build-linux-x86_64:
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
-      - name: Download latest ROM
-        id: download
+      - name: Build cc65
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          make -j4
+          sudo make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
       - name: Copy ROM symbols
         run: |
-          cp latest_rom/*.h src/.
+          cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
           TRACE=1 make V=1 -j3
@@ -110,29 +156,159 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
+          cp x16-rom/build/x16/rom.bin emu_binaries/.
+          cp x16-rom/build/x16/*.sym emu_binaries/.
       - uses: actions/upload-artifact@v3
         with:
-          name: X16-Emu Linux 64-bit (Debug)
+          name: x16emu_linux-x86_64
           path: emu_binaries/*
-  build-darwin-11-x64-debug:
+  build-linux-aarch64:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y build-essential make qemu-user-static
+      - name: Build cc65
+        run: |
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          make -j4
+          sudo make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+      - name: Copy ROM symbols
+        run: |
+          cp x16-rom/build/x16/*.h src/.
+      - name: Build Emulator
+        uses: pguyot/arm-runner-action@v2
+        with:
+          base_image: raspios_lite_arm64:2022-04-04
+          image_additional_mb: 8192
+          cpu: cortex-a53
+          copy_artifact_path: emu_binaries
+          commands: |
+            apt-get update
+            apt-get install -y build-essential make libsdl2-dev file
+            TRACE=1 make V=1 -j3
+            mkdir emu_binaries
+            cp sdcard.img.zip emu_binaries/.
+            cp x16emu emu_binaries/.
+            cp makecart emu_binaries/.
+            file emu_binaries/*
+      - name: Copy ROM
+        run: |
+          sudo cp x16-rom/build/x16/rom.bin emu_binaries/.
+          sudo cp x16-rom/build/x16/*.sym emu_binaries/.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: x16emu_linux-aarch64
+          path: emu_binaries/*
+  build-linux-armhf:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y build-essential make qemu-user-static
+      - name: Build cc65
+        run: |
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          make -j4
+          sudo make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+      - name: Copy ROM symbols
+        run: |
+          cp x16-rom/build/x16/*.h src/.
+      - name: Build Emulator
+        uses: pguyot/arm-runner-action@v2
+        with:
+          base_image: raspios_lite:2022-04-04
+          image_additional_mb: 8192
+          cpu: cortex-a7
+          copy_artifact_path: emu_binaries
+          commands: |
+            apt-get update
+            apt-get install -y build-essential make libsdl2-dev file
+            TRACE=1 make V=1 -j3
+            mkdir emu_binaries
+            cp sdcard.img.zip emu_binaries/.
+            cp x16emu emu_binaries/.
+            cp makecart emu_binaries/.
+            file emu_binaries/*
+      - name: Copy ROM
+        run: |
+          sudo cp x16-rom/build/x16/rom.bin emu_binaries/.
+          sudo cp x16-rom/build/x16/*.sym emu_binaries/.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: x16emu_linux-armhf
+          path: emu_binaries/*
+  build-macos-x86_64:
     # this is currently macos-11, Big Sur
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
         run: | 
-          brew install make sdl2 
-      - name: Download latest ROM
-        id: download
+          brew install make git sdl2 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Build cc65
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          PREFIX=/usr/local make -j4
+          sudo PREFIX=/usr/local make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
       - name: Copy ROM symbols
         run: |
-          cp latest_rom/*.h src/.
+          cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
           TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
@@ -143,44 +319,11 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
+          cp x16-rom/build/x16/rom.bin emu_binaries/.
+          cp x16-rom/build/x16/*.sym emu_binaries/.
       - uses: actions/upload-artifact@v3
         with:
-          name: X16-Emu MacOS 11 Big Sur Intel 64-bit (Debug)
-          path: emu_binaries/*
-  build-darwin-12-x64-debug:
-    # this is currently macos-12, Monterey
-    runs-on: macos-12
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: | 
-          brew install make sdl2 
-      - name: Download latest ROM
-        id: download
-        run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Copy ROM symbols
-        run: |
-          cp latest_rom/*.h src/.
-      - name: Build Emulator
-        run: |
-          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
-          file emu_binaries/*
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: X16-Emu MacOS 12 Monterey Intel 64-bit (Debug)
+          name: x16emu_macos
           path: emu_binaries/*
   build-wasm:
     runs-on: ubuntu-latest
@@ -189,15 +332,36 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
       - uses: mymindstorm/setup-emsdk@v12
-      - name: Download latest ROM
-        id: download
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Build cc65
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git clone https://github.com/cc65/cc65.git
+          cd cc65
+          make -j4
+          sudo make install
+      - name: Build ROM
+        if: startsWith(github.ref, 'refs/tags/r') != true
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          make
+      - name: Build Release ROM
+        if: startsWith(github.ref, 'refs/tags/r')
+        run: |
+          git clone https://github.com/X16Community/x16-rom.git
+          cd x16-rom
+          git checkout "$GITHUB_REF"
+          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+      - name: Copy ROM symbols
+        run: |
+          cp x16-rom/build/x16/*.h src/.
+      - name: Copy ROM
+        run: |
+          cp x16-rom/build/x16/rom.bin .
       - name: Build Emulator
         run: |
-          cp latest_rom/rom.bin .
           make V=1 -j3 wasm
           mkdir emu_binaries
           cp x16emu.data x16emu.html x16emu.js x16emu.wasm emu_binaries/
@@ -206,185 +370,6 @@ jobs:
           file emu_binaries/*
       - uses: actions/upload-artifact@v3
         with:
-          name: X16-Emu WebAssembly
+          name: x16emu_wasm
           path: emu_binaries/*
-  build-win64:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: make mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
-      - name: Download latest ROM
-        id: download
-        run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Copy ROM symbols
-        run: |
-          cp latest_rom/*.h src/.
-      - name: Build Emulator
-        run: |
-          CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
-          mkdir emu_binaries
-          cp $(which SDL2.dll) emu_binaries/.
-          cp $(which zlib1.dll) emu_binaries/.
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu.exe emu_binaries/.
-          cp makecart.exe emu_binaries/.
-          file emu_binaries/*
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: X16-Emu Windows 64-bit
-          path: emu_binaries/*
-  build-win32:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: make mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2
-          path-type: inherit
-      - name: Add /mingw32/bin to path
-        run: echo "/mingw32/bin" >> $GITHUB_PATH
-      - name: Download latest ROM
-        id: download
-        run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        shell: cmd
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Copy ROM symbols
-        run: |
-          cp latest_rom/*.h src/.
-      - name: Build Emulator
-        run: |
-          WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
-          mkdir emu_binaries
-          cp $(which SDL2.dll) emu_binaries/.
-          cp $(which zlib1.dll) emu_binaries/.
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu.exe emu_binaries/.
-          cp makecart.exe emu_binaries/.
-          file emu_binaries/*
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: X16-Emu Windows 32-bit
-          path: emu_binaries/*
-  build-darwin-11-x64:
-    # this is currently macos-11, Big Sur
-    runs-on: macos-11
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: | 
-          brew install make sdl2 
-      - name: Download latest ROM
-        id: download
-        run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Copy ROM symbols
-        run: |
-          cp latest_rom/*.h src/.
-      - name: Build Emulator
-        run: |
-          MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
-          file emu_binaries/*
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: X16-Emu MacOS 11 Big Sur Intel 64-bit
-          path: emu_binaries/*
-  build-darwin-12-x64:
-    # this is currently macos-12, Monterey
-    runs-on: macos-12
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: | 
-          brew install make sdl2 
-      - name: Download latest ROM
-        id: download
-        run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Copy ROM symbols
-        run: |
-          cp latest_rom/*.h src/.
-      - name: Build Emulator
-        run: |
-          MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
-          file emu_binaries/*
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: X16-Emu MacOS 12 Monterey Intel 64-bit
-          path: emu_binaries/*
-  build-lin64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
-      - name: Download latest ROM
-        id: download
-        run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Copy ROM symbols
-        run: |
-          cp latest_rom/*.h src/.
-      - name: Build Emulator
-        run: |
-          make V=1 -j3
-          mkdir emu_binaries
-          cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
-          file emu_binaries/*
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin emu_binaries/.
-          cp latest_rom/*.sym emu_binaries/.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: X16-Emu Linux 64-bit
-          path: emu_binaries/*
+
