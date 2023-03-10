@@ -6,10 +6,9 @@ Installing the emulator
 
 ### Getting the emulator
 
-Obtain the X16 emulator by downloading it from the 'releases' tab in Github:
-https://github.com/X16Community/x16-emulator/actions/workflows/build.yml?query=branch%3Amaster
-You'll need to be signed in into Github to access these files. Look for the Artifact called 'x16emu_linux_...'
-for your correct CPU architecture, and download at least the R42 version or a newer development version.
+Obtain the X16 emulator by downloading the most recent version from the 'releases' page in Github:
+https://github.com/X16Community/x16-emulator/releases
+Choose the correct version for your CPU architecture.
 
 
 #### Alternative builds or other platform
