@@ -21,7 +21,7 @@ This is the first release of x16-emulator by the X16Community team
 	* Compressed SD card image support [indigodarkwolf]
 	* Mouse grab mode, press Ctrl+M (Mac: ⇧⌘M) to toggle. [mooinglemur]
 	* New `-fsroot` and `-startin` options to specify the root of the emulated host fs, and the host directory to start in respectively. [mooinglemur]
-	* Many, many new features implemented in the [ROM](https://github.com/X16Community/x16-rom/#release-42-cambridge)
+	* Many, many new features implemented in the [ROM](https://github.com/X16Community/x16-rom/tree/r42#release-42-cambridge)
 * Other
 	* PS/2 devices now connected via SMC via I2C, I2C pins have moved to match hardware [stefan-b-jakobsson]
 	* Recognize middle mouse button [ZeroByteOrg]
