@@ -999,6 +999,9 @@ main(int argc, char **argv)
 	// Available since SDL 2.0.8
 	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
 #endif
+#ifdef __EMSCRIPTEN__
+	emscripten_set_main_loop(emscripten_main_loop, 0, 0);
+#endif
 	if (!headless) {
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
 		audio_init(audio_dev_name, audio_buffers);
@@ -1020,6 +1023,7 @@ main(int argc, char **argv)
 	instruction_counter = 0;
 
 #ifdef __EMSCRIPTEN__
+	emscripten_cancel_main_loop();
 	emscripten_set_main_loop(emscripten_main_loop, 0, 1);
 #else
 	emulator_loop(NULL);

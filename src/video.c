@@ -205,7 +205,7 @@ video_init(int window_scale, float screen_x_scale, char *quality)
 									SDL_TEXTUREACCESS_STREAMING,
 									SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	SDL_SetWindowTitle(window, "Commander X16");
+	SDL_SetWindowTitle(window, WINDOW_TITLE);
 	SDL_SetWindowIcon(window, CommanderX16Icon());
 
 	SDL_ShowCursor(SDL_DISABLE);
