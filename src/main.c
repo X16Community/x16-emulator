@@ -767,7 +767,14 @@ main(int argc, char **argv)
 			debugger_enabled = true;
 			if (argc && argv[0][0] != '-') {
 				uint32_t bpVal = (uint32_t)strtol(argv[0], NULL, 16);
-				struct breakpoint bp = { bpVal & 0xffff, bpVal >> 16 };
+				struct breakpoint bp;
+				if (bpVal < 0xA000) {
+					bp.pc = bpVal;
+					bp.bank = -1;
+				} else {
+					bp.pc = bpVal & 0xffff;
+					bp.bank = bpVal >> 16;
+				}
 				DEBUGSetBreakPoint(bp);
 				argc--;
 				argv++;
