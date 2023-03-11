@@ -112,10 +112,11 @@ int currentData = 0;											// Current data display address.
 int currentPCBank = -1;
 int currentBank = -1;
 int currentMode = DMODE_RUN;									// Start running.
-int stepBreakPoint = -1;										// Single step break.
+
 int dumpmode          = DDUMP_RAM;
 
 struct breakpoint breakPoint = { -1, -1 };						// User Break
+struct breakpoint stepBreakPoint = { -1, -1 };					// Single step break.
 
 char cmdLine[64]= "";											// command line buffer
 int currentPosInLine= 0;										// cursor position in the buffer (NOT USED _YET_)
@@ -131,6 +132,13 @@ int    oldRegisterTicks = 0;                          // Last PC when change not
 
 SDL_Renderer *dbgRenderer; 										// Renderer passed in.
 
+static int getCurrentBank(int pc) {
+	int bank = -1;
+	if (pc >= 0xA000) {
+		bank = pc < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
+	}
+	return bank;
+}
 
 // *******************************************************************************************
 //
@@ -139,7 +147,7 @@ SDL_Renderer *dbgRenderer; 										// Renderer passed in.
 // *******************************************************************************************
 
 static bool hitBreakpoint(int pc, struct breakpoint bp) {
-	if ((pc == bp.pc) && ((pc < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank()) == bp.bank)) {
+	if ((pc == bp.pc) && getCurrentBank(pc) == bp.bank) {
 		return true;
 	}
 	return false;
@@ -161,27 +169,22 @@ int  DEBUGGetCurrentStatus(void) {
 
 	if (currentMode == DMODE_STEP) {							// Single step before
 		currentPC = pc;											// Update current PC
-		if (currentPC >= 0xA000) {								// Update the bank if we are in upper memory.
-			currentPCBank = currentPC < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
-		}
+		currentPCBank = getCurrentBank(pc);						// Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;								// So now stop, as we've done it.
 	}
 
-	if (hitBreakpoint(pc, breakPoint) || pc == stepBreakPoint) {// Hit a breakpoint.
+	if (hitBreakpoint(pc, breakPoint) || hitBreakpoint(pc, stepBreakPoint)) {// Hit a breakpoint.
 		currentPC = pc;											// Update current PC
-		if (currentPC >= 0xA000) {								// Update the bank if we are in upper memory.
-			currentPCBank = currentPC < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
-		}
+		currentPCBank = getCurrentBank(pc);						// Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;								// So now stop, as we've done it.
-		stepBreakPoint = -1;									// Clear step breakpoint.
+		stepBreakPoint.pc = -1;									// Clear step breakpoint.
+		stepBreakPoint.bank = -1;
 	}
 
 	if (SDL_GetKeyboardState(NULL)[DBGSCANKEY_BRK]) {			// Stop on break pressed.
 		currentMode = DMODE_STOP;
 		currentPC = pc; 										// Set the PC to what it is.
-		if (currentPC >= 0xA000) {								// Update the bank if we are in upper memory.
-			currentPCBank = currentPC < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
-		}
+		currentPCBank = getCurrentBank(pc);						// Update the bank if we are in upper memory.
 	}
 
 	if(currentPCBank<0 && currentPC >= 0xA000) {
@@ -272,7 +275,8 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
 			opcode = real_read6502(pc, false, 0);							// What opcode is it ?
 			if (opcode == 0x20) { 							// Is it JSR ?
-				stepBreakPoint = pc + 3;					// Then break 3 on.
+				stepBreakPoint.pc = pc + 3;					// Then break 3 on.
+				stepBreakPoint.bank = getCurrentBank(pc);
 				currentMode = DMODE_RUN;					// And run.
 				timing_init();
 			} else {
