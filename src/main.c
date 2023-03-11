@@ -393,7 +393,7 @@ static void
 usage()
 {
 	printf("\nCommander X16 Emulator r%s (%s)\n", VER, VER_NAME);
-	printf("(C)2019,2022 Michael Steil et al.\n");
+	printf("(C)2019, 2023 Michael Steil et al.\n");
 	printf("All rights reserved. License: 2-clause BSD\n\n");
 	printf("Usage: x16emu [option] ...\n\n");
 	printf("-rom <rom.bin>\n");
@@ -569,8 +569,9 @@ main(int argc, char **argv)
 				usage();
 			}
 			int kb = atoi(argv[0]);
-			if (!((kb & 7)==0)) {
-				usage();
+			if (!((kb & 7)==0) || kb < 8 || kb > 2048) {
+				printf("-ram value must be a multiple of 8 in the range of 8-2048.\n");
+				exit(1);
 			}
 			num_ram_banks = kb /8;
 			argc--;
