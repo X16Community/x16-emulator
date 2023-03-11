@@ -16,10 +16,15 @@
 
 extern int showDebugOnRender;
 
+struct breakpoint {
+	int pc;
+	int bank;
+};
+
 void DEBUGRenderDisplay(int width,int height);
 void DEBUGBreakToDebugger(void);
 int  DEBUGGetCurrentStatus(void);
-void DEBUGSetBreakPoint(int newBreakPoint);
+void DEBUGSetBreakPoint(struct breakpoint newBreakPoint);
 void DEBUGInitUI(SDL_Renderer *pRenderer);
 void DEBUGFreeUI();
 
