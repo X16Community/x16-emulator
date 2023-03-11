@@ -107,6 +107,56 @@ static void crename(char *f);
 
 // Functions
 
+static void
+set_kernal_cbdos_flags(uint8_t flags)
+{
+	// check JMP instruction at ACPTR vector
+	if (read6502(0xffa5) != 0x4c) goto fail;
+
+	// get address of ACPTR routine
+	uint16_t kacptr = read6502(0xffa6) | read6502(0xffa7) << 8;
+	if (kacptr < 0xc000) goto fail;
+
+	// first instruction is BIT cbdos_flags
+	if (read6502(kacptr) != 0x2c) goto fail;
+
+	// get the address of cbdos_flags
+	uint16_t cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
+
+	if (cbdos_flags > 0x0400) goto fail;
+
+	write6502(cbdos_flags, flags);
+	return;
+fail:
+	printf("Unable to find KERNAL cbdos_flags for set\n");
+	return;
+}
+
+static uint8_t
+get_kernal_cbdos_flags(void)
+{
+	// check JMP instruction at ACPTR vector
+	if (read6502(0xffa5) != 0x4c) goto fail;
+
+	// get address of ACPTR routine
+	uint16_t kacptr = read6502(0xffa6) | read6502(0xffa7) << 8;
+	if (kacptr < 0xc000) goto fail;
+
+	// first instruction is BIT cbdos_flags
+	if (read6502(kacptr) != 0x2c) goto fail;
+
+	// get the address of cbdos_flags
+	uint16_t cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
+
+	if (cbdos_flags > 0x0400) goto fail;
+
+	return read6502(cbdos_flags);
+fail:
+	printf("Unable to find KERNAL cbdos_flags for get\n");
+	return 0;
+}
+
+
 // Puts the emulated cwd in buf, up to the maximum length specified by len
 // Turn null termination into a space
 // This is for displaying in the directory header
@@ -810,6 +860,13 @@ set_error(int e, int t, int s)
 	snprintf(error, sizeof(error), "%02x,%s,%02d,%02d\r", e, error_string(e), t, s);
 	error_len = strlen(error);
 	error_pos = 0;
+	uint8_t cbdos_flags = get_kernal_cbdos_flags();
+	if (e < 0x10 || e == 0x73) {
+		cbdos_flags &= ~0x20; // clear error
+	} else {
+		cbdos_flags |= 0x20; // set error flag
+	}
+	set_kernal_cbdos_flags(cbdos_flags);
 }
 
 static void
@@ -1345,10 +1402,11 @@ ACPTR(uint8_t *a)
 {
 	int ret = 0;
 	if (channel == 15) {
+		*a = error[error_pos++];
 		if (error_pos >= error_len) {
 			clear_error();
+			ret = 0x40; // EOI
 		}
-		*a = error[error_pos++];
 	} else if (channels[channel].read) {
 		if (channels[channel].name[0] == '$') {
 			if (dirlist_pos < dirlist_len) {
