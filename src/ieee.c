@@ -110,7 +110,7 @@ static void crename(char *f);
 static void
 set_kernal_cbdos_flags(uint8_t flags)
 {
-	// check JMP instruction at ACPTR vector
+	// check JMP instruction at ACPTR API
 	if (read6502(0xffa5) != 0x4c) goto fail;
 
 	// get address of ACPTR routine
@@ -123,7 +123,7 @@ set_kernal_cbdos_flags(uint8_t flags)
 	// get the address of cbdos_flags
 	uint16_t cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
 
-	if (cbdos_flags > 0x0400) goto fail;
+	if (cbdos_flags >= 0x0400) goto fail;
 
 	write6502(cbdos_flags, flags);
 	return;
@@ -135,7 +135,7 @@ fail:
 static uint8_t
 get_kernal_cbdos_flags(void)
 {
-	// check JMP instruction at ACPTR vector
+	// check JMP instruction at ACPTR API
 	if (read6502(0xffa5) != 0x4c) goto fail;
 
 	// get address of ACPTR routine
@@ -148,7 +148,7 @@ get_kernal_cbdos_flags(void)
 	// get the address of cbdos_flags
 	uint16_t cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
 
-	if (cbdos_flags > 0x0400) goto fail;
+	if (cbdos_flags >= 0x0400) goto fail;
 
 	return read6502(cbdos_flags);
 fail:
