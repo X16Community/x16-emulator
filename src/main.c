@@ -408,9 +408,11 @@ usage()
 	printf("\tEnable a specific keyboard layout decode table.\n");
 	printf("-sdcard <sdcard.img>\n");
 	printf("\tSpecify SD card image (partition map + FAT32)\n");
-	printf("-cart <cart.bin>\n");
-	printf("\tSpecify cartridge binary to be loaded ROM bank 32 and above\n");
-	printf("\tThis option enables the full 3.5MB RAM/ROM expansion\n");
+	printf("-cart <crtfile.crt>\n");
+	printf("\tLoads a specially-formatted cartridge file.\n");
+	printf("-cartbin <romfile.bin>\n");
+	printf("\tLoads a raw cartridge file starting at ROM bank 32. After\n");
+	printf("\tloading, all of the affected banks will function as RAM.\n");
 	printf("-serial\n");
 	printf("\tConnect host fs through Serial Bus [experimental]\n");
 	printf("-nohostieee\n");
