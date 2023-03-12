@@ -10,6 +10,9 @@
 #include "smc.h"
 #include "glue.h"
 #include "i2c.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 // 0x01 0x00      - Power Off
 // 0x01 0x01      - Hard Reboot
@@ -56,6 +59,9 @@ smc_write(uint8_t a, uint8_t v) {
 		case 1:
 			if (v == 0) {
 				printf("SMC Power Off.\n");
+#ifdef __EMSCRIPTEN__
+				emscripten_force_exit(0);
+#endif
 				exit(0);
 			} else if (v == 1) {
 				machine_reset();
