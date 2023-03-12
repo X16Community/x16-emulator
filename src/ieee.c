@@ -66,6 +66,8 @@ DIR *dirlist_dirp;
 char dirlist_wildcard[256];
 char dirlist_type_filter;
 
+uint16_t cbdos_flags = 0;
+
 const char *blocks_free = "BLOCKS FREE.";
 
 typedef struct {
@@ -110,50 +112,18 @@ static void crename(char *f);
 static void
 set_kernal_cbdos_flags(uint8_t flags)
 {
-	// check JMP instruction at ACPTR API
-	if (read6502(0xffa5) != 0x4c) goto fail;
-
-	// get address of ACPTR routine
-	uint16_t kacptr = read6502(0xffa6) | read6502(0xffa7) << 8;
-	if (kacptr < 0xc000) goto fail;
-
-	// first instruction is BIT cbdos_flags
-	if (read6502(kacptr) != 0x2c) goto fail;
-
-	// get the address of cbdos_flags
-	uint16_t cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
-
-	if (cbdos_flags >= 0x0400) goto fail;
-
-	write6502(cbdos_flags, flags);
-	return;
-fail:
-	printf("Unable to find KERNAL cbdos_flags for set\n");
-	return;
+	if (cbdos_flags)
+		write6502(cbdos_flags, flags);
 }
 
 static uint8_t
 get_kernal_cbdos_flags(void)
 {
-	// check JMP instruction at ACPTR API
-	if (read6502(0xffa5) != 0x4c) goto fail;
-
-	// get address of ACPTR routine
-	uint16_t kacptr = read6502(0xffa6) | read6502(0xffa7) << 8;
-	if (kacptr < 0xc000) goto fail;
-
-	// first instruction is BIT cbdos_flags
-	if (read6502(kacptr) != 0x2c) goto fail;
-
-	// get the address of cbdos_flags
-	uint16_t cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
-
-	if (cbdos_flags >= 0x0400) goto fail;
-
-	return read6502(cbdos_flags);
-fail:
-	printf("Unable to find KERNAL cbdos_flags for get\n");
-	return 0;
+	if (cbdos_flags) {
+		return read6502(cbdos_flags);
+	} else {
+		return 0;
+	}
 }
 
 
@@ -1348,6 +1318,29 @@ ieee_init()
 		exit(1);
 	}
 	strcpy(hostfscwd, startin_path);
+
+	// Locate and remember cbdos_flags variable address in KERNAL vars
+	{
+		// check JMP instruction at ACPTR API
+		if (read6502(0xffa5) != 0x4c) goto fail;
+
+		// get address of ACPTR routine
+		uint16_t kacptr = read6502(0xffa6) | read6502(0xffa7) << 8;
+		if (kacptr < 0xc000) goto fail;
+
+		// first instruction is BIT cbdos_flags
+		if (read6502(kacptr) != 0x2c) goto fail;
+
+		// get the address of cbdos_flags
+		cbdos_flags = read6502(kacptr+1) | read6502(kacptr+2) << 8;
+
+		if (cbdos_flags < 0x0200 || cbdos_flags >= 0x0400) goto fail;
+		goto success;
+fail:
+		printf("Unable to find KERNAL cbdos_flags\n");
+		cbdos_flags = 0;
+success:
+	}
 
 	set_error(0x73, 0, 0);
 }
