@@ -112,9 +112,11 @@ int currentData = 0;											// Current data display address.
 int currentPCBank = -1;
 int currentBank = -1;
 int currentMode = DMODE_RUN;									// Start running.
-int breakPoint = -1; 											// User Break
-int stepBreakPoint = -1;										// Single step break.
+
 int dumpmode          = DDUMP_RAM;
+
+struct breakpoint breakPoint = { -1, -1 };						// User Break
+struct breakpoint stepBreakPoint = { -1, -1 };					// Single step break.
 
 char cmdLine[64]= "";											// command line buffer
 int currentPosInLine= 0;										// cursor position in the buffer (NOT USED _YET_)
@@ -129,6 +131,27 @@ int    oldRegisterTicks = 0;                          // Last PC when change not
 //
 
 SDL_Renderer *dbgRenderer; 										// Renderer passed in.
+
+static int getCurrentBank(int pc) {
+	int bank = -1;
+	if (pc >= 0xA000) {
+		bank = pc < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
+	}
+	return bank;
+}
+
+// *******************************************************************************************
+//
+//      	This determines if we have hit a breakpoint, both in pc and bank
+//
+// *******************************************************************************************
+
+static bool hitBreakpoint(int pc, struct breakpoint bp) {
+	if ((pc == bp.pc) && getCurrentBank(pc) == bp.bank) {
+		return true;
+	}
+	return false;
+}
 
 // *******************************************************************************************
 //
@@ -146,18 +169,22 @@ int  DEBUGGetCurrentStatus(void) {
 
 	if (currentMode == DMODE_STEP) {							// Single step before
 		currentPC = pc;											// Update current PC
+		currentPCBank = getCurrentBank(pc);						// Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;								// So now stop, as we've done it.
 	}
 
-	if (pc == breakPoint || pc == stepBreakPoint) {				// Hit a breakpoint.
+	if (hitBreakpoint(pc, breakPoint) || hitBreakpoint(pc, stepBreakPoint)) {// Hit a breakpoint.
 		currentPC = pc;											// Update current PC
+		currentPCBank = getCurrentBank(pc);						// Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;								// So now stop, as we've done it.
-		stepBreakPoint = -1;									// Clear step breakpoint.
+		stepBreakPoint.pc = -1;									// Clear step breakpoint.
+		stepBreakPoint.bank = -1;
 	}
 
 	if (SDL_GetKeyboardState(NULL)[DBGSCANKEY_BRK]) {			// Stop on break pressed.
 		currentMode = DMODE_STOP;
 		currentPC = pc; 										// Set the PC to what it is.
+		currentPCBank = getCurrentBank(pc);						// Update the bank if we are in upper memory.
 	}
 
 	if(currentPCBank<0 && currentPC >= 0xA000) {
@@ -214,7 +241,7 @@ void DEBUGFreeUI() {
 //
 // *******************************************************************************************
 
-void DEBUGSetBreakPoint(int newBreakPoint) {
+void DEBUGSetBreakPoint(struct breakpoint newBreakPoint) {
 	breakPoint = newBreakPoint;
 }
 
@@ -248,7 +275,8 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
 			opcode = real_read6502(pc, false, 0);							// What opcode is it ?
 			if (opcode == 0x20) { 							// Is it JSR ?
-				stepBreakPoint = pc + 3;					// Then break 3 on.
+				stepBreakPoint.pc = pc + 3;					// Then break 3 on.
+				stepBreakPoint.bank = getCurrentBank(pc);
 				currentMode = DMODE_RUN;					// And run.
 				timing_init();
 			} else {
@@ -262,7 +290,8 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_SETBRK:									// F9 Set breakpoint to displayed.
-			breakPoint = currentPC;
+			breakPoint.pc = currentPC;
+			breakPoint.bank = currentPCBank;
 			break;
 
 		case DBGKEY_HOME:									// F1 sets the display PC to the actual one.
@@ -646,7 +675,11 @@ static int DEBUGRenderRegisters(void) {
 	DEBUGNumber(DBG_DATX, yc++, sp|0x100, 4, col_data);
 	yc++;
 
-	DEBUGNumber(DBG_DATX, yc++, breakPoint & 0xFFFF, 4, col_data);
+	if (breakPoint.bank < 0) {
+		DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
+	} else {
+		DEBUGNumber(DBG_DATX, yc++, (breakPoint.bank << 16) | breakPoint.pc, 6, col_data);
+	}
 	yc++;
 
 	DEBUGNumber(DBG_DATX, yc++, video_read(0, true) | (video_read(1, true)<<8) | (video_read(2, true)<<16), 2, col_data);
