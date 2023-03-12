@@ -1339,8 +1339,9 @@ ieee_init()
 fail:
 		printf("Unable to find KERNAL cbdos_flags\n");
 		cbdos_flags = 0;
-success:
+
 	}
+success:
 
 	set_error(0x73, 0, 0);
 }
