@@ -870,13 +870,13 @@ render_line(uint16_t y, float scan_pos_x)
 		if ((dc_video & 3) > 1) { // interlaced mode
 			if ((y >> 1) == 0) {
 				eff_y_fp = y*(prev_reg_composer[1][2] << 9);
-			} else if (y >= vstart) {
+			} else if (y > vstart) {
 				eff_y_fp += (prev_reg_composer[1][2] << 10);
 			}
 		} else {
 			if (y == 0) {
 				eff_y_fp = 0;
-			} else if (y >= vstart) {
+			} else if (y > vstart) {
 				eff_y_fp += (prev_reg_composer[1][2] << 9);
 			}
 		}
