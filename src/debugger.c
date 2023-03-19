@@ -24,8 +24,6 @@
 #include "debugger.h"
 #include "rendertext.h"
 
-extern uint8_t waiting;
-
 static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift);
 
 static void DEBUGNumber(int x,int y,int n,int w, SDL_Color colour);
