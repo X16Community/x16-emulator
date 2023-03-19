@@ -24,6 +24,8 @@
 #include "debugger.h"
 #include "rendertext.h"
 
+extern uint8_t waiting;
+
 static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift);
 
 static void DEBUGNumber(int x,int y,int n,int w, SDL_Color colour);
@@ -269,10 +271,12 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 	switch(key) {
 
 		case DBGKEY_STEP:									// Single step (F11 by default)
+			waiting = 0;									// Cancel WAI instruction
 			currentMode = DMODE_STEP; 						// Runs once, then switches back.
 			break;
 
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
+			waiting = 0;									// Cancel WAI instruction
 			opcode = real_read6502(pc, false, 0);							// What opcode is it ?
 			if (opcode == 0x20) { 							// Is it JSR ?
 				stepBreakPoint.pc = pc + 3;					// Then break 3 on.
