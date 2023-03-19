@@ -455,7 +455,7 @@ struct video_palette video_palette;
 static void
 refresh_palette() {
 	const uint8_t out_mode = reg_composer[0] & 3;
-	const bool chroma_disable = (reg_composer[0] >> 2) & 1;
+	const bool chroma_disable = ((reg_composer[0] & 0x07) == 6);
 	for (int i = 0; i < 256; ++i) {
 		uint8_t r;
 		uint8_t g;
@@ -867,10 +867,10 @@ render_line(uint16_t y, float scan_pos_x)
 		memcpy(prev_layer_properties[1], prev_layer_properties[0], sizeof(*layer_properties) * NUM_LAYERS);
 		memcpy(prev_layer_properties[0], layer_properties, sizeof(*layer_properties) * NUM_LAYERS);
 
-		if ((dc_video & 3) > 1) { // interlaced mode
+		if ((dc_video & 3) > 1) { // 480i or 240p
 			if ((y >> 1) == 0) {
 				eff_y_fp = y*(prev_reg_composer[1][2] << 9);
-			} else if (y > vstart) {
+			} else if ((y & 0xfffe) > vstart) {
 				eff_y_fp += (prev_reg_composer[1][2] << 10);
 			}
 		} else {
@@ -880,6 +880,10 @@ render_line(uint16_t y, float scan_pos_x)
 				eff_y_fp += (prev_reg_composer[1][2] << 9);
 			}
 		}
+	}
+
+	if ((dc_video & 8) == 0 && (dc_video & 3) > 1) { // progressive NTSC/RGB mode
+		y &= 0xfffe;
 	}
 
 	// refresh palette for next entry
@@ -1513,6 +1517,14 @@ void video_write(uint8_t reg, uint8_t value) {
 			video_step(MHZ, 0, true); // potential midline raster effect
 			int i = reg - 0x09 + (io_dcsel ? 4 : 0);
 			if (i == 0) {
+				// if interlace mode field goes from 1 to zero
+				// or if mode goes from vga to something else with
+				// interlace mode off, clear the framebuffer
+				if (((reg_composer[0] & 0x8) && (value & 0x8) == 0) ||
+					((reg_composer[0] & 0x3) == 1 && (value & 0x3) > 1 && (value & 0x8) == 0)) {
+					memset(framebuffer, 0x00, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
+				}
+
 				// interlace field bit is read-only
 				reg_composer[0] = (reg_composer[0] & ~0x7f) | (value & 0x7f);
 				video_palette.dirty = true;
