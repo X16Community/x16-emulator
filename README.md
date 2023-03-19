@@ -283,6 +283,11 @@ Please see the KERNAL/BASIC documentation.
 Debugger
 --------
 
+> WARNING: Don't activate the debugger using F12 and then try to step through the code using F10 or F11. 
+  This won't work anymore due to a change in the keyboard scanning logic.
+  Effectively keyboard routines only work when the debugger is running normally. Single stepping through keyboard code will not work at present.
+  You must break at locations outside the keyboard code either by placing breakpoints before running, or place $db bytes in your code.
+
 The debugger requires `-debug` to start. Without it it is effectively disabled.
 
 There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, X, Y, and SP.
@@ -316,7 +321,7 @@ The debugger keys are similar to the Microsoft Debugger shortcut keys, and work 
 
 When `-debug` is selected the STP instruction (opcode $DB) will break into the debugger automatically.
 
-Effectively keyboard routines only work when the debugger is running normally. Single stepping through keyboard code will not work at present.
+
 
 CRT File Format
 ---------------
