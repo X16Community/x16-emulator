@@ -929,6 +929,8 @@ main(int argc, char **argv)
 			printf("%s", VER_INFO);
 #ifdef GIT_REV
 			printf(" "GIT_REV"\n");
+#else
+			printf("\n");
 #endif
 			argc--;
 			argv++;
