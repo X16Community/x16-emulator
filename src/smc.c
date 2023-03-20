@@ -49,7 +49,7 @@ smc_read(uint8_t a) {
 			}
 
 		default:
-			return 0xff;
+			return 0;
 	}
 }
 
