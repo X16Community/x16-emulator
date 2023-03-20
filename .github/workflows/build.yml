@@ -41,6 +41,7 @@ jobs:
           cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
+          git reset --hard
           git diff
           TRACE=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
           mkdir emu_binaries
@@ -100,6 +101,7 @@ jobs:
           cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
+          git reset --hard
           git diff
           TRACE=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
           mkdir emu_binaries
