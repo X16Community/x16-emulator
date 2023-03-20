@@ -30,17 +30,33 @@ function init() {
 //define valid layouts (this can be gotten by running the emulator with -keymap)
 const layouts = [
     'en-us',
-    'en-gb',
-    'de',
-    'nordic',
-    'it',
-    'pl',
-    'hu',
-    'es',
-    'fr',
-    'de-ch',
-    'fr-be',
-    'pt-br'
+	'en-us-int',
+	'en-gb',
+	'sv',
+	'de',
+	'da',
+	'it',
+	'pl',
+	'nb',
+	'hu',
+	'es',
+	'fi',
+	'pt-br',
+	'cz',
+	'jp',
+	'fr',
+	'de-ch',
+	'en-us-dvo',
+	'et',
+	'fr-be',
+	'fr-ca',
+	'is',
+	'pt',
+	'hr',
+	'sk',
+	'sl',
+	'lv',
+	'lt'
 ];
 
 lang = getFirstBrowserLanguage().toLowerCase().trim();
@@ -63,7 +79,7 @@ else if (manifest_link && !manifest_link.endsWith('/')) {
     manifest_link = manifest_link + '/';
 }
 
-var emuArguments = ['-keymap', lang];
+var emuArguments = ['-keymap', lang, '-rtc'];
 
 if (manifest_link) {
     openFs();
