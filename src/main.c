@@ -1157,6 +1157,8 @@ handle_ieee_intercept()
 		return false;
 	}
 
+	uint64_t base_ticks = SDL_GetPerformanceCounter();
+
 	static int count_unlistn = 0;
 	bool handled = true;
 	int s = -1;
@@ -1215,6 +1217,9 @@ handle_ieee_intercept()
 	}
 
 	if (handled) {
+		// Add the number CPU cycles equivalent to the amount of time that the operation actually took
+		// to prevent the emu from warping after a hostfs load
+		clockticks6502 += (uint64_t)((SDL_GetPerformanceCounter() - base_ticks) * 1000000 * MHZ) / SDL_GetPerformanceFrequency();
 		if (s >= 0) {
 			if (!set_kernal_status(s)) {
 				printf("Warning: Could not set STATUS!\n");
