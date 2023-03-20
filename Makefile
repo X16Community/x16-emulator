@@ -36,6 +36,10 @@ endif
 X16_OUTPUT=x16emu
 MAKECART_OUTPUT=makecart
 
+GIT_REV=$(shell git diff --quiet && echo -n $$(git rev-parse --short=8 HEAD || echo "00000000") || echo -n $$( echo -n $$(git rev-parse --short=7 HEAD || echo "0000000"); echo -n '+'))
+
+CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
+
 ifeq ($(MAC_STATIC),1)
 	LIBSDL_FILE?=/opt/homebrew/Cellar/sdl2/2.0.20/lib/libSDL2.a
 	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
