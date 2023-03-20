@@ -41,6 +41,8 @@ jobs:
           cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
+          git reset --hard
+          git diff
           TRACE=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
@@ -99,6 +101,8 @@ jobs:
           cp x16-rom/build/x16/*.h src/.
       - name: Build Emulator
         run: |
+          git reset --hard
+          git diff
           TRACE=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
@@ -204,7 +208,7 @@ jobs:
           copy_artifact_path: emu_binaries
           commands: |
             apt-get update
-            apt-get install -y build-essential make libsdl2-dev file
+            apt-get install -y build-essential make libsdl2-dev file git
             TRACE=1 make V=1 -j3
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
@@ -261,7 +265,7 @@ jobs:
           copy_artifact_path: emu_binaries
           commands: |
             apt-get update
-            apt-get install -y build-essential make libsdl2-dev file
+            apt-get install -y build-essential make libsdl2-dev file git
             TRACE=1 make V=1 -j3
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.

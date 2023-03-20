@@ -392,8 +392,11 @@ is_kernal()
 static void
 usage()
 {
-	printf("\nCommander X16 Emulator r%s (%s)\n", VER, VER_NAME);
-	printf("(C)2019, 2023 Michael Steil et al.\n");
+	printf("\nCommander X16 Emulator r%s (%s)", VER, VER_NAME);
+#ifdef GIT_REV
+	printf(", "GIT_REV);
+#endif
+	printf("\n(C)2019, 2023 Michael Steil et al.\n");
 	printf("All rights reserved. License: 2-clause BSD\n\n");
 	printf("Usage: x16emu [option] ...\n\n");
 	printf("-rom <rom.bin>\n");
@@ -924,6 +927,11 @@ main(int argc, char **argv)
 			has_via2 = true;
 		} else if (!strcmp(argv[0], "-version")){
 			printf("%s", VER_INFO);
+#ifdef GIT_REV
+			printf(" "GIT_REV"\n");
+#else
+			printf("\n");
+#endif
 			argc--;
 			argv++;
 			exit(0);
