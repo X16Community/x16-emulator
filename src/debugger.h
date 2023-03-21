@@ -16,8 +16,6 @@
 
 extern int showDebugOnRender;
 
-extern uint8_t waiting;
-
 struct breakpoint {
 	int pc;
 	int bank;
