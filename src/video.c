@@ -882,7 +882,7 @@ render_line(uint16_t y, float scan_pos_x)
 		}
 	}
 
-	if ((dc_video & 8) == 0 && (dc_video & 3) > 1) { // progressive NTSC/RGB mode
+	if ((dc_video & 8) && (dc_video & 3) > 1) { // progressive NTSC/RGB mode
 		y &= 0xfffe;
 	}
 
@@ -1517,11 +1517,11 @@ void video_write(uint8_t reg, uint8_t value) {
 			video_step(MHZ, 0, true); // potential midline raster effect
 			int i = reg - 0x09 + (io_dcsel ? 4 : 0);
 			if (i == 0) {
-				// if interlace mode field goes from 1 to zero
+				// if progressive mode field goes from 0 to 1
 				// or if mode goes from vga to something else with
-				// interlace mode off, clear the framebuffer
-				if (((reg_composer[0] & 0x8) && (value & 0x8) == 0) ||
-					((reg_composer[0] & 0x3) == 1 && (value & 0x3) > 1 && (value & 0x8) == 0)) {
+				// progressive mode on, clear the framebuffer
+				if (((reg_composer[0] & 0x8) == 0 && (value & 0x8)) ||
+					((reg_composer[0] & 0x3) == 1 && (value & 0x3) > 1 && (value & 0x8))) {
 					memset(framebuffer, 0x00, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 				}
 
