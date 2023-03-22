@@ -170,7 +170,7 @@ unpack_cart(const char *path, uint32_t bank_size)
 	} 
 
 	cartridge_new();
-	if(cartridge_load(path, false)) {
+	if(cartridge_load(path, true)) {
 		if(cfg != NULL) {
 			char buffer[65];
 

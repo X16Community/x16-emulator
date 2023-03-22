@@ -478,7 +478,9 @@ usage()
 	printf("-debug [<address>]\n");
 	printf("\tEnable debugger. Optionally, set a breakpoint\n");
 	printf("-randram\n");
-	printf("\tSet all RAM to random values\n");
+	printf("\t(deprecated, no effect)\n");
+	printf("-zeroram\n");
+	printf("\tSet all RAM to zero instead of uninitialized random values\n");
 	printf("-wuninit\n");
 	printf("\tPrints warning to stdout if uninitialized RAM is accessed\n");
 	printf("-dump {C|R|B|V}...\n");
@@ -541,7 +543,7 @@ main(int argc, char **argv)
 	bool run_test = false;
 	int test_number = 0;
 	int audio_buffers = 8;
-	bool randram = false;
+	bool zeroram = false;
 
 	const char *audio_dev_name = NULL;
 
@@ -553,6 +555,7 @@ main(int argc, char **argv)
 	// no ROM file is specified on the command line.
 	memcpy(rom_path, base_path, strlen(base_path) + 1);
 	strncpy(rom_path + strlen(rom_path), rom_filename, PATH_MAX - strlen(rom_path));
+	memory_randomize_ram(true);
 
 	argc--;
 	argv++;
@@ -786,10 +789,14 @@ main(int argc, char **argv)
 				argv++;
 			}
 		} else if (!strcmp(argv[0], "-randram")) {
+			/* this operation has no effect anymore, randomizing the Ram is now default */
 			argc--;
 			argv++;
-			memory_randomize_ram(true);
-			randram = true;
+		} else if (!strcmp(argv[0], "-zeroram")) {
+			argc--;
+			argv++;
+			memory_randomize_ram(false);
+			zeroram = true;
 		} else if (!strcmp(argv[0], "-wuninit")) {
 			argc--;
 			argv++;
@@ -969,10 +976,10 @@ main(int argc, char **argv)
 	}
 
 	if (cartridge_path) {
-		if (!cartridge_load(cartridge_path, randram)) {
+		if (!cartridge_load(cartridge_path, !zeroram)) {
 			printf("Cannot open %s!\n", cartridge_path);
 			exit(1);
-		}		
+		}
 	}
 
 	prg_override_start = -1;
