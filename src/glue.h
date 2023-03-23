@@ -94,5 +94,6 @@ extern bool nvram_dirty;
 extern uint8_t nvram[0x40];
 
 extern bool mouse_grabbed;
+extern bool kernal_mouse_enabled;
 extern char window_title[];
 #endif

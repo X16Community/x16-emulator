@@ -1425,69 +1425,76 @@ emulator_loop(void *param)
 			break;
 		}
 
-		if (echo_mode != ECHO_MODE_NONE && pc == 0xffd2 && is_kernal()) {
-			uint8_t c = a;
-			if (echo_mode == ECHO_MODE_COOKED) {
-				if (c == 0x0d) {
-					printf("\n");
-				} else if (c == 0x0a) {
-					// skip
-				} else if (c < 0x20 || c >= 0x80) {
-					printf("\\X%02X", c);
+		if (is_kernal() && pc >= 0xff68) {
+			if (pc == 0xff68) {
+				kernal_mouse_enabled = !!a;
+				SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
+			}
+
+			if (echo_mode != ECHO_MODE_NONE && pc == 0xffd2) {
+				uint8_t c = a;
+				if (echo_mode == ECHO_MODE_COOKED) {
+					if (c == 0x0d) {
+						printf("\n");
+					} else if (c == 0x0a) {
+						// skip
+					} else if (c < 0x20 || c >= 0x80) {
+						printf("\\X%02X", c);
+					} else {
+						printf("%c", c);
+					}
+				} else if (echo_mode == ECHO_MODE_ISO) {
+					if (c == 0x0d) {
+						printf("\n");
+					} else if (c == 0x0a) {
+						// skip
+					} else if (c < 0x20 || (c >= 0x80 && c < 0xa0)) {
+						printf("\\X%02X", c);
+					} else {
+						print_iso8859_15_char(c);
+					}
 				} else {
 					printf("%c", c);
 				}
-			} else if (echo_mode == ECHO_MODE_ISO) {
-				if (c == 0x0d) {
-					printf("\n");
-				} else if (c == 0x0a) {
-					// skip
-				} else if (c < 0x20 || (c >= 0x80 && c < 0xa0)) {
-					printf("\\X%02X", c);
-				} else {
-					print_iso8859_15_char(c);
-				}
-			} else {
-				printf("%c", c);
+				fflush(stdout);
 			}
-			fflush(stdout);
-		}
 
-		if (pc == 0xffcf && is_kernal()) {
-			// as soon as BASIC starts reading a line...
-			static bool prg_done = false;
+			if (pc == 0xffcf) {
+				// as soon as BASIC starts reading a line...
+				static bool prg_done = false;
 
-			if (prg_file && !prg_done) {
-				// LOAD":*" will cause the IEEE library
-				// to load from "prg_file"
-				if (prg_override_start >= 0) {
-					snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1,$%04X\r", prg_override_start);
-				} else {
-					snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1\r");
-				}
-				paste_text = paste_text_data;
-				prg_done = true;
-
-				if (run_after_load) {
+				if (prg_file && !prg_done) {
+					// LOAD":*" will cause the IEEE library
+					// to load from "prg_file"
 					if (prg_override_start >= 0) {
-						snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "SYS$%04X\r", prg_override_start);
+						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1,$%04X\r", prg_override_start);
 					} else {
-						snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "RUN\r");
+						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1\r");
+					}
+					paste_text = paste_text_data;
+					prg_done = true;
+
+					if (run_after_load) {
+						if (prg_override_start >= 0) {
+							snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "SYS$%04X\r", prg_override_start);
+						} else {
+							snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "RUN\r");
+						}
 					}
 				}
-			}
-			else if (testbench && !test_init_complete){
-				snprintf(paste_text_data, sizeof(paste_text_data), "SYS65533\r");
-				paste_text = paste_text_data;
-				test_init_complete=true;
+				else if (testbench && !test_init_complete){
+					snprintf(paste_text_data, sizeof(paste_text_data), "SYS65533\r");
+					paste_text = paste_text_data;
+					test_init_complete=true;
+				}
+
+				if (paste_text) {
+					// ...paste BASIC code into the keyboard buffer
+					pasting_bas = true;
+				}
 			}
 
-			if (paste_text) {
-				// ...paste BASIC code into the keyboard buffer
-				pasting_bas = true;
-			}
 		}
-
 #if 0 // enable this for slow pasting
 		if (!(instruction_counter % 100000))
 #endif
