@@ -265,6 +265,12 @@ machine_dump(const char* reason)
 	printf("Dumped system to %s.\n", filename);
 }
 
+void mouse_state_init(void)
+{
+	kernal_mouse_enabled = 0;
+	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
+}
+
 void
 machine_reset()
 {
@@ -276,6 +282,7 @@ machine_reset()
 		via2_init();
 	}
 	video_reset();
+	mouse_state_init();
 	reset6502();
 }
 
@@ -1427,7 +1434,7 @@ emulator_loop(void *param)
 
 		// Change this comparison value if ever additional KERNAL
 		// API calls are snooped in this routine.
-		
+
 		if (pc >= 0xff68 && is_kernal()) {
 			if (pc == 0xff68) {
 				kernal_mouse_enabled = !!a;
