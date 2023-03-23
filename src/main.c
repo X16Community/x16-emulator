@@ -1425,7 +1425,10 @@ emulator_loop(void *param)
 			break;
 		}
 
-		if (is_kernal() && pc >= 0xff68) {
+		// Change this comparison value if ever additional KERNAL
+		// API calls are snooped in this routine.
+		
+		if (pc >= 0xff68 && is_kernal()) {
 			if (pc == 0xff68) {
 				kernal_mouse_enabled = !!a;
 				SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
