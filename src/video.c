@@ -1243,14 +1243,14 @@ video_update()
 				}
 				handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
 			}
-			return true;
+			continue;
 		}
 		if (event.type == SDL_KEYUP) {
 			if (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY) {
 				cmd_down = false;
 			}
 			handle_keyboard(false, event.key.keysym.sym, event.key.keysym.scancode);
-			return true;
+			continue;
 		}
 		if (event.type == SDL_MOUSEBUTTONDOWN) {
 			switch (event.button.button) {
