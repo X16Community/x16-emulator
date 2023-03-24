@@ -1161,7 +1161,8 @@ video_update()
 	bool mouse_changed = false;
 
 	// for activity LED, overlay red 8x4 square into top right of framebuffer
-	for (int y = 0; y < 4; y++) {
+	// for progressive modes, draw LED only on even scanlines
+	for (int y = 0; y < 4; y+=1+!!((reg_composer[0] & 0x0b) > 0x09)) {
 		for (int x = SCREEN_WIDTH - 8; x < SCREEN_WIDTH; x++) {
 			uint8_t b = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 0];
 			uint8_t g = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 1];
