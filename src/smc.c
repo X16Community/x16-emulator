@@ -74,7 +74,7 @@ smc_write(uint8_t a, uint8_t v) {
 			break;
 		case 3:
 			if (v == 0) {
-				// TODO NMI
+				nmi6502();
 			}
 			break;
 		case 4:
