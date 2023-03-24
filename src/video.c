@@ -76,6 +76,7 @@ static SDL_Renderer *renderer;
 static SDL_Texture *sdlTexture;
 static bool is_fullscreen = false;
 bool mouse_grabbed = false;
+bool kernal_mouse_enabled = false;
 
 static uint8_t video_ram[0x20000];
 static uint8_t palette[256 * 2];
@@ -207,8 +208,6 @@ video_init(int window_scale, float screen_x_scale, char *quality)
 
 	SDL_SetWindowTitle(window, WINDOW_TITLE);
 	SDL_SetWindowIcon(window, CommanderX16Icon());
-
-	SDL_ShowCursor(SDL_DISABLE);
 
 	if (record_gif != RECORD_GIF_DISABLED) {
 		if (!strcmp(gif_path+strlen(gif_path)-5, ",wait")) {
@@ -406,6 +405,7 @@ void
 mousegrab_toggle() {
 	mouse_grabbed = !mouse_grabbed;
 	SDL_SetRelativeMouseMode(mouse_grabbed);
+	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
 	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
 	video_update_title(window_title);
 }
