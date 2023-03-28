@@ -114,6 +114,41 @@ sdcard_select(bool select)
 }
 
 static void
+set_response_csd(void)
+{
+	static uint8_t rr[] = {
+		0xff, // dummy
+		0xff, // dummy
+		0x00, // R1 response
+		0xff, // dummy
+		0xfe, // begin block
+		0x40, // CSD_STRUCTURE [7:6] = 1, RESERVED [5:0] = 0
+		0x0e, // TAAC = 0x0e
+		0x00, // NSAC = 0x00
+		0x32, // TRAN_SPEED = 0x32
+		0x5b, // CCC (11:4)
+		0x59, // CCC (3:0) [7-4], READ_BL_LEN [3-0]
+		0x00, // READ_BL_PARTIAL [7], WRITE_BLK_MISALIGN [6], READ_BLK_MISALIGN [5], DSR_IMP [4], RESERVED [3:0]
+		0x00, // RESERVED [7:6], C_SIZE(21:16) [5:0]
+		0x00, // C_SIZE(15:8)
+		0x00, // C_SIZE(7:0)
+		0x7f, // RESERVED [7], ERASE_BLK_EN[6], SECTOR_SIZE(6:1) [5:0]
+		0x80, // SECTOR_SIZE(0) [7], WP_GRP_SIZE [6:0]
+		0x0a, // WP_GRP_ENABLE [7], RESERVED [6:5], R2W_FACTOR [4:2], WRITE_BL_LEN (3:2) [1:0]
+		0x40, // WRITE_BL_LEN (1:0) [7:6], WRITE_BL_PARTIAL [5], RESERVED [4:0]
+		0x00, // FILE_FORMAT_GRP [7] = 0, COPY [6], PERM_WRITE_PROTECT [5], TMP_WRITE_PROTECT [4], RESERVED [3:0]
+		0x01 // CRC[7:1], ALWAYS_1 [0]
+		};
+	uint64_t c_size = (x16size(sdcard_file) >> 19)-1;
+	rr[12] |= (c_size >> 16) & 0x3f;
+	rr[13] = (c_size >> 8) & 0xff;
+	rr[14] = c_size & 0xff;
+
+	response = rr;
+	response_length = 21;
+}
+
+static void
 set_response_r1(void)
 {
 	static uint8_t r1;
@@ -206,6 +241,12 @@ sdcard_handle(uint8_t inbyte)
 				case CMD8: {
 					// SEND_IF_COND: Sends SD Memory Card interface condition that includes host supply voltage
 					set_response_r7();
+					break;
+				}
+
+				case CMD9: {
+					// SEND_CSD: Sends card-specific data
+					set_response_csd();
 					break;
 				}
 
