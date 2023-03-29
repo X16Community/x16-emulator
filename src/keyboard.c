@@ -23,7 +23,7 @@ ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
 		case SDL_SCANCODE_RETURN:
 			return 0x5a;
 		case SDL_SCANCODE_PAUSE:
-			return 0;
+			return 0xff;
 		case SDL_SCANCODE_ESCAPE:
 #ifdef ESC_IS_BREAK
 			return 0xff;
