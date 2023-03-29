@@ -550,6 +550,14 @@ continue_directory_listing(uint8_t *data)
 			}
 		}
 
+		// don't show the . or .. in the root directory
+		// this behaves like SD card/FAT32
+		if (!strcmp("..",dp->d_name) || !strcmp(".",dp->d_name)) {
+			if (!strcmp(hostfscwd,fsroot_path)) {
+				continue;
+			}
+		}
+
 		if (dirlist_wildcard[0]) { // wildcard match selected
 			// in a wildcard match that starts at first position, leading dot filenames are not considered
 			if ((dirlist_wildcard[0] == '*' || dirlist_wildcard[0] == '?') && *(dp->d_name) == '.')
@@ -822,6 +830,18 @@ error_string(int e)
 		default:
 			return "";
 	}
+}
+
+static void
+set_activity(bool active)
+{
+	uint8_t cbdos_flags = get_kernal_cbdos_flags();
+	if (active) {
+		cbdos_flags |= 0x10; // set activity flag
+	} else {
+		cbdos_flags &= ~0x10; // clear activity flag
+	}
+	set_kernal_cbdos_flags(cbdos_flags);
 }
 
 static void
@@ -1485,6 +1505,7 @@ UNTLK() {
 		printf("%s\n", __func__);
 	}
 	talking = false;
+	set_activity(false);
 }
 
 int
@@ -1494,6 +1515,7 @@ UNLSN() {
 		printf("%s\n", __func__);
 	}
 	listening = false;
+	set_activity(false);
 	if (opening) {
 		channels[channel].name[namelen] = 0; // term
 		opening = false;
@@ -1514,6 +1536,7 @@ LISTEN(uint8_t a)
 	}
 	if ((a & 0x1f) == UNIT_NO) {
 		listening = true;
+		set_activity(true);
 	}
 }
 
@@ -1525,6 +1548,7 @@ TALK(uint8_t a)
 	}
 	if ((a & 0x1f) == UNIT_NO) {
 		talking = true;
+		set_activity(true);
 	}
 }
 
