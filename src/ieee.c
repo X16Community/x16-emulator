@@ -1448,8 +1448,11 @@ ACPTR(uint8_t *a)
 				Sint64 curpos = SDL_RWtell(channels[channel].f);
 				if (curpos == SDL_RWseek(channels[channel].f, 0, RW_SEEK_END)) {
 					ret = 0x40;
+					channels[channel].read = false;
+					cclose(channel);
+				} else {
+					SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
 				}
-				SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
 			}
 		} else {
 			ret = 0x42;
@@ -1559,23 +1562,25 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	int count = *c ?: 256;
 	uint8_t ram_bank = read6502(0);
 	int i = 0;
-	do {
-		uint8_t byte = 0;
-		ret = ACPTR(&byte);
-		write6502(addr, byte);
-		i++;
-		if (!stream_mode) {
-			addr++;
-			if (addr == 0xc000) {
-				addr = 0xa000;
-				ram_bank++;
-				write6502(0, ram_bank);
+	if (channels[channel].f) {
+		do {
+			uint8_t byte = 0;
+			ret = ACPTR(&byte);
+			write6502(addr, byte);
+			i++;
+			if (!stream_mode) {
+				addr++;
+				if (addr == 0xc000) {
+					addr = 0xa000;
+					ram_bank++;
+					write6502(0, ram_bank);
+				}
 			}
-		}
-		if (ret > 0) {
-			break;
-		}
-	} while(i < count);
+			if (ret > 0) {
+				break;
+			}
+		} while(i < count);
+	}
 	*c = i;
 	return ret;
 }
