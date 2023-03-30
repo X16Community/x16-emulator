@@ -1580,6 +1580,8 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 				break;
 			}
 		} while(i < count);
+	} else {
+		ret = 0x42;
 	}
 	*c = i;
 	return ret;
