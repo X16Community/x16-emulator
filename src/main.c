@@ -121,6 +121,8 @@ bool test_init_complete=false;
 bool headless = false;
 bool testbench = false;
 
+uint8_t MHZ = 8;
+
 #ifdef TRACE
 bool trace_mode = false;
 uint16_t trace_address = 0;
@@ -514,6 +516,11 @@ usage()
 	printf("\tInstall the second VIA chip expansion at $9F10\n");
 	printf("-testbench\n");
 	printf("\tHeadless mode for unit testing with an external test runner\n");
+	printf("-mhz <integer>\n");
+	printf("\tRun the emulator with a system clock speed other than the default of\n");
+	printf("\t8 MHz. Valid values are in the range of 1-40, inclusive. This option\n");
+	printf("\tis meant mainly for benchmarking, and may not reflect accurate\n");
+	printf("\thardware behavior.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -956,6 +963,18 @@ main(int argc, char **argv)
 			argv++;
 			testbench=true;
 			headless=true;
+		} else if (!strcmp(argv[0], "-mhz")){
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			MHZ = (uint8_t)strtol(argv[0], NULL, 10);
+			if (MHZ < 1 || MHZ > 40) {
+				usage();
+			}
+			argc--;
+			argv++;
 		} else {
 			usage();
 		}
