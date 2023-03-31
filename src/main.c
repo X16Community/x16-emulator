@@ -969,7 +969,7 @@ main(int argc, char **argv)
 			if (!argc || argv[0][0] == '-') {
 				usage();
 			}
-			MHZ = (int)strtol(argv[0], NULL, 10);
+			MHZ = (uint8_t)strtol(argv[0], NULL, 10);
 			if (MHZ < 1 || MHZ > 40) {
 				usage();
 			}
