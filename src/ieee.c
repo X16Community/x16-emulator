@@ -41,6 +41,8 @@ extern SDL_RWops *prg_file;
 //bool log_ieee = true;
 bool log_ieee = false;
 
+bool ieee_initialized_once = false;
+
 char error[80];
 int error_len = 0;
 int error_pos = 0;
@@ -733,9 +735,7 @@ create_cwd_listing(uint8_t *data)
 			}
 		}
 		*data++ = '"';
-//		if (namlen > 16) {
-//			namlen = 16; // TODO hack
-//		}
+
 		memcpy(data, tmp+i, namlen);
 		data += namlen;
 		*data++ = '"';
@@ -1212,7 +1212,7 @@ copen(int channel)
 		dirlist_pos = 0;
 		if (!strncmp(channels[channel].name,"$=C",3)) {
 			// This emulates the behavior in the ROM code in
-			// https://github.com/commanderx16/x16-rom/pull/373
+			// https://github.com/X16Community/x16-rom/pull/5
 			dirlist_len = create_cwd_listing(dirlist);
 		} else {
 			dirlist_len = create_directory_listing(dirlist, channels[channel].name);
@@ -1293,42 +1293,64 @@ cseek(int channel, uint32_t pos)
 void
 ieee_init()
 {
-	// Init the hostfs "jail" and cwd
-	if (fsroot_path == NULL) { // if null, default to cwd
-		// We hold this for the lifetime of the program, and we don't have
-		// any sort of destructor, so we rely on the OS teardown to free() it.
-		fsroot_path = getcwd(NULL, 0); 
+
+	int ch;
+
+	if (!ieee_initialized_once) {
+		// Init the hostfs "jail" and cwd
+		if (fsroot_path == NULL) { // if null, default to cwd
+			// We hold this for the lifetime of the program, and we don't have
+			// any sort of destructor, so we rely on the OS teardown to free() it.
+			fsroot_path = getcwd(NULL, 0);
+		} else {
+			// Normalize it
+			fsroot_path = realpath(fsroot_path, NULL);
+		}
+
+		if (startin_path == NULL) {
+			// same as above
+			startin_path = getcwd(NULL, 0);
+		} else {
+			// Normalize it
+			startin_path = realpath(startin_path, NULL);
+		}
+		// Quick error checks
+		if (fsroot_path == NULL) {
+			fprintf(stderr, "Failed to resolve argument to -fsroot\n");
+			exit(1);
+		}
+
+		if (startin_path == NULL) {
+			fprintf(stderr, "Failed to resolve argument to -startin\n");
+			exit(1);
+		}
+
+		// Now we verify that startin_path is within fsroot_path
+		// In other words, if fsroot_path is a left-justified substring of startin_path
+
+		// If startin_path is not reachable, we instead default to setting it
+		// back to fsroot_path
+		if (strncmp(fsroot_path, startin_path, strlen(fsroot_path))) { // not equal
+			free(startin_path);
+			startin_path = fsroot_path;
+		}
+
+		for (ch = 0; ch < 16; ch++) {
+			channels[ch].f = NULL;
+			channels[ch].name[0] = 0;
+		}
+
+		ieee_initialized_once = true;
 	} else {
-		// Normalize it
-		fsroot_path = realpath(fsroot_path, NULL);
-	}
+		for (ch = 0; ch < 16; ch++) {
+			cclose(ch);
+		}
 
-	if (startin_path == NULL) {
-		// same as above
-		startin_path = getcwd(NULL, 0);
-	} else {
-		// Normalize it
-		startin_path = realpath(startin_path, NULL);
-	}
-	// Quick error checks
-	if (fsroot_path == NULL) {
-		fprintf(stderr, "Failed to resolve argument to -fsroot\n");
-		exit(1);
-	}
+		listening = false;
+		talking = false;
+		opening = false;
 
-	if (startin_path == NULL) {
-		fprintf(stderr, "Failed to resolve argument to -startin\n");
-		exit(1);
-	}
-
-	// Now we verify that startin_path is within fsroot_path
-	// In other words, if fsroot_path is a left-justified substring of startin_path
-
-	// If startin_path is not reachable, we instead default to setting it
-	// back to fsroot_path
-	if (strncmp(fsroot_path, startin_path, strlen(fsroot_path))) { // not equal
-		free(startin_path);
-		startin_path = fsroot_path;
+		free(hostfscwd);
 	}
 
 	// Now initialize our emulated cwd.
