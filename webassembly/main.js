@@ -30,33 +30,33 @@ function init() {
 //define valid layouts (this can be gotten by running the emulator with -keymap)
 const layouts = [
     'en-us',
-	'en-us-int',
-	'en-gb',
-	'sv',
-	'de',
-	'da',
-	'it',
-	'pl',
-	'nb',
-	'hu',
-	'es',
-	'fi',
-	'pt-br',
-	'cz',
-	'jp',
-	'fr',
-	'de-ch',
-	'en-us-dvo',
-	'et',
-	'fr-be',
-	'fr-ca',
-	'is',
-	'pt',
-	'hr',
-	'sk',
-	'sl',
-	'lv',
-	'lt'
+    'en-us-int',
+    'en-gb',
+    'sv',
+    'de',
+    'da',
+    'it',
+    'pl',
+    'nb',
+    'hu',
+    'es',
+    'fi',
+    'pt-br',
+    'cz',
+    'jp',
+    'fr',
+    'de-ch',
+    'en-us-dvo',
+    'et',
+    'fr-be',
+    'fr-ca',
+    'is',
+    'pt',
+    'hr',
+    'sk',
+    'sl',
+    'lv',
+    'lt'
 ];
 
 lang = getFirstBrowserLanguage().toLowerCase().trim();
@@ -227,38 +227,36 @@ function extractManifestFromBuffer(zip) {
 
                 if (manifestObject.start_bas) {
                     console.log('Adding start BAS:', manifestObject.start_bas)
-                    if (!manifestObject.resources.includes(manifestObject.start_bas)) {
-                        logError("start_bas not found within resources entries");
-                    }
-                    else {
-                        emuArguments.push('-bas', manifestObject.start_bas, '-run');
-                    }
+                    emuArguments.push('-bas', manifestObject.start_bas, '-run');
 
                 }
                 else if (manifestObject.start_prg) {
                     console.log('Adding start PRG: ', manifestObject.start_prg)
-                    if (!manifestObject.resources.includes(manifestObject.start_prg)) {
-                        logError("start_prg not found within resources entries");
-                    }
-                    else {
-                        emuArguments.push('-prg', manifestObject.start_prg, '-run');
-                    }
+                    emuArguments.push('-prg', manifestObject.start_prg, '-run');
                 }
 
-                let promises = [];
-                manifestObject.resources.forEach(function (element) {
-                    let fileName = element.replace(/^.*[\\\/]/, '');
+                const promises = [];
+                const writeResources = (zip) => {
+                    zip.forEach((path, file) => {
+                        if(file.dir) {
+                            FS.mkdirTree(file.name);
+                            writeResources(zip.folder(path));
+                            return;
+                        }
 
-                    if (zip.file(fileName) == null) {
-                        logError("Unable to find resources entry: " + fileName);
-                        logError("This is likely an error, check resources section in manifest.")
-                    } else {
-                        promises.push(zip.file(fileName).async("uint8array").then(function (content) {
-                            console.log('Writing to emulator filesystem:', fileName);
-                            FS.writeFile(fileName, content);
+                        promises.push(zip.file(path).async("uint8array").then(function (content) {
+                            console.log('Writing to emulator filesystem:', file.name);
+                            try {
+                                FS.writeFile(file.name, content);
+                            }
+                            catch(e) {
+                                console.log('Error writing to emulator filesystem:', file.name);
+                            }
                         }));
-                    }
-                });
+                    });
+                };
+                writeResources(zip);
+
                 return Promise.all(promises);
             })
             .then((value) => {
