@@ -370,7 +370,7 @@ jobs:
           mkdir emu_binaries
           cp x16emu.data x16emu.html x16emu.js x16emu.wasm emu_binaries/
           mkdir emu_binaries/webassembly
-          cp webassembly/styles.css webassembly/main.js emu_binaries/webassembly/
+          cp webassembly/styles.css webassembly/main.js webassembly/jszip.min.js emu_binaries/webassembly/
           file emu_binaries/*
       - uses: actions/upload-artifact@v3
         with:
