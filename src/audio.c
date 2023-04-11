@@ -68,6 +68,7 @@ static int16_t * buffer;
 static uint32_t buffer_size = 0;
 static uint32_t rdidx = 0;
 static uint32_t wridx = 0;
+static uint32_t buffer_written = 0;
 static uint32_t vera_samp_pos_rd = 0;
 static uint32_t vera_samp_pos_wr = 0;
 static uint32_t vera_samp_pos_hd = 0;
@@ -105,6 +106,7 @@ audio_callback(void *userdata, Uint8 *stream, int len)
 			spos += actual_len * SAMPLE_BYTES;
 			len -= actual_len * SAMPLE_BYTES;
 			rdidx = (rdidx + actual_len * 2) % buffer_size;
+			buffer_written -= actual_len * 2;
 		}
 	}
 	uint32_t actual_len = SDL_min(len / SAMPLE_BYTES, (wridx - rdidx) / 2);
@@ -113,6 +115,7 @@ audio_callback(void *userdata, Uint8 *stream, int len)
 		spos += actual_len * SAMPLE_BYTES;
 		len -= actual_len * SAMPLE_BYTES;
 		rdidx = (rdidx + actual_len * 2) % buffer_size;
+		buffer_written -= actual_len * 2;
 	}
 	if (len > 0) memset(&stream[spos], 0, len);
 }
@@ -144,6 +147,7 @@ audio_init(const char *dev_name, int num_audio_buffers)
 	buffer = malloc(buffer_size * sizeof(int16_t));
 	rdidx = 0;
 	wridx = 0;
+	buffer_written = 0;
 
 	SDL_AudioSpec desired;
 	SDL_AudioSpec obtained;
@@ -345,6 +349,13 @@ audio_render()
 	}
 	if ((wridx - wridx_old) > 0) {
 		wav_recorder_process(&buffer[wridx_old], (wridx - wridx_old) / 2);
+	}
+	buffer_written += len * 2;
+	if (buffer_written > buffer_size) {
+		// Prevent the buffer from overflowing by skipping the read pointer ahead.
+		uint32_t buffer_skip_amount = (buffer_written / buffer_size) * SAMPLES_PER_BUFFER * 2;
+		rdidx = (rdidx + buffer_skip_amount) % buffer_size;
+		buffer_written -= buffer_skip_amount;
 	}
 	SDL_UnlockAudioDevice(audio_dev);
 
