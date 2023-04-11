@@ -296,8 +296,8 @@ audio_render()
 			vera_out_r = ((psg_buf[pos + 1] + pcm_buf[pos + 1]) >> 8) * 32768;
 		} else {
 			filter_idx = (vera_samp_pos_rd >> (SAMP_POS_FRAC_BITS - 8)) & 0xff;
+			pos = (vera_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
 			for (int j = 0; j < 8; j += 2) {
-				pos = (vera_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
 				samp[j] = (psg_buf[pos] + pcm_buf[pos]) >> 8;
 				samp[j + 1] = (psg_buf[pos + 1] + pcm_buf[pos + 1]) >> 8;
 				pos = (pos + 2) & (SAMP_POS_MASK * 2);
@@ -312,8 +312,8 @@ audio_render()
 			vera_out_r += samp[7] * filter[511 - filter_idx];
 		}
 		filter_idx = (ym_samp_pos_rd >> (SAMP_POS_FRAC_BITS - 8)) & 0xff;
+		pos = (ym_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
 		for (int j = 0; j < 8; j += 2) {
-			pos = (ym_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
 			samp[j] = ym_buf[pos];
 			samp[j + 1] = ym_buf[pos + 1];
 			pos = (pos + 2) & (SAMP_POS_MASK * 2);
