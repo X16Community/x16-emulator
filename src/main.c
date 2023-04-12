@@ -1364,25 +1364,6 @@ emulator_loop(void *param)
 				printf("    %s", lst);
 			}
 
-#if 0
-			printf(" ---");
-			for (int i = 0; i < 6; i++) {
-				printf(" r%i:%04x", i, RAM[2 + i*2] | RAM[3 + i*2] << 8);
-			}
-			for (int i = 14; i < 16; i++) {
-				printf(" r%i:%04x", i, RAM[2 + i*2] | RAM[3 + i*2] << 8);
-			}
-
-			printf(" RAM:%01x", memory_get_ram_bank());
-			printf(" px:%d py:%d", RAM[0xa0e8] | RAM[0xa0e9] << 8, RAM[0xa0ea] | RAM[0xa0eb] << 8);
-
-//			printf(" c:%d", RAM[0xa0e2]);
-//			printf("-");
-//			for (int i = 0; i < 10; i++) {
-//				printf("%02x:", RAM[0xa041+i]);
-//			}
-#endif
-
 			printf("\n");
 		}
 #endif
@@ -1392,7 +1373,7 @@ emulator_loop(void *param)
 		}
 
 		step6502();
-		uint8_t clocks = clockticks6502 - old_clockticks6502;
+		uint32_t clocks = clockticks6502 - old_clockticks6502;
 		old_clockticks6502 = clockticks6502;
 		bool new_frame = false;
 		via1_step(clocks);
@@ -1407,7 +1388,7 @@ emulator_loop(void *param)
 			new_frame |= video_step(MHZ, clocks, false);
 		}
 
-		for (uint8_t i = 0; i < clocks; i++) {
+		for (uint32_t i = 0; i < clocks; i++) {
 			i2c_step();
 		}
 		rtc_step(clocks);
