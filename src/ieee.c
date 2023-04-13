@@ -161,7 +161,7 @@ parse_dos_filename(const char *name)
 	char *newname = malloc(strlen(name)+1);
 	int i, j;
 
-	newname[strlen(name)+1] = 0;
+	newname[strlen(name)] = 0;
 	
 	overwrite = false;
 
