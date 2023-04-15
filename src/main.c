@@ -181,13 +181,21 @@ label_for_address(uint16_t address)
 			labels = labels_bank6;
 			count = sizeof(addresses_bank6) / sizeof(uint16_t);
 			break;
-#if 0
-		case 7:
-			addresses = addresses_bank7;
-			labels = labels_bank7;
-			count = sizeof(addresses_bank7) / sizeof(uint16_t);
+		case 10:
+			addresses = addresses_bankA;
+			labels = labels_bankA;
+			count = sizeof(addresses_bankA) / sizeof(uint16_t);
 			break;
-#endif
+		case 11:
+			addresses = addresses_bankB;
+			labels = labels_bankB;
+			count = sizeof(addresses_bankB) / sizeof(uint16_t);
+			break;
+		case 12:
+			addresses = addresses_bankC;
+			labels = labels_bankC;
+			count = sizeof(addresses_bankC) / sizeof(uint16_t);
+			break;
 		default:
 			addresses = NULL;
 			labels = NULL;
@@ -1320,7 +1328,7 @@ emulator_loop(void *param)
 			if (lst) {
 				char *lf;
 				while ((lf = strchr(lst, '\n'))) {
-					for (int i = 0; i < 104; i++) {
+					for (int i = 0; i < 113; i++) {
 						printf(" ");
 					}
 					for (char *c = lst; c < lf; c++) {
@@ -1333,6 +1341,8 @@ emulator_loop(void *param)
 
 			printf("[%8d] ", instruction_counter);
 
+			int32_t eff_addr;
+
 			char *label = label_for_address(pc);
 			int label_len = label ? strlen(label) : 0;
 			if (label) {
@@ -1341,9 +1351,19 @@ emulator_loop(void *param)
 			for (int i = 0; i < 20 - label_len; i++) {
 				printf(" ");
 			}
-			printf(" %02x:.,%04x ", memory_get_rom_bank(), pc);
+
+			if (pc >= 0xc000) {
+				printf (" %02x", memory_get_rom_bank());
+			} else if (pc >= 0xa000) {
+				printf (" %02x", memory_get_ram_bank());
+			} else {
+				printf (" --");
+			}
+
+			printf(":.,%04x ", pc);
+
 			char disasm_line[15];
-			int len = disasm(pc, RAM, disasm_line, sizeof(disasm_line), false, 0);
+			int len = disasm(pc, RAM, disasm_line, sizeof(disasm_line), false, 0, &eff_addr);
 			for (int i = 0; i < len; i++) {
 				printf("%02x ", read6502(pc + i));
 			}
@@ -1358,6 +1378,16 @@ emulator_loop(void *param)
 			printf("a=$%02x x=$%02x y=$%02x s=$%02x p=", a, x, y, sp);
 			for (int i = 7; i >= 0; i--) {
 				printf("%c", (status & (1 << i)) ? "czidb.vn"[i] : '-');
+			}
+
+			if (eff_addr == 0x9f23) {
+				printf(" v=$%05x", video_get_address(0));
+			} else if (eff_addr == 0x9f24) {
+				printf(" v=$%05x", video_get_address(1));
+			} else if (eff_addr >= 0) {
+				printf(" m=$%04x ", eff_addr);
+			} else {
+				printf("         ");
 			}
 
 			if (lst) {

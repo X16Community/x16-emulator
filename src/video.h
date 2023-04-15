@@ -33,4 +33,6 @@ bool video_is_tilemap_address(int addr);
 bool video_is_tiledata_address(int addr);
 bool video_is_special_address(int addr);
 
+uint32_t video_get_address(uint8_t sel);
+
 #endif
