@@ -1350,6 +1350,13 @@ static const int increments[32] = {
 };
 
 uint32_t
+video_get_address(uint8_t sel)
+{
+	uint32_t address = io_addr[sel];
+	return address;
+}
+
+uint32_t
 get_and_inc_address(uint8_t sel)
 {
 	uint32_t address = io_addr[sel];
