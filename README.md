@@ -249,10 +249,10 @@ Host Filesystem Interface
 
 If the system ROM contains any version of the KERNAL, and there is no SD card image attached, all accesses to the ("IEEE") Commodore Bus are intercepted by the emulator for device 8 (the default). So the BASIC statements will target the host computer's local filesystem:
 
-      DOS"$
-      LOAD"FOO.PRG
+      DOS"$"
+      LOAD"FOO.PRG"
       LOAD"IMAGE.PRG",8,1
-      SAVE"BAR.PRG
+      SAVE"BAR.PRG"
       OPEN2,8,2,"FOO,S,R"
 
 The emulator will interpret filenames relative to the directory it was started in. On macOS, when double-clicking the executable, this is the home directory.
@@ -268,9 +268,15 @@ As of R42, the Host Filesystem interface (or HostFS) is the preferred method of 
 Dealing with BASIC Programs
 ---------------------------
 
-BASIC programs are encoded in a tokenized form, they are not simply ASCII files. If you want to edit BASIC programs on the host's text editor, you need to convert it between tokenized BASIC form and ASCII.
+BASIC programs are encoded in a tokenized form when saved. They are not simply ASCII files. If you want to edit BASIC programs on the host's text editor, you need to convert it to tokenized BASIC encoding to ASCII encoding before calling `LOAD` in the emulator.
 
-* To convert ASCII to BASIC, reboot the machine and paste the ASCII text using `Ctrl + V` (Mac: `Cmd + V`). You can now run the program, or use the `SAVE` BASIC command to write the tokenized version to disk.
+* To convert the basic file from ASCII to tokenized BASIC encoding, reboot the machine and paste the ASCII text using `Ctrl + V` (Mac: `Cmd + V`) into the terminal. You can now run the program with `RUN`, or use the `SAVE` BASIC command to write the tokenized version to the host disk.  Below is an example.
+  1. Copy ASCII text from host basic file "PRG.BAS"
+  2. Past into new terminal session
+  3. `SAVE"ENCODED.BAS`
+  4. Now you can restart the emulator and load the encoded basic file with `LOAD"ENCODED.BAS"`
+  5. Run with `RUN"ENCODED.BAS"`
+
 * To convert BASIC to ASCII, start x16emu with the `-echo` argument, `LOAD` the BASIC file, and type `LIST`. Now copy the ASCII version from the terminal.
 
 
@@ -301,18 +307,18 @@ NOTE. To disassemble or dump memory locations in banked RAM or ROM, prepend the 
 
 The debugger keys are similar to the Microsoft Debugger shortcut keys, and work as follows
 
-|Key|Description 																			|
-|---|---------------------------------------------------------------------------------------|
-|F1 |resets the shown code position to the current PC										|
-|F2 |resets the 65C02 CPU but not any of the hardware.										|
-|F5 |close debugger window and return to Run mode, the emulator should run as normal.						|
-|F9 |sets the breakpoint to the currently code position.									|
-|F10|steps 'over' routines - if the next instruction is JSR it will break on return.		|
-|F11|steps 'into' routines.																	|
-|F12|is used to break back into the debugger. This does not happen if you do not have -debug|
-|PAGE UP| is used to scroll up in the debugger.|
-|PAGE DOWN| is used to scroll down in the debugger.|
-|TAB|when stopped, or single stepping, hides the debug information when pressed 			|
+| Key       | Description                                                                             |
+|-----------|-----------------------------------------------------------------------------------------|
+| F1        | resets the shown code position to the current PC                                        |
+| F2        | resets the 65C02 CPU but not any of the hardware.                                       |
+| F5        | close debugger window and return to Run mode, the emulator should run as normal.        |
+| F9        | sets the breakpoint to the currently code position.                                     |
+| F10       | steps 'over' routines - if the next instruction is JSR it will break on return.         |
+| F11       | steps 'into' routines.                                                                  |
+| F12       | is used to break back into the debugger. This does not happen if you do not have -debug |
+| PAGE UP   | is used to scroll up in the debugger.                                                   |
+| PAGE DOWN | is used to scroll down in the debugger.                                                 |
+| TAB       | when stopped, or single stepping, hides the debug information when pressed              |
 
 When `-debug` is selected the STP instruction (opcode $DB) will break into the debugger automatically.
 
@@ -331,26 +337,27 @@ Commander X16 cartridges will occupy the same address space as the Commander's K
 
 This is the cartridge header. The first 256 bytes are ASCII data and Human readable. The second 256 bytes are bank data; these are byte integers. Text fields are set to 16 or 32-byte boundaries for ease of formatting.
 
-| Location  | Length | Description  
-|-----------|--------|-----
-| 00-15     | 16     | ASCII text: CX16 CARTRIDGE\r\n
-| 16-31     | 16     | CRT format version. ASCII digits in format 01.02, space padded.
-| 32-63     | 32     | Name. ASCII text.
-| 64-95     | 32     | Programmer/Developer. ASCII text.
-| 96-127    | 32     | Copyright information. ASCII text.
-| 128-191   | 32     | Program version. ASCII text. 
-| 192-255   | 64     | Empty.
-| 256-287   | 32     | Fill with zeros. 
-| 288-511   | 224    | Bank Flags.
-|           |        | 00: Not Present. No data is present in the emulator or in the file.
-|           |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
-|           |        | 02: RAM: No data in file. Bank is read/write in emulator.
-|           |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing.
-|           |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.
-|           |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.
-| 512-end   |        | Payload data. 
-|           |        | 16384 bytes per bank for types 1, 3, and 5. 
-|           |        | 0 bytes for types 0,2, and 4.
+| Location | Length | Description                                                                                        |
+|----------|--------|----------------------------------------------------------------------------------------------------|
+| 00-15    | 16     | ASCII text: CX16 CARTRIDGE\r\n                                                                     |
+| 16-31    | 16     | CRT format version. ASCII digits in format 01.02, space padded.                                    |
+| 32-63    | 32     | Name. ASCII text.                                                                                  |
+| 64-95    | 32     | Programmer/Developer. ASCII text.                                                                  |
+| 96-127   | 32     | Copyright information. ASCII text.                                                                 |
+| 128-191  | 32     | Program version. ASCII text.                                                                       |
+| 192-255  | 64     | Empty.                                                                                             |
+| 256-287  | 32     | Fill with zeros.                                                                                   |
+| 288-511  | 224    | Bank Flags.                                                                                        |
+|          |        | 00: Not Present. No data is present in the emulator or in the file.                                |
+|          |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.                                    |
+|          |        | 02: RAM: No data in file. Bank is read/write in emulator.                                          |
+|          |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing. |
+|          |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.                |
+|          |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.                   |
+| 512-end  |        | Payload data.                                                                                      |
+|          |        | 16384 bytes per bank for types 1, 3, and 5.                                                        |
+|          |        | 0 bytes for types 0,2, and 4.                                                                      |
+
 
 For NVRAM banks: on shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
 
