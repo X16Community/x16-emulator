@@ -268,7 +268,7 @@ As of R42, the Host Filesystem interface (or HostFS) is the preferred method of 
 Dealing with BASIC Programs
 ---------------------------
 
-BASIC programs are encoded in a tokenized form when saved. They are not simply ASCII files. If you want to edit BASIC programs on the host's text editor, you need to convert it to tokenized BASIC encoding to ASCII encoding before calling `LOAD` in the emulator.
+BASIC programs are encoded in a tokenized form when saved. They are not simply ASCII files. If you want to edit BASIC programs on the host's text editor, you need to convert it to tokenized BASIC encoding from ASCII encoding before calling `LOAD` in the emulator.
 
 * To convert the basic file from ASCII to tokenized BASIC encoding, reboot the machine and paste the ASCII text using `Ctrl + V` (Mac: `Cmd + V`) into the terminal. You can now run the program with `RUN`, or use the `SAVE` BASIC command to write the tokenized version to the host disk.  Below is an example.
   1. Copy ASCII text from host basic file "PRG.BAS"
