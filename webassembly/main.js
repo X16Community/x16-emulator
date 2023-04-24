@@ -281,7 +281,8 @@ function loadZip(zipFileUrl) {
 
 function extractManifestFromBuffer(zip) {
     if (zip.file("manifest.json") == null) {
-        logError("Unable to find manifest.json within: " + manifest_link);
+        console.log("Unable to find manifest.json file. Writing all files from zip.");
+        writeAllFilesFromZip(zip, [], []);
         return Promise.resolve();
     }
     else {
@@ -292,14 +293,15 @@ function extractManifestFromBuffer(zip) {
                 console.log("Parsed manifest from zip:")
                 console.log(manifestObject);
 
-                addStartFile(manifestObject);
-
                 const promises = [];
                 if (manifestObject.resources) {
                     console.log('Found resources section in manifest.');
+                    var startFiles = [];
                     manifestObject.resources.forEach(function (element) {
                         let fileName = element.replace(/^.*[\\\/]/, '');
-
+                        if (fileName.toLowerCase().endsWith(".bas") || fileName.toLowerCase().endsWith(".prg")) {
+                            startFiles.push(fileName);
+                        }
                         if (zip.file(fileName) == null) {
                             logError("Unable to find resources entry: " + fileName);
                             logError("This is likely an error, check resources section in manifest.")
@@ -314,31 +316,11 @@ function extractManifestFromBuffer(zip) {
                                 }
                             }));
                         }
+                        addStartFile(manifestObject, startFiles);
                     });
                 } else {
-                    console.log('Resources section not found in manifest. Searching all files in zip.');
-                    const writeResources = (zip) => {
-                        zip.forEach((path, file) => {
-                            if(file.dir) {
-                                FS.mkdirTree(file.name);
-                                writeResources(zip.folder(path));
-                                return;
-                            }
-
-                            promises.push(zip.file(path).async("uint8array")
-                                .then(function (content) {
-                                    console.log('Writing to emulator filesystem:', file.name);
-                                    try {
-                                        FS.writeFile(file.name, content);
-                                    }
-                                    catch(e) {
-                                        console.log('Error writing to emulator filesystem:', file.name);
-                                    }
-                                })
-                            );
-                        });
-                    };
-                    writeResources(zip);
+                    console.log('Resources section not found in manifest. Writing all files from zip.');
+                    writeAllFilesFromZip(zip, promises, manifestObject);
                 }
                 return Promise.all(promises);
             })
@@ -348,20 +330,54 @@ function extractManifestFromBuffer(zip) {
     }
 }
 
+function writeAllFilesFromZip(zip, promises, manifestObject) {
+    var startFiles = [];
+    const writeResources = (zip) => {
+        zip.forEach((path, file) => {
+            if(file.dir) {
+                FS.mkdirTree(file.name);
+                writeResources(zip.folder(path));
+                return;
+            } else {
+                if (file.name.toLowerCase().endsWith(".bas") || file.name.toLowerCase().endsWith(".prg")) {
+                    startFiles.push(file.name);
+                }
+            }
+
+            promises.push(zip.file(path).async("uint8array")
+                .then(function (content) {
+                    console.log('Writing to emulator filesystem:', file.name);
+                    try {
+                        FS.writeFile(file.name, content);
+                    }
+                    catch(e) {
+                        console.log('Error writing to emulator filesystem:', file.name);
+                    }
+                })
+            );
+        });
+    };
+    writeResources(zip);
+    addStartFile(manifestObject, startFiles);
+}
+
 function loadManifest() {
     addRunDependency('load-manifest');
     fetch(manifest_link + 'manifest.json').then(function (response) {
         return response.json();
     }).then(function (manifest) {
-        addStartFile(manifest);
         console.log("Loading from manifest:")
         console.log(manifest);
+        var startFiles = [];
         manifest.resources.forEach(element => {
             element = manifest_link + element;
             let filename = element.replace(/^.*[\\\/]/, '')
+            if (filename.toLowerCase().endsWith(".bas") || filename.toLowerCase().endsWith(".prg")) {
+                startFiles.push(filename);
+            }
             FS.createPreloadedFile('/', filename, element, true, true);
-
         });
+        addStartFile(manifest, startFiles);
         console.log("Starting Emulator...")
         console.log("Emulator arguments: ", emuArguments)
         removeRunDependency('load-manifest');
@@ -370,19 +386,33 @@ function loadManifest() {
     });
 }
 
-function addStartFile(manifestObject) {
-    if (manifestObject.start_bas && manifestObject.start_prg) {
+function addStartFile(manifestObject, startFiles) {
+    if (manifestObject && manifestObject.start_bas && manifestObject.start_prg) {
         logError("start_bas and start_prg used in manifest");
         logError("This is likely an error, defaulting to start_bas")
     }
 
-    if (manifestObject.start_bas) {
+    if (manifestObject && manifestObject.start_bas) {
         console.log('Adding start BAS:', manifestObject.start_bas)
         emuArguments.push('-bas', manifestObject.start_bas, '-run');
-    }
-    else if (manifestObject.start_prg) {
+    } else if (manifestObject && manifestObject.start_prg) {
         console.log('Adding start PRG:', manifestObject.start_prg)
         emuArguments.push('-prg', manifestObject.start_prg, '-run');
+    } else if (startFiles) {
+        if (startFiles.length === 1) {
+            // If there is a single BAS or PRG file, execute it.
+            var filename = startFiles[0];
+            if (filename.toLowerCase().endsWith(".bas")) {
+                console.log('Adding start BAS:', filename)
+                emuArguments.push('-bas', filename, '-run');
+            } else if (filename.toLowerCase().endsWith(".prg")) {
+                console.log('Adding start PRG:', filename)
+                emuArguments.push('-prg', filename, '-run');
+            }
+        } else {
+            logOutput("Start files: " + startFiles);
+            // Let the user decide which file to LOAD.
+        }
     }
 }
 
