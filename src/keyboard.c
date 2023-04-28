@@ -182,13 +182,14 @@ ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
 			return 60;
 		case SDL_SCANCODE_RALT:
 			return 62;
-		case SDL_SCANCODE_LGUI: // Windows/Command
+		case SDL_SCANCODE_LGUI:
+			return 59;
 		case SDL_SCANCODE_RGUI:
-			return 0;
+			return 63;
 		case SDL_SCANCODE_APPLICATION: // Menu
 			return 0;
 		case SDL_SCANCODE_NONUSBACKSLASH:
-			return 0;
+			return 45;
 		case SDL_SCANCODE_KP_ENTER:
 			return 108;
 		case SDL_SCANCODE_KP_0:
