@@ -1490,7 +1490,8 @@ void video_write(uint8_t reg, uint8_t value) {
 			break;
 		case 0x03:
 		case 0x04: {
-			video_step(MHZ, 0, true); // potential midline raster effect
+			if (enable_midline)
+				video_step(MHZ, 0, true); // potential midline raster effect
 			uint32_t address = get_and_inc_address(reg - 3);
 			if (log_video) {
 				printf("WRITE video_space[$%X] = $%02X\n", address, value);
