@@ -120,6 +120,7 @@ char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
 bool testbench = false;
+bool enable_midline = false;
 
 uint8_t MHZ = 8;
 
@@ -529,6 +530,9 @@ usage()
 	printf("\t8 MHz. Valid values are in the range of 1-40, inclusive. This option\n");
 	printf("\tis meant mainly for benchmarking, and may not reflect accurate\n");
 	printf("\thardware behavior.\n");
+	printf("-midline-effects\n");
+	printf("\tApproximate mid-line raster effects when changing tile, sprite,\n");
+	printf("\tand palette data. Requires a fast host CPU.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -983,6 +987,10 @@ main(int argc, char **argv)
 			}
 			argc--;
 			argv++;
+		} else if (!strcmp(argv[0], "-midline-effects")){
+			argc--;
+			argv++;
+			enable_midline = true;
 		} else {
 			usage();
 		}
