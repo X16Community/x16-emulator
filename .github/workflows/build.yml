@@ -1,8 +1,9 @@
 name: Build Binaries
 on:
-  workflow_run: ["Build README PDF"]
-  types:
-    - completed
+  workflow_run:
+    workflows: ["Build README PDF"]
+    types:
+      - completed
 jobs:
   build-win-x86_64:
     runs-on: windows-2019
