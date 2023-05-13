@@ -17,28 +17,23 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          CA65_INC=/share/cc65/asminc make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') CA65_INC=/share/cc65/asminc make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
           git reset --hard
@@ -53,10 +48,11 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
+        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
@@ -121,6 +117,7 @@ jobs:
           cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
+        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
