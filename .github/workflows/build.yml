@@ -57,6 +57,8 @@ jobs:
           cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_win64
@@ -119,6 +121,8 @@ jobs:
           cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_win32
@@ -168,6 +172,8 @@ jobs:
           cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_linux-x86_64
@@ -227,6 +233,8 @@ jobs:
           sudo cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: sudo gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_linux-aarch64
@@ -286,6 +294,8 @@ jobs:
           sudo cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: sudo gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_linux-armhf
@@ -337,6 +347,8 @@ jobs:
           cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_macos
