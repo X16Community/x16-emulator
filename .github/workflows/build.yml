@@ -1,6 +1,8 @@
 name: Build Binaries
-on: [push, pull_request]
-
+on:
+  workflow_run: ["Build README PDF"]
+  types:
+    - completed
 jobs:
   build-win-x86_64:
     runs-on: windows-2019
