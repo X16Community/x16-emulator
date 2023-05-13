@@ -6,7 +6,7 @@
 #include "keyboard.h"
 
 #define EXTENDED_FLAG 0x100
-#define ESC_IS_BREAK /* if enabled, Esc sends Break/Pause key instead of Esc */
+// #define ESC_IS_BREAK /* if enabled, Esc sends Break/Pause key instead of Esc */
 
 int
 ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
@@ -23,7 +23,7 @@ ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
 		case SDL_SCANCODE_RETURN:
 			return 43;
 		case SDL_SCANCODE_PAUSE:
-			return 0;
+			return 0xff;
 		case SDL_SCANCODE_ESCAPE:
 #ifdef ESC_IS_BREAK
 			return 0xff;
@@ -168,6 +168,8 @@ ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
 			return 122;
 		case SDL_SCANCODE_F12:
 			return 123;
+		case SDL_SCANCODE_SCROLLLOCK:
+			return 125;
 		case SDL_SCANCODE_RSHIFT:
 			return 57;
 		case SDL_SCANCODE_LSHIFT:

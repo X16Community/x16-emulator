@@ -13,7 +13,7 @@ static unsigned fifo_cnt;
 static uint8_t ctrl;
 static uint8_t rate;
 
-static uint8_t volume_lut[16] = {0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 23, 30, 38, 49, 64};
+static uint8_t volume_lut[16] = {0, 2, 4, 6, 8, 10, 12, 16, 21, 27, 35, 45, 59, 76, 99, 128};
 
 static int16_t cur_l, cur_r;
 static uint8_t phase;
@@ -105,7 +105,7 @@ pcm_is_fifo_almost_empty(void)
 }
 
 void
-pcm_render(int16_t *buf, unsigned num_samples)
+pcm_render(int32_t *buf, unsigned num_samples)
 {
 	while (num_samples--) {
 		uint8_t old_phase = phase;
@@ -137,8 +137,7 @@ pcm_render(int16_t *buf, unsigned num_samples)
 				}
 			}
 		}
-
-		*(buf++) = ((int)cur_l * (int)volume_lut[ctrl & 0xF]) >> 6;
-		*(buf++) = ((int)cur_r * (int)volume_lut[ctrl & 0xF]) >> 6;
+		*(buf++) = (int32_t)cur_l * volume_lut[ctrl & 0xF];
+		*(buf++) = (int32_t)cur_r * volume_lut[ctrl & 0xF];
 	}
 }

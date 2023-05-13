@@ -21,56 +21,82 @@ else
 endif
 
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include -Isrc/extern/src
-LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm
+LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
 
-ODIR = build
-SDIR = src
+X16_ODIR = build/x16emu
+X16_SDIR = src
 
+MAKECART_ODIR = build/makecart
+MAKECART_SDIR = src
 
 ifdef TRACE
 	CFLAGS+=-D TRACE
 endif
 
-OUTPUT=x16emu
+X16_OUTPUT=x16emu
+MAKECART_OUTPUT=makecart
+
+GIT_REV=$(shell git diff --quiet && echo -n $$(git rev-parse --short=8 HEAD || /bin/echo "00000000") || /bin/echo -n $$( /bin/echo -n $$(git rev-parse --short=7 HEAD || /bin/echo "0000000"); /bin/echo -n '+'))
+
+CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
 	LIBSDL_FILE?=/opt/homebrew/Cellar/sdl2/2.0.20/lib/libSDL2.a
-	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
 endif
 
 ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
 	# this enables printf() to show, but also forces a console window
 	LDFLAGS+=-Wl,--subsystem,console
+ifeq ($(TARGET_CPU),x86)
+	CC=i686-w64-mingw32-gcc
+else
 	CC=x86_64-w64-mingw32-gcc
+endif
 endif
 
 ifdef EMSCRIPTEN
 	LDFLAGS+=--shell-file webassembly/x16emu-template.html --preload-file rom.bin -s TOTAL_MEMORY=32MB -s ASSERTIONS=1 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=1
 	# To the Javascript runtime exported functions
-	LDFLAGS+=-s EXPORTED_FUNCTIONS='["_j2c_reset", "_j2c_paste", "_j2c_start_audio", _main]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
-
-	OUTPUT=x16emu.html
+	LDFLAGS+=-s EXPORTED_FUNCTIONS='["_j2c_reset", "_j2c_paste", "_j2c_start_audio", _main]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s USE_ZLIB=1 -s EXIT_RUNTIME=1
+	CFLAGS+=-s USE_ZLIB=1
+	X16_OUTPUT=x16emu.html
+	MAKECART_OUTPUT=makecart.html
 endif
 
-_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o
+_X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o
+_X16_HEADERS = audio.h cpu/65c02.h cpu/fake6502.h cpu/instructions.h cpu/mnemonics.h cpu/modes.h cpu/support.h cpu/tables.h debugger.h disasm.h extern/include/gif.h extern/src/ym2151.h glue.h i2c.h icon.h joystick.h keyboard.h ieee.h memory.h rendertext.h rom_symbols.h rtc.h sdcard.h smc.h timing.h utf8.h utf8_encode.h vera_pcm.h vera_psg.h vera_spi.h version.h via.h serial.o video.h wav_recorder.h testbench.h files.h cartridge.h
 
-_HEADERS = audio.h cpu/65c02.h cpu/fake6502.h cpu/instructions.h cpu/mnemonics.h cpu/modes.h cpu/support.h cpu/tables.h debugger.h disasm.h extern/include/gif.h extern/src/ym2151.h glue.h i2c.h icon.h joystick.h keyboard.h ieee.h memory.h rendertext.h rom_symbols.h rtc.h sdcard.h smc.h timing.h utf8.h utf8_encode.h vera_pcm.h vera_psg.h vera_spi.h version.h via.h serial.o video.h wav_recorder.h testbench.h
+_X16_OBJS += extern/src/ym2151.o
+_X16_HEADERS += extern/src/ym2151.h
 
-_OBJS += extern/src/ym2151.o
-_HEADERS += extern/src/ym2151.h
-
-OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
-HEADERS = $(patsubst %,$(SDIR)/%,$(_HEADERS))
+X16_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_X16_OBJS))
+X16_HEADERS = $(patsubst %,$(X16_SDIR)/%,$(_X16_HEADERS))
 
 ifneq ("$(wildcard ./src/rom_labels.h)","")
-HEADERS+=src/rom_labels.h
+X16_HEADERS+=src/rom_labels.h
 endif
 
+_MAKECART_OBJS = makecart.o files.o cartridge.o makecart_javascript_interface.o
+_MAKECART_HEADERS = files.h cartridge.h
 
-all: $(OBJS) $(HEADERS)
-	$(CC) -o $(OUTPUT) $(OBJS) $(LDFLAGS)
-$(ODIR)/%.o: $(SDIR)/%.c
+MAKECART_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_MAKECART_OBJS))
+MAKECART_HEADERS = $(patsubst %,$(X16_SDIR)/%,$(_MAKECART_HEADERS))
+
+all: x16emu makecart
+
+x16emu: $(X16_OBJS) $(X16_HEADERS)
+	$(CC) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS)
+
+$(X16_ODIR)/%.o: $(X16_SDIR)/%.c
+	@mkdir -p $$(dirname $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+makecart: $(MAKECART_OBJS) $(MAKECART_HEADERS)
+	$(CC) -o $(MAKECART_OUTPUT) $(MAKECART_OBJS) $(LDFLAGS)
+
+$(MAKECART_ODIR)/%.o: $(MAKECART_SDIR)/%.c
 	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -85,7 +111,7 @@ wasm:
 	emmake make
 
 clean:
-	rm -rf $(ODIR) x16emu x16emu.exe x16emu.js x16emu.wasm x16emu.data x16emu.worker.js x16emu.html x16emu.html.mem
+	rm -rf $(X16_ODIR) $(MAKECART_ODIR) x16emu x16emu.exe x16emu.js x16emu.wasm x16emu.data x16emu.worker.js x16emu.html x16emu.html.mem makecart makecart.exe makecart.js makecart.wasm makecart.data makecart.worker.js makecart.html makecart.html.mem
 
 ##################################################################################################
 
@@ -154,7 +180,7 @@ package_mac:
 	MAC_STATIC=1 make clean all
 	rm -rf $(TMPDIR_NAME) x16emu_mac.zip
 	mkdir $(TMPDIR_NAME)
-	cp x16emu $(TMPDIR_NAME)
+	cp x16emu makecart $(TMPDIR_NAME)
 	$(call add_extra_files_to_package)
 	(cd $(TMPDIR_NAME)/; zip -r "../x16emu_mac.zip" *)
 	rm -rf $(TMPDIR_NAME)
@@ -164,7 +190,7 @@ package_win:
 	CROSS_COMPILE_WINDOWS=1 make clean all
 	rm -rf $(TMPDIR_NAME) x16emu_win.zip
 	mkdir $(TMPDIR_NAME)
-	cp x16emu.exe $(TMPDIR_NAME)
+	cp x16emu.exe makecart.exe $(TMPDIR_NAME)
 	cp $(WIN_SDL2)/bin/SDL2.dll $(TMPDIR_NAME)/
 	$(call add_extra_files_to_package)
 	(cd $(TMPDIR_NAME)/; zip -r "../x16emu_win.zip" *)
@@ -176,7 +202,7 @@ package_linux:
 	ssh $(LINUX_COMPILE_HOST) "cd $(LINUX_BASE_DIR)/x16-emulator; make clean all"
 	rm -rf $(TMPDIR_NAME) x16emu_linux.zip
 	mkdir $(TMPDIR_NAME)
-	scp $(LINUX_COMPILE_HOST):$(LINUX_BASE_DIR)/x16-emulator/x16emu $(TMPDIR_NAME)
+	scp $(LINUX_COMPILE_HOST):$(LINUX_BASE_DIR)/x16-emulator/x16emu $(LINUX_COMPILE_HOST):$(LINUX_BASE_DIR)/x16-emulator/makecart $(TMPDIR_NAME)
 	$(call add_extra_files_to_package)
 	(cd $(TMPDIR_NAME)/; zip -r "../x16emu_linux.zip" *)
 	rm -rf $(TMPDIR_NAME)

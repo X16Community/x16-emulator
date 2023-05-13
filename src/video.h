@@ -11,9 +11,9 @@
 #include <SDL.h>
 #include "glue.h"
 
-bool video_init(int window_scale, double screen_x_scale,  char *quality);
+bool video_init(int window_scale, float screen_x_scale, char *quality);
 void video_reset(void);
-bool video_step(float mhz, float steps);
+bool video_step(float mhz, float steps, bool midline);
 bool video_update(void);
 void video_end(void);
 bool video_get_irq_out(void);
@@ -32,5 +32,7 @@ void video_space_write(uint32_t address, uint8_t value);
 bool video_is_tilemap_address(int addr);
 bool video_is_tiledata_address(int addr);
 bool video_is_special_address(int addr);
+
+uint32_t video_get_address(uint8_t sel);
 
 #endif
