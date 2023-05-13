@@ -229,10 +229,11 @@ jobs:
             file emu_binaries/*
       - name: Copy ROM
         run: |
-          sudo cp x16-rom/build/x16/rom.bin emu_binaries/.
-          sudo cp x16-rom/build/x16/*.sym emu_binaries/.
+          sudo chown -R runner emu_binaries
+          cp x16-rom/build/x16/rom.bin emu_binaries/.
+          cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        run: sudo gh run download -n "readme-pdf" --dir emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
@@ -290,10 +291,11 @@ jobs:
             file emu_binaries/*
       - name: Copy ROM
         run: |
-          sudo cp x16-rom/build/x16/rom.bin emu_binaries/.
-          sudo cp x16-rom/build/x16/*.sym emu_binaries/.
+          sudo chown -R runner emu_binaries
+          cp x16-rom/build/x16/rom.bin emu_binaries/.
+          cp x16-rom/build/x16/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        run: sudo gh run download -n "readme-pdf" --dir emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
