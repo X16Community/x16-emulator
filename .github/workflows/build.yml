@@ -108,8 +108,8 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
         shell: cmd
@@ -153,8 +153,8 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
@@ -208,8 +208,8 @@ jobs:
       - name: Copy ROM
         run: |
           sudo chown -R runner emu_binaries
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
@@ -263,8 +263,8 @@ jobs:
       - name: Copy ROM
         run: |
           sudo chown -R runner emu_binaries
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
@@ -309,8 +309,8 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
