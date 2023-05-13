@@ -60,7 +60,7 @@ Type `make` to build the source. The output will be `x16emu` in the current dire
 
 ### WebAssembly Build
 
-Steps for compiling WebAssembly/HTML5 can be found [here][webassembly].
+Steps for compiling WebAssembly/HTML5 can be found [here](https://github.com/X16Community/x16-emulator/blob/master/webassembly/WebAssembly.md).
 
 ### Windows Build
 
@@ -377,6 +377,9 @@ Since the ROM banks occupy the same address range as the system ROMs, this affec
 .word $038B ; `banked_irq` ram trampoline
 ```
 
+<!-- For PDF formatting -->
+<div class="page-break"></div>
+
 ## MakeCart Conversion Tool
 
 A conversion tool to pack cartridge data into a CRT file, `makecart`, is included in this release.
@@ -477,7 +480,7 @@ All rights reserved. License: 2-clause BSD
 
 Release Notes
 -------------
-See [RELEASES](RELEASES.md).
+See [RELEASES](RELEASES.md#releases).
 
 
 <!-------------------------------------------------------------------->
@@ -485,3 +488,6 @@ See [RELEASES](RELEASES.md).
 [webassembly]: webassembly/WebAssembly.md
 [x16rom-build]: https://github.com/X16Community/x16-rom#releases-and-building
 [x16rom]: https://github.com/X16Community/x16-rom
+
+<!-- For PDF formatting -->
+<div class="page-break"></div>
