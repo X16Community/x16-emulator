@@ -146,22 +146,26 @@ The X16 uses a PS/2 keyboard, and the ROM currently supports several different l
 
 Keys that produce international characters (like [ä] or [ç]) will not produce any character.
 
-Since the emulator tells the computer the *position* of keys that are pressed, you need to configure the layout for the computer independently of the keyboard layout you have configured on the host.
+Since the host computer tells the Commander X16 via the emulator the *position* of keys that are pressed, you need to configure the layout for the X16 independently of the keyboard layout you have configured on the host.
 
 **Use the `MENU` command to select a layout, or set the keyboard layout at startup using the `-keymap` command line argument.**
 
 The following keys can be used for controlling games:
 
 |Keyboard Key  | SNES Equivalent |
-|--------------|----------------|
-|Ctrl or Z     | B 		|
-|Alt or A 	   | Y		|
-|Space or Shift   | SELECT         |
-|Enter         | START		|
-|Cursor Up     | UP		|
-|Cursor Down   | DOWN		|
-|Cursor Left   | LEFT		|
-|Cursor Right  | RIGHT		|
+|--------------|-----------------|
+|X 	           | A		         |
+|Alt or Z      | B               |
+|S 	           | X               |
+|A 	           | Y               |
+|D 	           | L               |
+|C 	           | R               |
+|Shift         | SELECT          |
+|Enter         | START           |
+|Cursor Up     | UP              |
+|Cursor Down   | DOWN            |
+|Cursor Left   | LEFT            |
+|Cursor Right  | RIGHT           |
 
 
 Functions while running
