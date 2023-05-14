@@ -2,7 +2,34 @@ name: Build Binaries
 on: [push, pull_request]
 
 jobs:
+  README:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential make fonts-dejavu
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install md-to-pdf (npm)
+        run: |
+          npm i md-to-pdf
+      - name: Create output directory
+        run: |
+          mkdir artifacts
+      - name: Create README
+        run: |
+          export PATH=$(pwd)/node_modules/.bin:$PATH
+          cat header_footer.md README.md RELEASES.md | md-to-pdf --config-file .gh/config.js --stylesheet .gh/markdown.css > "artifacts/README.pdf"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: readme-pdf
+          path: artifacts/*
   build-win-x86_64:
+    needs: [README]
     runs-on: windows-2019
     defaults:
       run:
@@ -17,28 +44,23 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          CA65_INC=/share/cc65/asminc make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') CA65_INC=/share/cc65/asminc make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
           git reset --hard
@@ -53,13 +75,24 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - name: Fetch README.pdf
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch x16-docs PDFs
+        run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_win64
           path: emu_binaries/*
   build-win-i686:
+    needs: [README]
     runs-on: windows-2019
     defaults:
       run:
@@ -77,28 +110,23 @@ jobs:
           python-version: '3.9'
       - name: Add /mingw32/bin to path
         run: echo "/mingw32/bin" >> $GITHUB_PATH
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          CA65_INC=/share/cc65/asminc make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') CA65_INC=/share/cc65/asminc make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
           git reset --hard
@@ -113,13 +141,24 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - name: Fetch README.pdf
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch x16-docs PDFs
+        run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_win32
           path: emu_binaries/*
   build-linux-x86_64:
+    needs: [README]  
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -128,28 +167,21 @@ jobs:
           python-version: '3.9'
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          sudo make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
           TRACE=1 make V=1 -j3
@@ -160,13 +192,22 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - name: Fetch README.pdf
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch x16-docs PDFs
+        run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_linux-x86_64
           path: emu_binaries/*
   build-linux-aarch64:
+    needs: [README]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -177,28 +218,21 @@ jobs:
         run: |
           sudo apt-get update 
           sudo apt-get install -y build-essential make qemu-user-static
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          sudo make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         uses: pguyot/arm-runner-action@v2
         with:
@@ -217,13 +251,23 @@ jobs:
             file emu_binaries/*
       - name: Copy ROM
         run: |
-          sudo cp x16-rom/build/x16/rom.bin emu_binaries/.
-          sudo cp x16-rom/build/x16/*.sym emu_binaries/.
+          sudo chown -R runner emu_binaries
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - name: Fetch README.pdf
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch x16-docs PDFs
+        run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_linux-aarch64
           path: emu_binaries/*
   build-linux-armhf:
+    needs: [README]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -234,28 +278,21 @@ jobs:
         run: |
           sudo apt-get update 
           sudo apt-get install -y build-essential make qemu-user-static
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          sudo make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         uses: pguyot/arm-runner-action@v2
         with:
@@ -274,13 +311,23 @@ jobs:
             file emu_binaries/*
       - name: Copy ROM
         run: |
-          sudo cp x16-rom/build/x16/rom.bin emu_binaries/.
-          sudo cp x16-rom/build/x16/*.sym emu_binaries/.
+          sudo chown -R runner emu_binaries
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - name: Fetch README.pdf
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch x16-docs PDFs
+        run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_linux-armhf
           path: emu_binaries/*
   build-macos-x86_64:
+    needs: [README]
     # this is currently macos-11, Big Sur
     runs-on: macos-11
     steps:
@@ -291,28 +338,21 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          PREFIX=/usr/local make -j4
-          sudo PREFIX=/usr/local make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
           TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
@@ -323,8 +363,16 @@ jobs:
           file emu_binaries/*
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin emu_binaries/.
-          cp x16-rom/build/x16/*.sym emu_binaries/.
+          cp latest_rom/rom.bin emu_binaries/.
+          cp latest_rom/*.sym emu_binaries/.
+      - name: Fetch README.pdf
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch x16-docs PDFs
+        run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           name: x16emu_macos
@@ -339,31 +387,24 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Build cc65
-        run: |
-          git clone https://github.com/cc65/cc65.git
-          cd cc65
-          make -j4
-          sudo make install
-      - name: Build ROM
+      - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          make
-      - name: Build Release ROM
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          git clone https://github.com/X16Community/x16-rom.git
-          cd x16-rom
-          git checkout "$GITHUB_REF"
-          PRERELEASE_VERSION=$(echo "$GITHUB_REF_NAME" | grep -oP '[0-9]+$') make
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
         run: |
-          cp x16-rom/build/x16/*.h src/.
+          cp latest_rom/*.h src/.
       - name: Copy ROM
         run: |
-          cp x16-rom/build/x16/rom.bin .
+          cp latest_rom/rom.bin .
       - name: Build Emulator
         run: |
           make V=1 -j3 wasm
