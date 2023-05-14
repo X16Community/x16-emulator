@@ -9,7 +9,7 @@
 // #define ESC_IS_BREAK /* if enabled, Esc sends Break/Pause key instead of Esc */
 
 int
-ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
+keynum_from_SDL_Scancode(SDL_Scancode scancode)
 {
 	switch (scancode) {
 		case SDL_SCANCODE_GRAVE:
@@ -23,10 +23,10 @@ ps2_scancode_from_SDL_Scancode(SDL_Scancode scancode)
 		case SDL_SCANCODE_RETURN:
 			return 43;
 		case SDL_SCANCODE_PAUSE:
-			return 0xff;
+			return 126;
 		case SDL_SCANCODE_ESCAPE:
 #ifdef ESC_IS_BREAK
-			return 0xff;
+			return 126;
 #else
 			return 110;
 #endif
@@ -238,35 +238,23 @@ handle_keyboard(bool down, SDL_Keycode sym, SDL_Scancode scancode)
 			fflush(stdout);
 		}
 
-		int ps2_scancode = ps2_scancode_from_SDL_Scancode(scancode);
-		if (ps2_scancode == 0xff) {
-			// "Pause/Break" sequence
-			i2c_kbd_buffer_add(0xe1);
-			i2c_kbd_buffer_add(0x14);
-			i2c_kbd_buffer_add(0x77);
-			i2c_kbd_buffer_add(0xe1);
-			i2c_kbd_buffer_add(0xf0);
-			i2c_kbd_buffer_add(0x14);
-			i2c_kbd_buffer_add(0xf0);
-			i2c_kbd_buffer_add(0x77);
-		} else {
-			if (ps2_scancode & EXTENDED_FLAG) {
-				i2c_kbd_buffer_add(0xe0);
-			}
-			i2c_kbd_buffer_add(ps2_scancode & 0xff);
+		int keynum = keynum_from_SDL_Scancode(scancode);
+
+		if (keynum & EXTENDED_FLAG) {
+			i2c_kbd_buffer_add(0x7f);
 		}
+		i2c_kbd_buffer_add(keynum & 0xff);
 	} else {
 		if (log_keyboard) {
 			printf("UP   0x%02X\n", scancode);
 			fflush(stdout);
 		}
 
-		int ps2_scancode = ps2_scancode_from_SDL_Scancode(scancode) | 0b10000000;
-		if (ps2_scancode & EXTENDED_FLAG) {
-			i2c_kbd_buffer_add(0xe0);
+		int keynum = keynum_from_SDL_Scancode(scancode) | 0b10000000;
+		if (keynum & EXTENDED_FLAG) {
+			i2c_kbd_buffer_add(0xff);
 		}
-		//i2c_kbd_buffer_add(0xf0); // BREAK
-		i2c_kbd_buffer_add(ps2_scancode & 0xff);
+		i2c_kbd_buffer_add(keynum & 0xff);
 	}
 }
 
