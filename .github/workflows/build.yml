@@ -1,10 +1,9 @@
 name: Build Binaries
-on:
-  workflow_run:
-    workflows: ["Build README PDF"]
-    types:
-      - completed
+on: [push, pull_request]
+
 jobs:
+  README:
+    uses: ./.github/workflows/pdf.yml
   build-win-x86_64:
     runs-on: windows-2019
     defaults:
@@ -119,6 +118,7 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
+        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         shell: cmd
         env:
@@ -169,6 +169,7 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
+        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -228,6 +229,7 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
+        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -287,6 +289,7 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
+        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -337,6 +340,7 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
+        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,5 @@
 name: Build README PDF
-on: [push, pull_request]
+on: [workflow_call]
 
 jobs:
   build-pdf:
