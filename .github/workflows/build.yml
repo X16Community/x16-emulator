@@ -3,8 +3,33 @@ on: [push, pull_request]
 
 jobs:
   README:
-    uses: ./.github/workflows/pdf.yml
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential make fonts-dejavu
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install md-to-pdf (npm)
+        run: |
+          npm i md-to-pdf
+      - name: Create output directory
+        run: |
+          mkdir artifacts
+      - name: Create README
+        run: |
+          export PATH=$(pwd)/node_modules/.bin:$PATH
+          cat header_footer.md README.md RELEASES.md | md-to-pdf --config-file .gh/config.js --stylesheet .gh/markdown.css > "artifacts/README.pdf"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: readme-pdf
+          path: artifacts/*
   build-win-x86_64:
+    needs: [README]
     runs-on: windows-2019
     defaults:
       run:
@@ -67,6 +92,7 @@ jobs:
           name: x16emu_win64
           path: emu_binaries/*
   build-win-i686:
+    needs: [README]
     runs-on: windows-2019
     defaults:
       run:
@@ -118,7 +144,6 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         shell: cmd
         env:
@@ -133,6 +158,7 @@ jobs:
           name: x16emu_win32
           path: emu_binaries/*
   build-linux-x86_64:
+    needs: [README]  
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -169,7 +195,6 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -182,6 +207,7 @@ jobs:
           name: x16emu_linux-x86_64
           path: emu_binaries/*
   build-linux-aarch64:
+    needs: [README]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -229,7 +255,6 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -242,6 +267,7 @@ jobs:
           name: x16emu_linux-aarch64
           path: emu_binaries/*
   build-linux-armhf:
+    needs: [README]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -289,7 +315,6 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -302,6 +327,7 @@ jobs:
           name: x16emu_linux-armhf
           path: emu_binaries/*
   build-macos-x86_64:
+    needs: [README]
     # this is currently macos-11, Big Sur
     runs-on: macos-11
     steps:
@@ -340,7 +366,6 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        needs: [README]
         run: gh run download -n "readme-pdf" --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
