@@ -23,6 +23,12 @@ endif
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include -Isrc/extern/src
 LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
 
+# build with link time optimization
+ifdef LTO
+	CFLAGS+=-flto
+	LDFLAGS+=-flto
+endif
+
 X16_ODIR = build/x16emu
 X16_SDIR = src
 
