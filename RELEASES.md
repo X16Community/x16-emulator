@@ -10,6 +10,7 @@
 This is the second release of x16-emulator by the X16Community team
 
 * Features
+	* Updates to support translation from SDL scancodes to new keynum encoding supported by KERNAL [stefan-b-jakobsson]
 	* More granular support for RAM amount as argument to `-ram`
 	* Minor HostFS bugfixes and enhancements, including tying the activity light to HostFS activity.
 	* VERA updates: new support for 240p in NTSC/RGB modes. Chroma disable only works on NTSC.
