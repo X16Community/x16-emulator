@@ -47,7 +47,7 @@ rtc_init(bool set_system_time)
 		seconds = tm.tm_sec;
 		minutes = tm.tm_min;
 		hours = tm.tm_hour;
-		day_of_week = 1;
+		day_of_week = (tm.tm_wday == 0 ? 7 : tm.tm_wday);
 		day = tm.tm_mday;
 		month = tm.tm_mon + 1;
 		year = tm.tm_year - 100;
