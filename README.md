@@ -37,7 +37,7 @@ Features
 Binaries & Compiling
 --------------------
 
-Binary releases for macOS, Windows and x86_64 Linux are available on the [releases page][releases].
+Binary releases for macOS, Windows and Linux are available on the [releases page][releases].
 
 The emulator itself is dependent only on SDL2. However, to run the emulated system you will also need a compatible `rom.bin` ROM image. This will be
 loaded from the directory containing the emulator binary, or you can use the `-rom .../path/to/rom.bin` option.
@@ -60,7 +60,7 @@ Type `make` to build the source. The output will be `x16emu` in the current dire
 
 ### WebAssembly Build
 
-Steps for compiling WebAssembly/HTML5 can be found [here](https://github.com/X16Community/x16-emulator/blob/master/webassembly/WebAssembly.md).
+Steps for compiling WebAssembly/HTML5 can be found [here][webassembly].
 
 ### Windows Build
 
@@ -154,8 +154,8 @@ The following keys can be used for controlling games:
 
 |Keyboard Key  | SNES Equivalent |
 |--------------|-----------------|
-|X 	           | A		         |
-|Alt or Z      | B               |
+|X or Ctrl     | A               |
+|Z or Alt      | B               |
 |S 	           | X               |
 |A 	           | Y               |
 |D 	           | L               |
@@ -488,7 +488,7 @@ See [RELEASES](RELEASES.md#releases).
 
 <!-------------------------------------------------------------------->
 [releases]: https://github.com/X16Community/x16-emulator/releases
-[webassembly]: webassembly/WebAssembly.md
+[webassembly]: http://github.com/X16Community/x16-emulator/blob/master/webassembly/WebAssembly.md
 [x16rom-build]: https://github.com/X16Community/x16-rom#releases-and-building
 [x16rom]: https://github.com/X16Community/x16-rom
 
