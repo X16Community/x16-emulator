@@ -150,9 +150,10 @@ rtc_read(uint8_t a) {
 					h = 12;
 				}
 			}
+			h = BCD(h);
 			h |= pm << 5;
 			h |= (!h24) << 6;
-			return BCD(h);
+			return h;
 		}
 		case 3: {
 			uint8_t v = day_of_week;
