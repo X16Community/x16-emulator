@@ -9,6 +9,11 @@
 
 This is the second release of x16-emulator by the X16Community team
 
+* **BREAKING CHANGE**
+	* The keyboard protocol between the SMC and the KERNAL has changed. This release requires a firmware update to the System Management Controller on hardware, or on emulator, release R43 or later.
+	* This change also affects how the custom keyboard handler vector works (keyhdl). For details, see [Chapter 2 of the Programmer's Reference Guide](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-keynum-code-handler)
+	* **Your Keyboard will not work unless** you are running
+		* R43 of both x16-rom and x16-emulator
 * Features
 	* Updates to support translation from SDL scancodes to new keynum encoding supported by KERNAL [stefan-b-jakobsson]
 	* More granular support for RAM amount as argument to `-ram`
