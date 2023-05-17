@@ -9,6 +9,11 @@
 
 This is the second release of x16-emulator by the X16Community team
 
+* **BREAKING CHANGE**
+	* The keyboard protocol between the emulated SMC and the KERNAL has changed, thus x16-emulator version R43 requires x16-rom version R43.
+	* This change also affects how the custom keyboard handler vector works (keyhdl). For details, see [Chapter 2 of the Programmer's Reference Guide](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-keynum-code-handler)
+	* **Your Keyboard will not work unless** you are running
+		* R43 of both x16-rom and x16-emulator
 * Features
 	* Updates to support translation from SDL scancodes to new keynum encoding supported by KERNAL [stefan-b-jakobsson]
 	* More granular support for RAM amount as argument to `-ram`
@@ -27,6 +32,7 @@ This is the second release of x16-emulator by the X16Community team
 	* New comamnd line option `-midline-effects` that supports mid-line changes to the palette or tile/sprite data. R42 always had this behavior, which results in performance degradation for programs write to VERA heavily if the host CPU is not fast enough. This behavior is now disabled by default. `-midline-effects` restores this optional behavior.
 	* New features implemented in the [ROM](https://github.com/X16Community/x16-rom/tree/r43#release-43-stockholm)
 * Other
+	* Release builds have link-time optimization enabled which seems to help performance.
 	* Add git hash of build to `-version` string.
 	* WebAssembly enhancements in the supporting html/js [Cyber-EX]
 	* Fixed potential off-by one row with non-zero DC_VSTART.
