@@ -27,6 +27,7 @@ This is the second release of x16-emulator by the X16Community team
 	* New comamnd line option `-midline-effects` that supports mid-line changes to the palette or tile/sprite data. R42 always had this behavior, which results in performance degradation for programs write to VERA heavily if the host CPU is not fast enough. This behavior is now disabled by default. `-midline-effects` restores this optional behavior.
 	* New features implemented in the [ROM](https://github.com/X16Community/x16-rom/tree/r43#release-43-stockholm)
 * Other
+	* Release builds have link-time optimization enabled which seems to help performance.
 	* Add git hash of build to `-version` string.
 	* WebAssembly enhancements in the supporting html/js [Cyber-EX]
 	* Fixed potential off-by one row with non-zero DC_VSTART.
