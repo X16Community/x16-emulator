@@ -10,7 +10,7 @@
 This is the second release of x16-emulator by the X16Community team
 
 * **BREAKING CHANGE**
-	* The keyboard protocol between the SMC and the KERNAL has changed. This release requires ROM version R43 or later.
+	* The keyboard protocol between the emulated SMC and the KERNAL has changed, thus x16-emulator version R43 requires x16-rom version R43.
 	* This change also affects how the custom keyboard handler vector works (keyhdl). For details, see [Chapter 2 of the Programmer's Reference Guide](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-keynum-code-handler)
 	* **Your Keyboard will not work unless** you are running
 		* R43 of both x16-rom and x16-emulator
