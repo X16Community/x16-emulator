@@ -1249,6 +1249,7 @@ handle_ieee_intercept()
 			s=UNLSN();
 			if (s == -2) { // special error behavior
 				status = (status | 1); // SEC
+				s = 0x42;
 			} else {
 				status = (status & ~1); // CLC
 			}
