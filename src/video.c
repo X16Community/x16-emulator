@@ -25,6 +25,10 @@
 #include "emscripten.h"
 #endif
 
+#define VERA_VERSION_MAJOR  0x00
+#define VERA_VERSION_MINOR  0x03
+#define VERA_VERSION_PATCH  0x01
+
 #define ADDR_VRAM_START     0x00000
 #define ADDR_VRAM_END       0x20000
 #define ADDR_PSG_START      0x1F9C0
@@ -96,7 +100,7 @@ static uint16_t irq_line;
 
 static uint8_t reg_layer[2][7];
 
-#define COMPOSER_SLOTS 8
+#define COMPOSER_SLOTS 4*64
 static uint8_t reg_composer[COMPOSER_SLOTS];
 static uint8_t prev_reg_composer[2][COMPOSER_SLOTS];
 
@@ -109,6 +113,23 @@ static bool layer_line_enable[2];
 static bool old_layer_line_enable[2];
 static bool old_sprite_line_enable;
 static bool sprite_line_enable;
+
+// FX registers
+static uint8_t fx_addr1_mode;
+
+// These are all 16.16 fixed point for pixels.
+// Sign extension is done manually for negative numbers
+// Clamped values are used
+static uint32_t fx_x_subpixel_increment;  // 6.9 fixed point
+static uint32_t fx_y_subpixel_increment;  // 6.9 fixed point
+static uint32_t fx_x_subpixel_position;   // 2.9 fixed point
+static uint32_t fx_y_subpixel_position;   // 2.9 fixed point
+
+static const uint8_t vera_version_string[] = {'V', 
+	VERA_VERSION_MAJOR,
+	VERA_VERSION_MINOR,
+	VERA_VERSION_PATCH
+};
 
 float vga_scan_pos_x;
 uint16_t vga_scan_pos_y;
@@ -153,6 +174,11 @@ video_reset()
 	reg_composer[2] = 128; // vscale = 1.0
 	reg_composer[5] = 640 >> 2;
 	reg_composer[7] = 480 >> 1;
+
+	// Initialize FX registers
+	fx_addr1_mode = 0;
+	fx_x_subpixel_position = 0x8000;
+	fx_y_subpixel_position = 0x8000;
 
 	// init sprite data
 	memset(sprite_data, 0, sizeof(sprite_data));
@@ -1367,6 +1393,14 @@ get_and_inc_address(uint8_t sel)
 {
 	uint32_t address = io_addr[sel];
 	io_addr[sel] += increments[io_inc[sel]];
+
+	if (sel == 1 && fx_addr1_mode == 1) { // FX line draw mode
+		fx_x_subpixel_position += fx_x_subpixel_increment;
+		if (fx_x_subpixel_position & 0x10000) {
+			fx_x_subpixel_position &= ~0x10000;
+			io_addr[sel] += increments[io_inc[0]];
+		}
+	}
 	return address;
 }
 
@@ -1447,8 +1481,13 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 		case 0x09:
 		case 0x0A:
 		case 0x0B:
-		case 0x0C: return reg_composer[reg - 0x09 + (io_dcsel ? 4 : 0)];
-
+		case 0x0C: {
+			int i = reg - 0x09 + (io_dcsel << 2);
+			if (i < 9) // DCSEL = [0,1] with any composer register, or [2] at $9f29
+				return reg_composer[i];
+			else // The rest of the space is write-only, so reading the values
+				return vera_version_string[i % 4];
+		}
 		case 0x0D:
 		case 0x0E:
 		case 0x0F:
@@ -1511,7 +1550,7 @@ void video_write(uint8_t reg, uint8_t value) {
 			if (value & 0x80) {
 				video_reset();
 			}
-			io_dcsel = (value >> 1) & 1;
+			io_dcsel = (value >> 1) & 0x3f;
 			io_addrsel = value & 1;
 			break;
 		case 0x06:
@@ -1530,7 +1569,7 @@ void video_write(uint8_t reg, uint8_t value) {
 		case 0x0B:
 		case 0x0C: {
 			video_step(MHZ, 0, true); // potential midline raster effect
-			int i = reg - 0x09 + (io_dcsel ? 4 : 0);
+			int i = reg - 0x09 + (io_dcsel << 2);
 			if (i == 0) {
 				// if progressive mode field goes from 0 to 1
 				// or if mode goes from vga to something else with
@@ -1545,6 +1584,35 @@ void video_write(uint8_t reg, uint8_t value) {
 				video_palette.dirty = true;
 			} else {
 				reg_composer[i] = value;
+			}
+			
+			switch (i) {
+				case 0x08: // DCSEL=2, $9F29
+					fx_addr1_mode = value & 0x03;
+					//fx_4bit_mode = (value & 0x04) >> 2;
+					//fx_16bit_hop = (value & 0x08) >> 3;
+					//fx_mult_enabled = (value & 0x10) >> 4;
+					//fx_add_or_sub = (value & 0x20) >> 5;
+					//fx_accumulate = (value & 0x40) >> 6;
+					if (value & 0x80) {
+						reg_composer[i] = value & 0x7f;
+					}
+					break;
+				case 0x0c: // DCSEL=3, $9F29
+				case 0x0d: // DCSEL=3, $9F2A
+					fx_x_subpixel_increment = ((((reg_composer[0x0d] & 0x7f) << 15) + (reg_composer[0x0c] << 7)) // base value
+						| ((reg_composer[0x0d] & 0x40) ? 0xf8000000 : 0)) // sign extend if negative
+						<< 5*(!!(reg_composer[0x0d] & 0x80)); // multiply by 32 if flag set
+					if (fx_addr1_mode == 1)
+						 fx_x_subpixel_position = 0x8000;
+					break;
+				case 0x0e: // DCSEL=3, $9F2B
+				case 0x0f: // DCSEL=3, $9F2C
+					fx_y_subpixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
+						| ((reg_composer[0x0f] & 0x40) ? 0xf8000000 : 0)) // sign extend if negative
+						<< 5*(!!(reg_composer[0x0f] & 0x80)); // multiply by 32 if flag set					
+					break;
+
 			}
 			break;
 		}
