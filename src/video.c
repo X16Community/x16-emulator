@@ -123,7 +123,7 @@ static uint8_t fx_addr1_mode;
 // even though the VERA uses smaller bit widths
 // for the whole and fractional parts.
 //
-// Sign extension is done manually for negative numbers
+// Sign extension is done manually when assigning negative numbers
 //
 // Native VERA bit widths are shown below.
 static uint32_t fx_x_subpixel_increment;  // 6.9 fixed point
