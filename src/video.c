@@ -114,12 +114,18 @@ static bool old_layer_line_enable[2];
 static bool old_sprite_line_enable;
 static bool sprite_line_enable;
 
+////////////////////////////////////////////////////////////
 // FX registers
+////////////////////////////////////////////////////////////
 static uint8_t fx_addr1_mode;
 
-// These are all 16.16 fixed point for pixels.
+// These are all 16.16 fixed point in the emulator
+// even though the VERA uses smaller bit widths
+// for the whole and fractional parts.
+//
 // Sign extension is done manually for negative numbers
-// Clamped values are used
+//
+// Native VERA bit widths are shown below.
 static uint32_t fx_x_subpixel_increment;  // 6.9 fixed point
 static uint32_t fx_y_subpixel_increment;  // 6.9 fixed point
 static uint32_t fx_x_subpixel_position;   // 2.9 fixed point
@@ -1485,7 +1491,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 			int i = reg - 0x09 + (io_dcsel << 2);
 			if (i < 9) // DCSEL = [0,1] with any composer register, or [2] at $9f29
 				return reg_composer[i];
-			else // The rest of the space is write-only, so reading the values
+			else // The rest of the space is write-only, so reading the values out instead returns the version string.
 				return vera_version_string[i % 4];
 		}
 		case 0x0D:
