@@ -1603,7 +1603,7 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 			}
 		} while(i < count);
 	} else {
-		ret = 0x42;
+		ret = -2;
 	}
 	*c = i;
 	return ret;

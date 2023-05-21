@@ -1223,9 +1223,13 @@ handle_ieee_intercept()
 		case 0xFF44: {
 			uint16_t count = a;
 			s=MACPTR(y << 8 | x, &count, status & 0x01);
-			x = count & 0xff;
-			y = count >> 8;
-			status &= 0xfe; // clear C -> supported
+			if (s == -2) {
+				status = (status | 1); // SEC (unsupported, or in this case, no open context)
+			} else {
+				x = count & 0xff;
+				y = count >> 8;
+				status &= 0xfe; // clear C -> supported
+			}
 			break;
 		}
 		case 0xFF93:
@@ -1249,6 +1253,7 @@ handle_ieee_intercept()
 			s=UNLSN();
 			if (s == -2) { // special error behavior
 				status = (status | 1); // SEC
+				s = 0x42;
 			} else {
 				status = (status & ~1); // CLC
 			}
