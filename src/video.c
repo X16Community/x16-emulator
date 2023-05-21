@@ -126,10 +126,10 @@ static uint8_t fx_addr1_mode;
 // Sign extension is done manually when assigning negative numbers
 //
 // Native VERA bit widths are shown below.
-static uint32_t fx_x_subpixel_increment;  // 6.9 fixed point
-static uint32_t fx_y_subpixel_increment;  // 6.9 fixed point
-static uint32_t fx_x_subpixel_position;   // 2.9 fixed point
-static uint32_t fx_y_subpixel_position;   // 2.9 fixed point
+static uint32_t fx_x_subpixel_increment;  // 11.9 fixed point (6.9 without 32x multiplier, 11.4 with)
+static uint32_t fx_y_subpixel_increment;  // 11.9 fixed point (6.9 without 32x multiplier, 11.4 with)
+static uint32_t fx_x_subpixel_position;   // 11.9 fixed point
+static uint32_t fx_y_subpixel_position;   // 11.9 fixed point
 
 static const uint8_t vera_version_string[] = {'V', 
 	VERA_VERSION_MAJOR,
@@ -1605,20 +1605,45 @@ void video_write(uint8_t reg, uint8_t value) {
 					}
 					break;
 				case 0x0c: // DCSEL=3, $9F29
+					fx_x_subpixel_increment = ((((reg_composer[0x0d] & 0x7f) << 15) + (reg_composer[0x0c] << 7)) // base value
+						| ((reg_composer[0x0d] & 0x40) ? 0xf8000000 : 0)) // sign extend if negative
+						<< 5*(!!(reg_composer[0x0d] & 0x80)); // multiply by 32 if flag set
+					break;
 				case 0x0d: // DCSEL=3, $9F2A
 					fx_x_subpixel_increment = ((((reg_composer[0x0d] & 0x7f) << 15) + (reg_composer[0x0c] << 7)) // base value
 						| ((reg_composer[0x0d] & 0x40) ? 0xf8000000 : 0)) // sign extend if negative
 						<< 5*(!!(reg_composer[0x0d] & 0x80)); // multiply by 32 if flag set
-					if (fx_addr1_mode == 1)
-						 fx_x_subpixel_position = 0x8000;
+					if (fx_addr1_mode == 1 || fx_addr1_mode == 2)
+						 fx_x_subpixel_position = (fx_x_subpixel_position & 0x07ff0000) | 0x00008000;
 					break;
 				case 0x0e: // DCSEL=3, $9F2B
+					fx_y_subpixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
+						| ((reg_composer[0x0f] & 0x40) ? 0xf8000000 : 0)) // sign extend if negative
+						<< 5*(!!(reg_composer[0x0f] & 0x80)); // multiply by 32 if flag set
+					break;
 				case 0x0f: // DCSEL=3, $9F2C
 					fx_y_subpixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
 						| ((reg_composer[0x0f] & 0x40) ? 0xf8000000 : 0)) // sign extend if negative
-						<< 5*(!!(reg_composer[0x0f] & 0x80)); // multiply by 32 if flag set					
+						<< 5*(!!(reg_composer[0x0f] & 0x80)); // multiply by 32 if flag set
+					if (fx_addr1_mode == 1 || fx_addr1_mode == 2)
+						 fx_y_subpixel_position = (fx_y_subpixel_position & 0x07ff0000) | 0x00008000;
 					break;
-
+				case 0x10: // DCSEL=4, $9F29
+					fx_x_subpixel_position = (fx_x_subpixel_position & 0x0700ffff) | (value << 16);
+					break;
+				case 0x11: // DCSEL=4, $9F2A
+					fx_x_subpixel_position = (fx_x_subpixel_position & 0x00ffffff) | ((value & 0x7) << 24);
+					break;
+				case 0x12: // DCSEL=4, $9F2B
+					fx_y_subpixel_position = (fx_y_subpixel_position & 0x0700ffff) | (value << 16);
+					break;
+				case 0x13: // DCSEL=4, $9F2C
+					fx_y_subpixel_position = (fx_y_subpixel_position & 0x00ffffff) | ((value & 0x7) << 24);
+					break;
+					if (value & 0x20) { // Reset subpixel position
+						fx_x_subpixel_position = (fx_x_subpixel_position & 0x07ff0000) | 0x00008000;
+						fx_y_subpixel_position = (fx_y_subpixel_position & 0x07ff0000) | 0x00008000;
+					}
 			}
 			break;
 		}
