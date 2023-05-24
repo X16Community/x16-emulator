@@ -144,6 +144,7 @@ uint8_t waiting = 0;
 extern uint8_t read6502(uint16_t address);
 extern void write6502(uint16_t address, uint8_t value);
 extern void stop6502(uint16_t address);
+extern void vp6502();
 
 #include "support.h"
 #include "modes.h"
@@ -174,6 +175,7 @@ void nmi6502() {
     push8(status & ~FLAG_BREAK);
     setinterrupt();
     cleardecimal();
+    vp6502();
     pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
     clockticks6502 += 7; // consumed by CPU to process interrupt
     waiting = 0;
@@ -185,6 +187,7 @@ void irq6502() {
         push8(status & ~FLAG_BREAK);
         setinterrupt();
         cleardecimal();
+        vp6502();
         pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
         clockticks6502 += 7; // consumed by CPU to process interrupt
     }

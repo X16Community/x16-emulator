@@ -240,6 +240,12 @@ write6502(uint16_t address, uint8_t value)
 	}
 }
 
+void
+vp6502()
+{
+	memory_set_rom_bank(0);
+}
+
 //
 // saves the memory content into a file
 //

@@ -1465,7 +1465,6 @@ emulator_loop(void *param)
 
 		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq())) {
 //			printf("IRQ!\n");
-			memory_set_rom_bank(0);
 			irq6502();
 		}
 
