@@ -634,8 +634,9 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 	for (int y = 0; y < lines; y++) { 							// Each line
 
 		DEBUGAddress(DBG_ASMX, y, currentPCBank, initialPC, col_label);
+		int32_t eff_addr;
 
-		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank);	// Disassemble code
+		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == pc ? col_highlight : col_data);
 		initialPC = (initialPC + size) & 0xffff;										// Forward to next

@@ -23,6 +23,12 @@ endif
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include -Isrc/extern/src
 LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
 
+# build with link time optimization
+ifdef LTO
+	CFLAGS+=-flto
+	LDFLAGS+=-flto
+endif
+
 X16_ODIR = build/x16emu
 X16_SDIR = src
 
@@ -36,7 +42,7 @@ endif
 X16_OUTPUT=x16emu
 MAKECART_OUTPUT=makecart
 
-GIT_REV=$(shell git diff --quiet && echo -n $$(git rev-parse --short=8 HEAD || echo "00000000") || echo -n $$( echo -n $$(git rev-parse --short=7 HEAD || echo "0000000"); echo -n '+'))
+GIT_REV=$(shell git diff --quiet && echo -n $$(git rev-parse --short=8 HEAD || /bin/echo "00000000") || /bin/echo -n $$( /bin/echo -n $$(git rev-parse --short=7 HEAD || /bin/echo "0000000"); /bin/echo -n '+'))
 
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
@@ -66,43 +72,38 @@ ifdef EMSCRIPTEN
 endif
 
 _X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o
-_X16_HEADERS = audio.h cpu/65c02.h cpu/fake6502.h cpu/instructions.h cpu/mnemonics.h cpu/modes.h cpu/support.h cpu/tables.h debugger.h disasm.h extern/include/gif.h extern/src/ym2151.h glue.h i2c.h icon.h joystick.h keyboard.h ieee.h memory.h rendertext.h rom_symbols.h rtc.h sdcard.h smc.h timing.h utf8.h utf8_encode.h vera_pcm.h vera_psg.h vera_spi.h version.h via.h serial.o video.h wav_recorder.h testbench.h files.h cartridge.h
-
 _X16_OBJS += extern/src/ym2151.o
-_X16_HEADERS += extern/src/ym2151.h
-
 X16_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_X16_OBJS))
-X16_HEADERS = $(patsubst %,$(X16_SDIR)/%,$(_X16_HEADERS))
-
-ifneq ("$(wildcard ./src/rom_labels.h)","")
-X16_HEADERS+=src/rom_labels.h
-endif
+X16_DEPS := $(X16_OBJS:.o=.d)
 
 _MAKECART_OBJS = makecart.o files.o cartridge.o makecart_javascript_interface.o
-_MAKECART_HEADERS = files.h cartridge.h
 
 MAKECART_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_MAKECART_OBJS))
-MAKECART_HEADERS = $(patsubst %,$(X16_SDIR)/%,$(_MAKECART_HEADERS))
+MAKECART_DEPS := $(MAKECART_OBJS:.o=.d)
 
+.PHONY: all clean wasm
 all: x16emu makecart
 
-x16emu: $(X16_OBJS) $(X16_HEADERS)
+x16emu: $(X16_OBJS)
 	$(CC) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS)
 
 $(X16_ODIR)/%.o: $(X16_SDIR)/%.c
 	@mkdir -p $$(dirname $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -MD -MT $@ -MF $(@:%o=%d) -o $@
 
-makecart: $(MAKECART_OBJS) $(MAKECART_HEADERS)
+makecart: $(MAKECART_OBJS)
 	$(CC) -o $(MAKECART_OUTPUT) $(MAKECART_OBJS) $(LDFLAGS)
 
 $(MAKECART_ODIR)/%.o: $(MAKECART_SDIR)/%.c
 	@mkdir -p $$(dirname $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -MD -MT $@ -MF $(@:%o=%d) -o $@
 
 cpu/tables.h cpu/mnemonics.h: cpu/buildtables.py cpu/6502.opcodes cpu/65c02.opcodes
 	cd cpu && python buildtables.py
 
+# Empty rules so that renames of header files do not trigger a failure to compile
+$(X16_SDIR)/%.h:;
+$(MAKECART_SDIR)/%.h:;
 
 # WebASssembly/emscripten target
 #
@@ -113,9 +114,12 @@ wasm:
 clean:
 	rm -rf $(X16_ODIR) $(MAKECART_ODIR) x16emu x16emu.exe x16emu.js x16emu.wasm x16emu.data x16emu.worker.js x16emu.html x16emu.html.mem makecart makecart.exe makecart.js makecart.wasm makecart.data makecart.worker.js makecart.html makecart.html.mem
 
+ifeq ($(filter $(MAKECMDGOALS), clean),)
+-include $(X16_DEPS)
+-include $(MAKECART_DEPS)
+endif
+
 ##################################################################################################
-
-
 
 ##################################################################################################
 #

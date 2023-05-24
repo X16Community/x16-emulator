@@ -76,6 +76,7 @@ static SDL_Renderer *renderer;
 static SDL_Texture *sdlTexture;
 static bool is_fullscreen = false;
 bool mouse_grabbed = false;
+bool kernal_mouse_enabled = false;
 
 static uint8_t video_ram[0x20000];
 static uint8_t palette[256 * 2];
@@ -207,8 +208,6 @@ video_init(int window_scale, float screen_x_scale, char *quality)
 
 	SDL_SetWindowTitle(window, WINDOW_TITLE);
 	SDL_SetWindowIcon(window, CommanderX16Icon());
-
-	SDL_ShowCursor(SDL_DISABLE);
 
 	if (record_gif != RECORD_GIF_DISABLED) {
 		if (!strcmp(gif_path+strlen(gif_path)-5, ",wait")) {
@@ -406,6 +405,7 @@ void
 mousegrab_toggle() {
 	mouse_grabbed = !mouse_grabbed;
 	SDL_SetRelativeMouseMode(mouse_grabbed);
+	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
 	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
 	video_update_title(window_title);
 }
@@ -882,7 +882,7 @@ render_line(uint16_t y, float scan_pos_x)
 		}
 	}
 
-	if ((dc_video & 8) == 0 && (dc_video & 3) > 1) { // progressive NTSC/RGB mode
+	if ((dc_video & 8) && (dc_video & 3) > 1) { // progressive NTSC/RGB mode
 		y &= 0xfffe;
 	}
 
@@ -1161,7 +1161,8 @@ video_update()
 	bool mouse_changed = false;
 
 	// for activity LED, overlay red 8x4 square into top right of framebuffer
-	for (int y = 0; y < 4; y++) {
+	// for progressive modes, draw LED only on even scanlines
+	for (int y = 0; y < 4; y+=1+!!((reg_composer[0] & 0x0b) > 0x09)) {
 		for (int x = SCREEN_WIDTH - 8; x < SCREEN_WIDTH; x++) {
 			uint8_t b = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 0];
 			uint8_t g = framebuffer[(y * SCREEN_WIDTH + x) * 4 + 1];
@@ -1242,14 +1243,14 @@ video_update()
 				}
 				handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
 			}
-			return true;
+			continue;
 		}
 		if (event.type == SDL_KEYUP) {
 			if (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY) {
 				cmd_down = false;
 			}
 			handle_keyboard(false, event.key.keysym.sym, event.key.keysym.scancode);
-			return true;
+			continue;
 		}
 		if (event.type == SDL_MOUSEBUTTONDOWN) {
 			switch (event.button.button) {
@@ -1347,6 +1348,13 @@ static const int increments[32] = {
 	320, -320,
 	640, -640,
 };
+
+uint32_t
+video_get_address(uint8_t sel)
+{
+	uint32_t address = io_addr[sel];
+	return address;
+}
 
 uint32_t
 get_and_inc_address(uint8_t sel)
@@ -1482,7 +1490,8 @@ void video_write(uint8_t reg, uint8_t value) {
 			break;
 		case 0x03:
 		case 0x04: {
-			video_step(MHZ, 0, true); // potential midline raster effect
+			if (enable_midline)
+				video_step(MHZ, 0, true); // potential midline raster effect
 			uint32_t address = get_and_inc_address(reg - 3);
 			if (log_video) {
 				printf("WRITE video_space[$%X] = $%02X\n", address, value);
@@ -1517,11 +1526,11 @@ void video_write(uint8_t reg, uint8_t value) {
 			video_step(MHZ, 0, true); // potential midline raster effect
 			int i = reg - 0x09 + (io_dcsel ? 4 : 0);
 			if (i == 0) {
-				// if interlace mode field goes from 1 to zero
+				// if progressive mode field goes from 0 to 1
 				// or if mode goes from vga to something else with
-				// interlace mode off, clear the framebuffer
-				if (((reg_composer[0] & 0x8) && (value & 0x8) == 0) ||
-					((reg_composer[0] & 0x3) == 1 && (value & 0x3) > 1 && (value & 0x8) == 0)) {
+				// progressive mode on, clear the framebuffer
+				if (((reg_composer[0] & 0x8) == 0 && (value & 0x8)) ||
+					((reg_composer[0] & 0x3) == 1 && (value & 0x3) > 1 && (value & 0x8))) {
 					memset(framebuffer, 0x00, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 				}
 

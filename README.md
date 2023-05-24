@@ -37,7 +37,7 @@ Features
 Binaries & Compiling
 --------------------
 
-Binary releases for macOS, Windows and x86_64 Linux are available on the [releases page][releases].
+Binary releases for macOS, Windows and Linux are available on the [releases page][releases].
 
 The emulator itself is dependent only on SDL2. However, to run the emulated system you will also need a compatible `rom.bin` ROM image. This will be
 loaded from the directory containing the emulator binary, or you can use the `-rom .../path/to/rom.bin` option.
@@ -98,7 +98,6 @@ You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the co
 * `-fsroot <dir>` specifies a file system root for the HostFS interface. This lets you save and load files without an SD card image. (As of R42, this is the preferred method.)
 * `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].
 * `-nohostieee` disables IEEE API interception to access the host fs.
-* `-geos` launches GEOS at startup.
 * `-warp` causes the emulator to run as fast as possible, possibly faster than a real X16.
 * `-gif <filename>[,wait]` to record the screen into a GIF. See below for more info.
 * `-wav <filename>[{,wait|,auto}]` to record audio into a WAV. See below for more info.
@@ -147,22 +146,26 @@ The X16 uses a PS/2 keyboard, and the ROM currently supports several different l
 
 Keys that produce international characters (like [ä] or [ç]) will not produce any character.
 
-Since the emulator tells the computer the *position* of keys that are pressed, you need to configure the layout for the computer independently of the keyboard layout you have configured on the host.
+Since the host computer tells the Commander X16 via the emulator the *position* of keys that are pressed, you need to configure the layout for the X16 independently of the keyboard layout you have configured on the host.
 
-**Use the F9 key to cycle through the layouts, or set the keyboard layout at startup using the `-keymap` command line argument.**
+**Use the `MENU` command to select a layout, or set the keyboard layout at startup using the `-keymap` command line argument.**
 
 The following keys can be used for controlling games:
 
 |Keyboard Key  | SNES Equivalent |
-|--------------|----------------|
-|Ctrl          | B 		|
-|Alt 	       | Y		|
-|Space         | SELECT         |
-|Enter         | START		|
-|Cursor Up     | UP		|
-|Cursor Down   | DOWN		|
-|Cursor Left   | LEFT		|
-|Cursor Right  | RIGHT		|
+|--------------|-----------------|
+|X or Ctrl     | A               |
+|Z or Alt      | B               |
+|S 	           | X               |
+|A 	           | Y               |
+|D 	           | L               |
+|C 	           | R               |
+|Shift         | SELECT          |
+|Enter         | START           |
+|Cursor Up     | UP              |
+|Cursor Down   | DOWN            |
+|Cursor Left   | LEFT            |
+|Cursor Right  | RIGHT           |
 
 
 Functions while running
@@ -206,10 +209,10 @@ BASIC and the Screen Editor
 
 On startup, the X16 presents direct mode of BASIC V2. You can enter BASIC statements, or line numbers with BASIC statements and `RUN` the program, just like on Commodore computers.
 
-* To stop execution of a BASIC program, hit the `RUN/STOP` key (`Esc` in the emulator), or `Ctrl + C`.
-* To insert characters, first insert spaces by pressing `Shift + Backspaces`, then type over those spaces.
+* To stop execution of a BASIC program, hit the `RUN/STOP` key (`Pause`), or `Ctrl + C`.
+* To insert characters, first insert spaces by pressing `Shift + Backspace` or `Insert`, then type over those spaces.
 * To clear the screen, press `Shift + Home`.
-* The X16 does not have a `STOP + RESTORE` function.
+* The X16 emulator does not have a way to send NMI via `STOP + RESTORE`. On real hardware this is done with `Ctrl + Alt + RESTORE` (`Ctrl + Alt + PrtScr`) or by pressing the NMI button.
 
 
 SD Card Images
@@ -249,17 +252,17 @@ Host Filesystem Interface
 
 If the system ROM contains any version of the KERNAL, and there is no SD card image attached, all accesses to the ("IEEE") Commodore Bus are intercepted by the emulator for device 8 (the default). So the BASIC statements will target the host computer's local filesystem:
 
-      DOS"$
-      LOAD"FOO.PRG
+      DOS"$"
+      LOAD"FOO.PRG"
       LOAD"IMAGE.PRG",8,1
-      SAVE"BAR.PRG
+      SAVE"BAR.PRG"
       OPEN2,8,2,"FOO,S,R"
 
-The emulator will interpret filenames relative to the directory it was started in. On macOS, when double-clicking the executable, this is the home directory.
+The emulator will interpret filenames relative to the directory it was started in. On macOS, when double-clicking the executable, this is the home directory. To specify a different path as the emulated root, you can use the `-fsroot` command line option.
 
-To avoid incompatibility problems between the PETSCII and ASCII encodings, you can
+To avoid compatibility problems between the PETSCII and ASCII encodings, you can
 
-* use lower case filenames on the host side, and unshifted filenames on the X16 side.
+* use uppercase filenames on the host side, and unshifted filenames on the X16 side.
 * use `Ctrl+O` to switch to the X16 to ISO mode for ASCII compatibility.
 * use `Ctrl+N` to switch to the upper/lower character set for a workaround.
 
@@ -268,22 +271,28 @@ As of R42, the Host Filesystem interface (or HostFS) is the preferred method of 
 Dealing with BASIC Programs
 ---------------------------
 
-BASIC programs are encoded in a tokenized form, they are not simply ASCII files. If you want to edit BASIC programs on the host's text editor, you need to convert it between tokenized BASIC form and ASCII.
+BASIC programs are encoded in a tokenized form when saved. They are not simply ASCII files. If you want to edit BASIC programs on the host's text editor, you need to convert it to tokenized BASIC encoding from ASCII encoding before calling `LOAD` in the emulator.
 
-* To convert ASCII to BASIC, reboot the machine and paste the ASCII text using `Ctrl + V` (Mac: `Cmd + V`). You can now run the program, or use the `SAVE` BASIC command to write the tokenized version to disk.
+* To convert the basic file from ASCII to tokenized BASIC encoding, reboot the machine and paste the ASCII text using `Ctrl + V` (Mac: `Cmd + V`) into the terminal. You can now run the program with `RUN`, or use the `SAVE` BASIC command to write the tokenized version to the host disk.  Below is an example.
+  1. Copy ASCII text from host basic file "PRG.BAS"
+  2. Paste into new terminal session
+  3. `SAVE"ENCODED.BAS`
+  4. Now you can restart the emulator and load the encoded basic file with `LOAD"ENCODED.BAS"`
+  5. Run with `RUN"ENCODED.BAS"`
+
 * To convert BASIC to ASCII, start x16emu with the `-echo` argument, `LOAD` the BASIC file, and type `LIST`. Now copy the ASCII version from the terminal.
 
 
 Using the KERNAL/BASIC environment
 ----------------------------------
 
-Please see the KERNAL/BASIC documentation.
+Please see the [KERNAL/BASIC documentation](https://github.com/X16Community/x16-docs/).
 
 
 Debugger
 --------
 
-The debugger requires `-debug` to start. Without it it is effectively disabled.
+The debugger requires `-debug` to start. Without it, it is disabled.
 
 There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, X, Y, and SP.
 
@@ -301,22 +310,22 @@ NOTE. To disassemble or dump memory locations in banked RAM or ROM, prepend the 
 
 The debugger keys are similar to the Microsoft Debugger shortcut keys, and work as follows
 
-|Key|Description 																			|
-|---|---------------------------------------------------------------------------------------|
-|F1 |resets the shown code position to the current PC										|
-|F2 |resets the 65C02 CPU but not any of the hardware.										|
-|F5 |close debugger window and return to Run mode, the emulator should run as normal.						|
-|F9 |sets the breakpoint to the currently code position.									|
-|F10|steps 'over' routines - if the next instruction is JSR it will break on return.		|
-|F11|steps 'into' routines.																	|
-|F12|is used to break back into the debugger. This does not happen if you do not have -debug|
-|PAGE UP| is used to scroll up in the debugger.|
-|PAGE DOWN| is used to scroll down in the debugger.|
-|TAB|when stopped, or single stepping, hides the debug information when pressed 			|
+| Key       | Description                                                                             |
+|-----------|-----------------------------------------------------------------------------------------|
+| F1        | resets the shown code position to the current PC                                        |
+| F2        | resets the 65C02 CPU but not any of the hardware.                                       |
+| F5        | close debugger window and return to Run mode, the emulator should run as normal.        |
+| F9        | sets the breakpoint to the currently code position.                                     |
+| F10       | steps 'over' routines - if the next instruction is JSR it will break on return.         |
+| F11       | steps 'into' routines.                                                                  |
+| F12       | is used to break back into the debugger. This does not happen if you do not have -debug |
+| PAGE UP   | is used to scroll up in the debugger.                                                   |
+| PAGE DOWN | is used to scroll down in the debugger.                                                 |
+| TAB       | when stopped, or single stepping, hides the debug information when pressed              |
 
 When `-debug` is selected the STP instruction (opcode $DB) will break into the debugger automatically.
 
-Effectively keyboard routines only work when the debugger is running normally. Single stepping through keyboard code will not work at present.
+Keyboard routines only work when the emulator is running normally. Single stepping through keyboard code will not work at present.
 
 CRT File Format
 ---------------
@@ -331,26 +340,27 @@ Commander X16 cartridges will occupy the same address space as the Commander's K
 
 This is the cartridge header. The first 256 bytes are ASCII data and Human readable. The second 256 bytes are bank data; these are byte integers. Text fields are set to 16 or 32-byte boundaries for ease of formatting.
 
-| Location  | Length | Description  
-|-----------|--------|-----
-| 00-15     | 16     | ASCII text: CX16 CARTRIDGE\r\n
-| 16-31     | 16     | CRT format version. ASCII digits in format 01.02, space padded.
-| 32-63     | 32     | Name. ASCII text.
-| 64-95     | 32     | Programmer/Developer. ASCII text.
-| 96-127    | 32     | Copyright information. ASCII text.
-| 128-191   | 32     | Program version. ASCII text. 
-| 192-255   | 64     | Empty.
-| 256-287   | 32     | Fill with zeros. 
-| 288-511   | 224    | Bank Flags.
-|           |        | 00: Not Present. No data is present in the emulator or in the file.
-|           |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.
-|           |        | 02: RAM: No data in file. Bank is read/write in emulator.
-|           |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing.
-|           |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.
-|           |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.
-| 512-end   |        | Payload data. 
-|           |        | 16384 bytes per bank for types 1, 3, and 5. 
-|           |        | 0 bytes for types 0,2, and 4.
+| Location | Length | Description                                                                                        |
+|----------|--------|----------------------------------------------------------------------------------------------------|
+| 00-15    | 16     | ASCII text: CX16 CARTRIDGE\r\n                                                                     |
+| 16-31    | 16     | CRT format version. ASCII digits in format 01.02, space padded.                                    |
+| 32-63    | 32     | Name. ASCII text.                                                                                  |
+| 64-95    | 32     | Programmer/Developer. ASCII text.                                                                  |
+| 96-127   | 32     | Copyright information. ASCII text.                                                                 |
+| 128-191  | 32     | Program version. ASCII text.                                                                       |
+| 192-255  | 64     | Empty.                                                                                             |
+| 256-287  | 32     | Fill with zeros.                                                                                   |
+| 288-511  | 224    | Bank Flags.                                                                                        |
+|          |        | 00: Not Present. No data is present in the emulator or in the file.                                |
+|          |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.                                    |
+|          |        | 02: RAM: No data in file. Bank is read/write in emulator.                                          |
+|          |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing. |
+|          |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.                |
+|          |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.                   |
+| 512-end  |        | Payload data.                                                                                      |
+|          |        | 16384 bytes per bank for types 1, 3, and 5.                                                        |
+|          |        | 0 bytes for types 0,2, and 4.                                                                      |
+
 
 For NVRAM banks: on shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
 
@@ -369,6 +379,9 @@ Since the ROM banks occupy the same address range as the system ROMs, this affec
 .word $FFFF ; dummy value, reset outside of bank 0 isn't ever used
 .word $038B ; `banked_irq` ram trampoline
 ```
+
+<!-- For PDF formatting -->
+<div class="page-break"></div>
 
 ## MakeCart Conversion Tool
 
@@ -470,11 +483,14 @@ All rights reserved. License: 2-clause BSD
 
 Release Notes
 -------------
-See [RELEASES](RELEASES.md).
+See [RELEASES](RELEASES.md#releases).
 
 
 <!-------------------------------------------------------------------->
 [releases]: https://github.com/X16Community/x16-emulator/releases
-[webassembly]: webassembly/WebAssembly.md
+[webassembly]: http://github.com/X16Community/x16-emulator/blob/master/webassembly/WebAssembly.md
 [x16rom-build]: https://github.com/X16Community/x16-rom#releases-and-building
 [x16rom]: https://github.com/X16Community/x16-rom
+
+<!-- For PDF formatting -->
+<div class="page-break"></div>

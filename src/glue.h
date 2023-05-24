@@ -12,8 +12,6 @@
 //#define TRACE
 //#define PERFSTAT
 
-#define MHZ 8
-
 #define NUM_MAX_RAM_BANKS 256
 #define NUM_ROM_BANKS 32
 #define NUM_CART_BANKS (256 - 32)
@@ -21,8 +19,6 @@
 #define RAM_SIZE (0xa000 + num_ram_banks * 8192) /* $0000-$9FFF + banks at $A000-$BFFF */
 #define ROM_SIZE (NUM_ROM_BANKS * 16384)   /* banks at $C000-$FFFF */
 #define CART_SIZE (NUM_CART_BANKS * 16384)  /* expansion banks at $C000-$FFFF */
-
-#define OPEN_BUS_READ 0xC0 // Proto 4 open data bus read behavior, according to David Murray
 
 #define WINDOW_TITLE "Commander X16"
 
@@ -78,6 +74,7 @@ extern bool warp_mode;
 extern bool testbench;
 extern bool has_via2;
 extern uint32_t host_sample_rate;
+extern bool enable_midline;
 
 extern void machine_dump(const char* reason);
 extern void machine_reset();
@@ -93,6 +90,9 @@ extern uint8_t activity_led;
 extern bool nvram_dirty;
 extern uint8_t nvram[0x40];
 
+extern uint8_t MHZ;
+
 extern bool mouse_grabbed;
+extern bool kernal_mouse_enabled;
 extern char window_title[];
 #endif

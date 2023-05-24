@@ -1,8 +1,45 @@
+
 <p align="center">
   <img src="./.gh/logo.png" />
 </p>
 
+## Releases
 
+### Release 43 ("Stockholm")
+
+This is the second release of x16-emulator by the X16Community team
+
+* **BREAKING CHANGE**
+	* The keyboard protocol between the emulated SMC and the KERNAL has changed, thus x16-emulator version R43 requires x16-rom version R43.
+	* This change also affects how the custom keyboard handler vector works (keyhdl). For details, see [Chapter 2 of the Programmer's Reference Guide](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-keynum-code-handler)
+	* **Your Keyboard will not work unless** you are running
+		* R43 of both x16-rom and x16-emulator
+* Features
+	* Updates to support translation from SDL scancodes to new keynum encoding supported by KERNAL [stefan-b-jakobsson]
+	* More granular support for RAM amount as argument to `-ram`
+	* Minor HostFS bugfixes and enhancements, including tying the activity light to HostFS activity.
+	* VERA updates: new support for 240p in NTSC/RGB modes. Chroma disable only works on NTSC.
+	* Stepping the debugger now supports stepping over `WAI`
+	* Debugger now shows the correct bank in the disassembly by default. [gaekwad]
+	* Debugger breakpoints are now bank-specific [gaekwad]
+	* Randomized RAM is now the default. New option: `-zeroram` [irmen]
+	* Host's mouse cursor is now shown unless either the KERNAL mouse is enabled or the mouse cursor is captured (Ctrl+M/⇧⌘M).
+	* Esc key is now Esc rather than STOP.  Pause key sends STOP.  (Ctrl+C is also recognized by the KERNAL as STOP)
+	* SD card emulation now responds to CMD9
+	* Emulated SMC can now assert NMI.
+	* Add `-mhz` option to select a speed other than 8
+	* When built with `TRACE`, the `-trace` output now shows the effective address for indirect and indexed opcodes and VERA data0/data1 reads and writes.
+	* New comamnd line option `-midline-effects` that supports mid-line changes to the palette or tile/sprite data. R42 always had this behavior, which results in performance degradation for programs write to VERA heavily if the host CPU is not fast enough. This behavior is now disabled by default. `-midline-effects` restores this optional behavior.
+	* New features implemented in the [ROM](https://github.com/X16Community/x16-rom/tree/r43#release-43-stockholm)
+* Other
+	* Release builds have link-time optimization enabled which seems to help performance.
+	* Add git hash of build to `-version` string.
+	* WebAssembly enhancements in the supporting html/js [Cyber-EX]
+	* Fixed potential off-by one row with non-zero DC_VSTART.
+	* Prevent laggy hostfs reads from causing the emulator to warp to catch up by translating the wall clock time to elapsed 6502 clocks. This effectively makes HostFS MACPTR behave like a DMA card, including the possibility that it prevents the CPU from executing instructions while interrupt sources may have been waiting for service.
+	* Bugfix: Process multiple SDL events per frame. (Fixed choppy mouse movement if there were keystrokes in the keyboard buffer)
+	* Audio resampling and ring buffer fixes [DragWx]
+	* Build fixes on Mac
 ### Release 42 ("Cambridge")
 
 This is the first release of x16-emulator by the X16Community team

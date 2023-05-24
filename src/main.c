@@ -120,6 +120,9 @@ char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
 bool testbench = false;
+bool enable_midline = false;
+
+uint8_t MHZ = 8;
 
 #ifdef TRACE
 bool trace_mode = false;
@@ -179,13 +182,21 @@ label_for_address(uint16_t address)
 			labels = labels_bank6;
 			count = sizeof(addresses_bank6) / sizeof(uint16_t);
 			break;
-#if 0
-		case 7:
-			addresses = addresses_bank7;
-			labels = labels_bank7;
-			count = sizeof(addresses_bank7) / sizeof(uint16_t);
+		case 10:
+			addresses = addresses_bankA;
+			labels = labels_bankA;
+			count = sizeof(addresses_bankA) / sizeof(uint16_t);
 			break;
-#endif
+		case 11:
+			addresses = addresses_bankB;
+			labels = labels_bankB;
+			count = sizeof(addresses_bankB) / sizeof(uint16_t);
+			break;
+		case 12:
+			addresses = addresses_bankC;
+			labels = labels_bankC;
+			count = sizeof(addresses_bankC) / sizeof(uint16_t);
+			break;
 		default:
 			addresses = NULL;
 			labels = NULL;
@@ -265,6 +276,12 @@ machine_dump(const char* reason)
 	printf("Dumped system to %s.\n", filename);
 }
 
+void mouse_state_init(void)
+{
+	kernal_mouse_enabled = 0;
+	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
+}
+
 void
 machine_reset()
 {
@@ -276,6 +293,7 @@ machine_reset()
 		via2_init();
 	}
 	video_reset();
+	mouse_state_init();
 	reset6502();
 }
 
@@ -507,6 +525,14 @@ usage()
 	printf("\tInstall the second VIA chip expansion at $9F10\n");
 	printf("-testbench\n");
 	printf("\tHeadless mode for unit testing with an external test runner\n");
+	printf("-mhz <integer>\n");
+	printf("\tRun the emulator with a system clock speed other than the default of\n");
+	printf("\t8 MHz. Valid values are in the range of 1-40, inclusive. This option\n");
+	printf("\tis meant mainly for benchmarking, and may not reflect accurate\n");
+	printf("\thardware behavior.\n");
+	printf("-midline-effects\n");
+	printf("\tApproximate mid-line raster effects when changing tile, sprite,\n");
+	printf("\tand palette data. Requires a fast host CPU.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -949,6 +975,22 @@ main(int argc, char **argv)
 			argv++;
 			testbench=true;
 			headless=true;
+		} else if (!strcmp(argv[0], "-mhz")){
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			MHZ = (uint8_t)strtol(argv[0], NULL, 10);
+			if (MHZ < 1 || MHZ > 40) {
+				usage();
+			}
+			argc--;
+			argv++;
+		} else if (!strcmp(argv[0], "-midline-effects")){
+			argc--;
+			argv++;
+			enable_midline = true;
 		} else {
 			usage();
 		}
@@ -1181,9 +1223,13 @@ handle_ieee_intercept()
 		case 0xFF44: {
 			uint16_t count = a;
 			s=MACPTR(y << 8 | x, &count, status & 0x01);
-			x = count & 0xff;
-			y = count >> 8;
-			status &= 0xfe; // clear C -> supported
+			if (s == -2) {
+				status = (status | 1); // SEC (unsupported, or in this case, no open context)
+			} else {
+				x = count & 0xff;
+				y = count >> 8;
+				status &= 0xfe; // clear C -> supported
+			}
 			break;
 		}
 		case 0xFF93:
@@ -1207,6 +1253,7 @@ handle_ieee_intercept()
 			s=UNLSN();
 			if (s == -2) { // special error behavior
 				status = (status | 1); // SEC
+				s = 0x42;
 			} else {
 				status = (status & ~1); // CLC
 			}
@@ -1294,7 +1341,7 @@ emulator_loop(void *param)
 			if (lst) {
 				char *lf;
 				while ((lf = strchr(lst, '\n'))) {
-					for (int i = 0; i < 104; i++) {
+					for (int i = 0; i < 113; i++) {
 						printf(" ");
 					}
 					for (char *c = lst; c < lf; c++) {
@@ -1307,6 +1354,8 @@ emulator_loop(void *param)
 
 			printf("[%8d] ", instruction_counter);
 
+			int32_t eff_addr;
+
 			char *label = label_for_address(pc);
 			int label_len = label ? strlen(label) : 0;
 			if (label) {
@@ -1315,9 +1364,19 @@ emulator_loop(void *param)
 			for (int i = 0; i < 20 - label_len; i++) {
 				printf(" ");
 			}
-			printf(" %02x:.,%04x ", memory_get_rom_bank(), pc);
+
+			if (pc >= 0xc000) {
+				printf (" %02x", memory_get_rom_bank());
+			} else if (pc >= 0xa000) {
+				printf (" %02x", memory_get_ram_bank());
+			} else {
+				printf (" --");
+			}
+
+			printf(":.,%04x ", pc);
+
 			char disasm_line[15];
-			int len = disasm(pc, RAM, disasm_line, sizeof(disasm_line), false, 0);
+			int len = disasm(pc, RAM, disasm_line, sizeof(disasm_line), false, 0, &eff_addr);
 			for (int i = 0; i < len; i++) {
 				printf("%02x ", read6502(pc + i));
 			}
@@ -1334,28 +1393,19 @@ emulator_loop(void *param)
 				printf("%c", (status & (1 << i)) ? "czidb.vn"[i] : '-');
 			}
 
+			if (eff_addr == 0x9f23) {
+				printf(" v=$%05x", video_get_address(0));
+			} else if (eff_addr == 0x9f24) {
+				printf(" v=$%05x", video_get_address(1));
+			} else if (eff_addr >= 0) {
+				printf(" m=$%04x ", eff_addr);
+			} else {
+				printf("         ");
+			}
+
 			if (lst) {
 				printf("    %s", lst);
 			}
-
-#if 0
-			printf(" ---");
-			for (int i = 0; i < 6; i++) {
-				printf(" r%i:%04x", i, RAM[2 + i*2] | RAM[3 + i*2] << 8);
-			}
-			for (int i = 14; i < 16; i++) {
-				printf(" r%i:%04x", i, RAM[2 + i*2] | RAM[3 + i*2] << 8);
-			}
-
-			printf(" RAM:%01x", memory_get_ram_bank());
-			printf(" px:%d py:%d", RAM[0xa0e8] | RAM[0xa0e9] << 8, RAM[0xa0ea] | RAM[0xa0eb] << 8);
-
-//			printf(" c:%d", RAM[0xa0e2]);
-//			printf("-");
-//			for (int i = 0; i < 10; i++) {
-//				printf("%02x:", RAM[0xa041+i]);
-//			}
-#endif
 
 			printf("\n");
 		}
@@ -1366,7 +1416,7 @@ emulator_loop(void *param)
 		}
 
 		step6502();
-		uint8_t clocks = clockticks6502 - old_clockticks6502;
+		uint32_t clocks = clockticks6502 - old_clockticks6502;
 		old_clockticks6502 = clockticks6502;
 		bool new_frame = false;
 		via1_step(clocks);
@@ -1381,7 +1431,7 @@ emulator_loop(void *param)
 			new_frame |= video_step(MHZ, clocks, false);
 		}
 
-		for (uint8_t i = 0; i < clocks; i++) {
+		for (uint32_t i = 0; i < clocks; i++) {
 			i2c_step();
 		}
 		rtc_step(clocks);
@@ -1426,69 +1476,79 @@ emulator_loop(void *param)
 			break;
 		}
 
-		if (echo_mode != ECHO_MODE_NONE && pc == 0xffd2 && is_kernal()) {
-			uint8_t c = a;
-			if (echo_mode == ECHO_MODE_COOKED) {
-				if (c == 0x0d) {
-					printf("\n");
-				} else if (c == 0x0a) {
-					// skip
-				} else if (c < 0x20 || c >= 0x80) {
-					printf("\\X%02X", c);
+		// Change this comparison value if ever additional KERNAL
+		// API calls are snooped in this routine.
+
+		if (pc >= 0xff68 && is_kernal()) {
+			if (pc == 0xff68) {
+				kernal_mouse_enabled = !!a;
+				SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
+			}
+
+			if (echo_mode != ECHO_MODE_NONE && pc == 0xffd2) {
+				uint8_t c = a;
+				if (echo_mode == ECHO_MODE_COOKED) {
+					if (c == 0x0d) {
+						printf("\n");
+					} else if (c == 0x0a) {
+						// skip
+					} else if (c < 0x20 || c >= 0x80) {
+						printf("\\X%02X", c);
+					} else {
+						printf("%c", c);
+					}
+				} else if (echo_mode == ECHO_MODE_ISO) {
+					if (c == 0x0d) {
+						printf("\n");
+					} else if (c == 0x0a) {
+						// skip
+					} else if (c < 0x20 || (c >= 0x80 && c < 0xa0)) {
+						printf("\\X%02X", c);
+					} else {
+						print_iso8859_15_char(c);
+					}
 				} else {
 					printf("%c", c);
 				}
-			} else if (echo_mode == ECHO_MODE_ISO) {
-				if (c == 0x0d) {
-					printf("\n");
-				} else if (c == 0x0a) {
-					// skip
-				} else if (c < 0x20 || (c >= 0x80 && c < 0xa0)) {
-					printf("\\X%02X", c);
-				} else {
-					print_iso8859_15_char(c);
-				}
-			} else {
-				printf("%c", c);
+				fflush(stdout);
 			}
-			fflush(stdout);
-		}
 
-		if (pc == 0xffcf && is_kernal()) {
-			// as soon as BASIC starts reading a line...
-			static bool prg_done = false;
+			if (pc == 0xffcf) {
+				// as soon as BASIC starts reading a line...
+				static bool prg_done = false;
 
-			if (prg_file && !prg_done) {
-				// LOAD":*" will cause the IEEE library
-				// to load from "prg_file"
-				if (prg_override_start >= 0) {
-					snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1,$%04X\r", prg_override_start);
-				} else {
-					snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1\r");
-				}
-				paste_text = paste_text_data;
-				prg_done = true;
-
-				if (run_after_load) {
+				if (prg_file && !prg_done) {
+					// LOAD":*" will cause the IEEE library
+					// to load from "prg_file"
 					if (prg_override_start >= 0) {
-						snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "SYS$%04X\r", prg_override_start);
+						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1,$%04X\r", prg_override_start);
 					} else {
-						snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "RUN\r");
+						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1\r");
+					}
+					paste_text = paste_text_data;
+					prg_done = true;
+
+					if (run_after_load) {
+						if (prg_override_start >= 0) {
+							snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "SYS$%04X\r", prg_override_start);
+						} else {
+							snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "RUN\r");
+						}
 					}
 				}
-			}
-			else if (testbench && !test_init_complete){
-				snprintf(paste_text_data, sizeof(paste_text_data), "SYS65533\r");
-				paste_text = paste_text_data;
-				test_init_complete=true;
+				else if (testbench && !test_init_complete){
+					snprintf(paste_text_data, sizeof(paste_text_data), "SYS65533\r");
+					paste_text = paste_text_data;
+					test_init_complete=true;
+				}
+
+				if (paste_text) {
+					// ...paste BASIC code into the keyboard buffer
+					pasting_bas = true;
+				}
 			}
 
-			if (paste_text) {
-				// ...paste BASIC code into the keyboard buffer
-				pasting_bas = true;
-			}
 		}
-
 #if 0 // enable this for slow pasting
 		if (!(instruction_counter % 100000))
 #endif

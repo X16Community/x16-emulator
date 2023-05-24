@@ -41,6 +41,8 @@ extern SDL_RWops *prg_file;
 //bool log_ieee = true;
 bool log_ieee = false;
 
+bool ieee_initialized_once = false;
+
 char error[80];
 int error_len = 0;
 int error_pos = 0;
@@ -159,7 +161,7 @@ parse_dos_filename(const char *name)
 	char *newname = malloc(strlen(name)+1);
 	int i, j;
 
-	newname[strlen(name)+1] = 0;
+	newname[strlen(name)] = 0;
 	
 	overwrite = false;
 
@@ -550,6 +552,14 @@ continue_directory_listing(uint8_t *data)
 			}
 		}
 
+		// don't show the . or .. in the root directory
+		// this behaves like SD card/FAT32
+		if (!strcmp("..",dp->d_name) || !strcmp(".",dp->d_name)) {
+			if (!strcmp(hostfscwd,fsroot_path)) {
+				continue;
+			}
+		}
+
 		if (dirlist_wildcard[0]) { // wildcard match selected
 			// in a wildcard match that starts at first position, leading dot filenames are not considered
 			if ((dirlist_wildcard[0] == '*' || dirlist_wildcard[0] == '?') && *(dp->d_name) == '.')
@@ -725,9 +735,7 @@ create_cwd_listing(uint8_t *data)
 			}
 		}
 		*data++ = '"';
-//		if (namlen > 16) {
-//			namlen = 16; // TODO hack
-//		}
+
 		memcpy(data, tmp+i, namlen);
 		data += namlen;
 		*data++ = '"';
@@ -822,6 +830,18 @@ error_string(int e)
 		default:
 			return "";
 	}
+}
+
+static void
+set_activity(bool active)
+{
+	uint8_t cbdos_flags = get_kernal_cbdos_flags();
+	if (active) {
+		cbdos_flags |= 0x10; // set activity flag
+	} else {
+		cbdos_flags &= ~0x10; // clear activity flag
+	}
+	set_kernal_cbdos_flags(cbdos_flags);
 }
 
 static void
@@ -1192,7 +1212,7 @@ copen(int channel)
 		dirlist_pos = 0;
 		if (!strncmp(channels[channel].name,"$=C",3)) {
 			// This emulates the behavior in the ROM code in
-			// https://github.com/commanderx16/x16-rom/pull/373
+			// https://github.com/X16Community/x16-rom/pull/5
 			dirlist_len = create_cwd_listing(dirlist);
 		} else {
 			dirlist_len = create_directory_listing(dirlist, channels[channel].name);
@@ -1273,42 +1293,64 @@ cseek(int channel, uint32_t pos)
 void
 ieee_init()
 {
-	// Init the hostfs "jail" and cwd
-	if (fsroot_path == NULL) { // if null, default to cwd
-		// We hold this for the lifetime of the program, and we don't have
-		// any sort of destructor, so we rely on the OS teardown to free() it.
-		fsroot_path = getcwd(NULL, 0); 
+
+	int ch;
+
+	if (!ieee_initialized_once) {
+		// Init the hostfs "jail" and cwd
+		if (fsroot_path == NULL) { // if null, default to cwd
+			// We hold this for the lifetime of the program, and we don't have
+			// any sort of destructor, so we rely on the OS teardown to free() it.
+			fsroot_path = getcwd(NULL, 0);
+		} else {
+			// Normalize it
+			fsroot_path = realpath(fsroot_path, NULL);
+		}
+
+		if (startin_path == NULL) {
+			// same as above
+			startin_path = getcwd(NULL, 0);
+		} else {
+			// Normalize it
+			startin_path = realpath(startin_path, NULL);
+		}
+		// Quick error checks
+		if (fsroot_path == NULL) {
+			fprintf(stderr, "Failed to resolve argument to -fsroot\n");
+			exit(1);
+		}
+
+		if (startin_path == NULL) {
+			fprintf(stderr, "Failed to resolve argument to -startin\n");
+			exit(1);
+		}
+
+		// Now we verify that startin_path is within fsroot_path
+		// In other words, if fsroot_path is a left-justified substring of startin_path
+
+		// If startin_path is not reachable, we instead default to setting it
+		// back to fsroot_path
+		if (strncmp(fsroot_path, startin_path, strlen(fsroot_path))) { // not equal
+			free(startin_path);
+			startin_path = fsroot_path;
+		}
+
+		for (ch = 0; ch < 16; ch++) {
+			channels[ch].f = NULL;
+			channels[ch].name[0] = 0;
+		}
+
+		ieee_initialized_once = true;
 	} else {
-		// Normalize it
-		fsroot_path = realpath(fsroot_path, NULL);
-	}
+		for (ch = 0; ch < 16; ch++) {
+			cclose(ch);
+		}
 
-	if (startin_path == NULL) {
-		// same as above
-		startin_path = getcwd(NULL, 0);
-	} else {
-		// Normalize it
-		startin_path = realpath(startin_path, NULL);
-	}
-	// Quick error checks
-	if (fsroot_path == NULL) {
-		fprintf(stderr, "Failed to resolve argument to -fsroot\n");
-		exit(1);
-	}
+		listening = false;
+		talking = false;
+		opening = false;
 
-	if (startin_path == NULL) {
-		fprintf(stderr, "Failed to resolve argument to -startin\n");
-		exit(1);
-	}
-
-	// Now we verify that startin_path is within fsroot_path
-	// In other words, if fsroot_path is a left-justified substring of startin_path
-
-	// If startin_path is not reachable, we instead default to setting it
-	// back to fsroot_path
-	if (strncmp(fsroot_path, startin_path, strlen(fsroot_path))) { // not equal
-		free(startin_path);
-		startin_path = fsroot_path;
+		free(hostfscwd);
 	}
 
 	// Now initialize our emulated cwd.
@@ -1428,8 +1470,11 @@ ACPTR(uint8_t *a)
 				Sint64 curpos = SDL_RWtell(channels[channel].f);
 				if (curpos == SDL_RWseek(channels[channel].f, 0, RW_SEEK_END)) {
 					ret = 0x40;
+					channels[channel].read = false;
+					cclose(channel);
+				} else {
+					SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
 				}
-				SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
 			}
 		} else {
 			ret = 0x42;
@@ -1485,6 +1530,7 @@ UNTLK() {
 		printf("%s\n", __func__);
 	}
 	talking = false;
+	set_activity(false);
 }
 
 int
@@ -1494,6 +1540,7 @@ UNLSN() {
 		printf("%s\n", __func__);
 	}
 	listening = false;
+	set_activity(false);
 	if (opening) {
 		channels[channel].name[namelen] = 0; // term
 		opening = false;
@@ -1514,6 +1561,7 @@ LISTEN(uint8_t a)
 	}
 	if ((a & 0x1f) == UNIT_NO) {
 		listening = true;
+		set_activity(true);
 	}
 }
 
@@ -1525,6 +1573,7 @@ TALK(uint8_t a)
 	}
 	if ((a & 0x1f) == UNIT_NO) {
 		talking = true;
+		set_activity(true);
 	}
 }
 
@@ -1535,23 +1584,27 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	int count = *c ?: 256;
 	uint8_t ram_bank = read6502(0);
 	int i = 0;
-	do {
-		uint8_t byte = 0;
-		ret = ACPTR(&byte);
-		write6502(addr, byte);
-		i++;
-		if (!stream_mode) {
-			addr++;
-			if (addr == 0xc000) {
-				addr = 0xa000;
-				ram_bank++;
-				write6502(0, ram_bank);
+	if (channels[channel].f) {
+		do {
+			uint8_t byte = 0;
+			ret = ACPTR(&byte);
+			write6502(addr, byte);
+			i++;
+			if (!stream_mode) {
+				addr++;
+				if (addr == 0xc000) {
+					addr = 0xa000;
+					ram_bank++;
+					write6502(0, ram_bank);
+				}
 			}
-		}
-		if (ret > 0) {
-			break;
-		}
-	} while(i < count);
+			if (ret > 0) {
+				break;
+			}
+		} while(i < count);
+	} else {
+		ret = -2;
+	}
 	*c = i;
 	return ret;
 }
