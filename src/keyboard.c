@@ -224,6 +224,8 @@ keynum_from_SDL_Scancode(SDL_Scancode scancode)
 			return 100;
 		case SDL_SCANCODE_KP_DIVIDE:
 			return 95;
+		case SDL_SCANCODE_NUMLOCKCLEAR:
+			return 90;
 		default:
 			return 0;
 	}
@@ -232,13 +234,15 @@ keynum_from_SDL_Scancode(SDL_Scancode scancode)
 void
 handle_keyboard(bool down, SDL_Keycode sym, SDL_Scancode scancode)
 {
+	int keynum = keynum_from_SDL_Scancode(scancode);
+	
+	if (keynum == 0) return;
+
 	if (down) {
 		if (log_keyboard) {
 			printf("DOWN 0x%02X\n", scancode);
 			fflush(stdout);
 		}
-
-		int keynum = keynum_from_SDL_Scancode(scancode);
 
 		if (keynum & EXTENDED_FLAG) {
 			i2c_kbd_buffer_add(0x7f);
@@ -250,11 +254,10 @@ handle_keyboard(bool down, SDL_Keycode sym, SDL_Scancode scancode)
 			fflush(stdout);
 		}
 
-		int keynum = keynum_from_SDL_Scancode(scancode) | 0b10000000;
+		keynum = keynum | 0b10000000;
 		if (keynum & EXTENDED_FLAG) {
 			i2c_kbd_buffer_add(0xff);
 		}
 		i2c_kbd_buffer_add(keynum & 0xff);
 	}
 }
-
