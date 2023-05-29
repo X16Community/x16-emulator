@@ -189,7 +189,7 @@ keynum_from_SDL_Scancode(SDL_Scancode scancode)
 		case SDL_SCANCODE_RGUI:
 			return 63;
 		case SDL_SCANCODE_APPLICATION: // Menu
-			return 0;
+			return 65;
 		case SDL_SCANCODE_NONUSBACKSLASH:
 			return 45;
 		case SDL_SCANCODE_KP_ENTER:
