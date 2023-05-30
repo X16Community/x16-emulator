@@ -132,7 +132,7 @@ int    oldRegisterTicks = 0;                          // Last PC when change not
 
 SDL_Renderer *dbgRenderer;                            // Renderer passed in.
 
-static int getCurrentBank(int pc) {
+static inline int getCurrentBank(int pc) {
 	int bank = -1;
 	if (pc >= 0xA000) {
 		bank = pc < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
@@ -146,7 +146,7 @@ static int getCurrentBank(int pc) {
 //
 // *******************************************************************************************
 
-static bool hitBreakpoint(int pc, struct breakpoint bp) {
+static inline bool hitBreakpoint(int pc, struct breakpoint bp) {
 	if ((pc == bp.pc) && getCurrentBank(pc) == bp.bank) {
 		return true;
 	}
@@ -256,7 +256,7 @@ void DEBUGSetBreakPoint(struct breakpoint newBreakPoint) {
 void DEBUGBreakToDebugger(void) {
 	currentMode = DMODE_STOP;
 	currentPC = pc;
-	currentPCBank = pc < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
+	currentPCBank = getCurrentBank(pc);
 }
 
 // *******************************************************************************************
@@ -298,7 +298,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 
 		case DBGKEY_HOME:								// F1 sets the display PC to the actual one.
 			currentPC = pc;
-			currentPCBank= currentPC < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
+			currentPCBank= getCurrentBank(pc);
 			break;
 
 		case DBGKEY_RESET:								// F2 reset the 6502
@@ -448,6 +448,9 @@ static void DEBUGExecCmd() {
 			// Banked Memory, RAM then ROM
 			if(addr >= 0xA000) {
 				currentPCBank= (number & 0xFF0000) >> 16;
+			}
+			else {
+				currentPCBank= -1;
 			}
 			currentPC= addr;
 			break;
