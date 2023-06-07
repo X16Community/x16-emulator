@@ -1411,8 +1411,9 @@ get_and_inc_address(uint8_t sel, bool write)
 	} else if (fx_addr1_mode == 2 && write == false) { // FX polygon fill mode 
 		fx_x_subpixel_position += fx_x_subpixel_increment;
 		fx_y_subpixel_position += fx_y_subpixel_increment;
-		fx_poly_fill_length = (int32_t)(fx_y_subpixel_position - fx_x_subpixel_position) >> 16;
-		io_addr[1] = io_addr[0] + (fx_x_subpixel_position >> 16);
+		fx_poly_fill_length = ((int32_t) fx_y_subpixel_position >> 16) - ((int32_t) fx_x_subpixel_position >> 16);
+		if (sel == 1)
+			io_addr[1] = io_addr[0] + (fx_x_subpixel_position >> 16);
 	}
 	return address;
 }
