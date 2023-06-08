@@ -59,6 +59,7 @@ smc_write(uint8_t a, uint8_t v) {
 		case 1:
 			if (v == 0) {
 				printf("SMC Power Off.\n");
+				main_shutdown();
 #ifdef __EMSCRIPTEN__
 				emscripten_force_exit(0);
 #endif
