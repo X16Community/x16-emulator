@@ -133,6 +133,30 @@ static uint32_t fx_y_subpixel_position;   // 11.9 fixed point
 
 static uint16_t fx_poly_fill_length;      // 10 bits
 
+static uint32_t fx_affine_tile_base;
+static uint32_t fx_affine_map_base;
+
+static uint8_t fx_affine_map_size;
+
+static bool fx_4bit_mode;
+static bool fx_16bit_hop;
+static bool fx_cache_byte_cycling;
+static bool fx_cache_fill;
+static bool fx_cache_write;
+static bool fx_trans_writes;
+
+static bool fx_cache_increment_mode;
+static bool fx_cache_nibble_index;
+static uint8_t fx_cache_byte_index;
+static bool fx_multiplier_enabled;
+static bool fx_add_or_sub;
+static bool fx_accumulate;
+static bool fx_reset_accumulator;
+
+static bool fx_affine_clip;
+
+static uint8_t fx_cache[4];
+
 static const uint8_t vera_version_string[] = {'V', 
 	VERA_VERSION_MAJOR,
 	VERA_VERSION_MINOR,
@@ -187,6 +211,9 @@ video_reset()
 	fx_addr1_mode = 0;
 	fx_x_subpixel_position = 0x8000;
 	fx_y_subpixel_position = 0x8000;
+	fx_trans_writes = false;
+	fx_affine_tile_base = 0;
+	fx_affine_clip = false;
 
 	// init sprite data
 	memset(sprite_data, 0, sizeof(sprite_data));
@@ -1414,8 +1441,43 @@ get_and_inc_address(uint8_t sel, bool write)
 		fx_poly_fill_length = ((int32_t) fx_y_subpixel_position >> 16) - ((int32_t) fx_x_subpixel_position >> 16);
 		if (sel == 1)
 			io_addr[1] = io_addr[0] + (fx_x_subpixel_position >> 16);
+	} else if (sel == 1 && fx_addr1_mode == 3 && write == false) { // FX affine mode
+		fx_x_subpixel_position += fx_x_subpixel_increment;
+		fx_y_subpixel_position += fx_y_subpixel_increment;
 	}
 	return address;
+}
+
+void
+fx_affine_prefetch(void)
+{
+	if (fx_addr1_mode != 3) return; // only if affine mode is selected
+
+	uint32_t address;
+	uint16_t affine_x_tile = (fx_x_subpixel_position >> 19);
+	uint16_t affine_y_tile = (fx_y_subpixel_position >> 19);
+	uint8_t affine_x_sub_tile = (fx_x_subpixel_position >> 16) & 0x07;
+	uint8_t affine_y_sub_tile = (fx_y_subpixel_position >> 16) & 0x07;
+
+	if (!fx_affine_clip) { // wrap
+		affine_x_tile &= fx_affine_map_size - 1;
+		affine_y_tile &= fx_affine_map_size - 1;
+	}
+
+	if (affine_x_tile > fx_affine_map_size || affine_y_tile > fx_affine_map_size) {
+		// We clipped, return value for tile 0
+		address = fx_affine_tile_base + (affine_y_sub_tile * 8) + affine_x_sub_tile;
+	} else {
+		// Get the address within the tile map
+		address = fx_affine_map_base + (affine_y_tile * fx_affine_map_size) + affine_x_tile;
+		// Now translate that to the tile base address
+		uint8_t affine_tile_idx = video_space_read(address);
+		address = fx_affine_tile_base + (affine_tile_idx << 6);
+		// Now add the sub-tile address
+		address += (affine_y_sub_tile * 8) + affine_x_sub_tile;
+	}
+	io_addr[1] = address;
+	io_rddata[1] = video_space_read(address);
 }
 
 //
@@ -1443,7 +1505,9 @@ video_space_read_range(uint8_t* dest, uint32_t address, uint32_t size)
 void
 video_space_write(uint32_t address, uint8_t value)
 {
-	video_ram[address & 0x1FFFF] = value;
+	if (!fx_trans_writes || value > 0) {
+		video_ram[address & 0x1FFFF] = value;
+	}
 
 	if (address >= ADDR_PSG_START && address < ADDR_PSG_END) {
 		audio_render();
@@ -1480,7 +1544,19 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 			uint32_t address = get_and_inc_address(reg - 3, false);
 
 			uint8_t value = io_rddata[reg - 3];
-			io_rddata[reg - 3] = video_space_read(io_addr[reg - 3]);
+
+			if (reg == 4)
+				fx_affine_prefetch();
+			else
+				io_rddata[reg - 3] = video_space_read(io_addr[reg - 3]);
+
+			if (fx_cache_fill) {
+				fx_cache[fx_cache_byte_index] = value;
+				if (fx_cache_increment_mode)
+					fx_cache_byte_index = (fx_cache_byte_index & 0x2) | ((fx_cache_byte_index + 1) & 0x1);
+				else
+					fx_cache_byte_index = ((fx_cache_byte_index + 1) & 0x3);
+			}
 
 			if (log_video) {
 				printf("READ  video_space[$%X] = $%02X\n", address, value);
@@ -1499,11 +1575,11 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 			int i = reg - 0x09 + (io_dcsel << 2);
 			if (i < 9) // DCSEL = [0,1] with any composer register, or [2] at $9f29
 				return reg_composer[i];
-			else if (i == 0x16) // DCSEL=5 0x9F2B
+			else if (i == 0x16) // DCSEL=5, 0x9F2B
 				return ((!!(fx_poly_fill_length & 0xfff0)) << 7) | 
 					((fx_x_subpixel_position >> 11) & 0x60) |
 					((fx_poly_fill_length & 0x000f) << 1);
-			else if (i == 0x17) // DCSEL=5 0x9F2C
+			else if (i == 0x17) // DCSEL=5, 0x9F2C
 				return ((fx_poly_fill_length & 0x03f8) >> 2);
 			else // The rest of the space is write-only, so reading the values out instead returns the version string.
 				return vera_version_string[i % 4];
@@ -1561,7 +1637,23 @@ void video_write(uint8_t reg, uint8_t value) {
 			if (log_video) {
 				printf("WRITE video_space[$%X] = $%02X\n", address, value);
 			}
-			video_space_write(address, value);
+
+			if (fx_cache_write) {
+				address &= 0x1fffc;
+				if (fx_cache_byte_cycling) {
+					video_space_write(address+0, fx_cache[fx_cache_byte_index]);
+					video_space_write(address+1, fx_cache[fx_cache_byte_index]);
+					video_space_write(address+2, fx_cache[fx_cache_byte_index]);
+					video_space_write(address+3, fx_cache[fx_cache_byte_index]);
+				} else {
+					video_space_write(address+0, fx_cache[0]);
+					video_space_write(address+1, fx_cache[1]);
+					video_space_write(address+2, fx_cache[2]);
+					video_space_write(address+3, fx_cache[3]);
+				}
+			} else {
+				video_space_write(address, value);
+			}
 
 			io_rddata[reg - 3] = video_space_read(io_addr[reg - 3]);
 			break;
@@ -1609,14 +1701,29 @@ void video_write(uint8_t reg, uint8_t value) {
 			switch (i) {
 				case 0x08: // DCSEL=2, $9F29
 					fx_addr1_mode = value & 0x03;
-					//fx_4bit_mode = (value & 0x04) >> 2;
-					//fx_16bit_hop = (value & 0x08) >> 3;
-					//fx_mult_enabled = (value & 0x10) >> 4;
-					//fx_add_or_sub = (value & 0x20) >> 5;
-					//fx_accumulate = (value & 0x40) >> 6;
-					if (value & 0x80) {
-						reg_composer[i] = value & 0x7f;
-					}
+					fx_4bit_mode = (value & 0x04) >> 2;
+					fx_16bit_hop = (value & 0x08) >> 3;
+					fx_cache_byte_cycling = (value & 0x10) >> 4;
+					fx_cache_fill = (value & 0x20) >> 5;
+					fx_cache_write = (value & 0x40) >> 6;
+					fx_trans_writes = (value & 0x80) >> 7;
+					break;
+				case 0x09: // DCSEL=2, $9F2A
+					fx_affine_tile_base = (value & 0xfc) << 9;
+					fx_affine_clip = (value & 0x02) >> 1;
+					break;
+				case 0x0a: // DCSEL=2, $9F2B
+					fx_affine_map_base = (value & 0xfc) << 9;
+					fx_affine_map_size = 2 << ((value & 0x03) << 1);
+					break;
+				case 0x0b: // DCSEL=2, $9F2C
+					fx_cache_increment_mode = value & 0x01;
+					fx_cache_nibble_index = (value & 0x02) >> 1;
+					fx_cache_byte_index = (value & 0x0c) >> 2;
+					fx_multiplier_enabled = (value & 0x10) >> 4;
+					fx_add_or_sub = (value & 0x20) >> 5;
+					fx_accumulate = (value & 0x40) >> 6;
+					fx_reset_accumulator = (value & 0x80) >> 7;
 					break;
 				case 0x0c: // DCSEL=3, $9F29
 					fx_x_subpixel_increment = ((((reg_composer[0x0d] & 0x7f) << 15) + (reg_composer[0x0c] << 7)) // base value
@@ -1627,8 +1734,8 @@ void video_write(uint8_t reg, uint8_t value) {
 					fx_x_subpixel_increment = ((((reg_composer[0x0d] & 0x7f) << 15) + (reg_composer[0x0c] << 7)) // base value
 						| ((reg_composer[0x0d] & 0x40) ? 0xffc00000 : 0)) // sign extend if negative
 						<< 5*(!!(reg_composer[0x0d] & 0x80)); // multiply by 32 if flag set
-					if (fx_addr1_mode == 1 || fx_addr1_mode == 2)
-						 fx_x_subpixel_position = (fx_x_subpixel_position & 0x07ff0000) | 0x00008000;
+					// Reset subpixel to 0.5
+					fx_x_subpixel_position = (fx_x_subpixel_position & 0x07ff0000) | 0x00008000;
 					break;
 				case 0x0e: // DCSEL=3, $9F2B
 					fx_y_subpixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
@@ -1639,20 +1746,42 @@ void video_write(uint8_t reg, uint8_t value) {
 					fx_y_subpixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
 						| ((reg_composer[0x0f] & 0x40) ? 0xffc00000 : 0)) // sign extend if negative
 						<< 5*(!!(reg_composer[0x0f] & 0x80)); // multiply by 32 if flag set
-					if (fx_addr1_mode == 1 || fx_addr1_mode == 2)
-						 fx_y_subpixel_position = (fx_y_subpixel_position & 0x07ff0000) | 0x00008000;
+					// Reset subpixel to 0.5
+					fx_y_subpixel_position = (fx_y_subpixel_position & 0x07ff0000) | 0x00008000;
 					break;
 				case 0x10: // DCSEL=4, $9F29
-					fx_x_subpixel_position = (fx_x_subpixel_position & 0x0700ffff) | (value << 16);
+					fx_x_subpixel_position = (fx_x_subpixel_position & 0x0700ff80) | (value << 16);
+					fx_affine_prefetch();
 					break;
 				case 0x11: // DCSEL=4, $9F2A
-					fx_x_subpixel_position = (fx_x_subpixel_position & 0x00ffffff) | ((value & 0x7) << 24);
+					fx_x_subpixel_position = (fx_x_subpixel_position & 0x00ffff00) | ((value & 0x7) << 24) | (value & 0x80);
+					fx_affine_prefetch();
 					break;
 				case 0x12: // DCSEL=4, $9F2B
-					fx_y_subpixel_position = (fx_y_subpixel_position & 0x0700ffff) | (value << 16);
+					fx_y_subpixel_position = (fx_y_subpixel_position & 0x0700ff80) | (value << 16);
+					fx_affine_prefetch();
 					break;
 				case 0x13: // DCSEL=4, $9F2C
-					fx_y_subpixel_position = (fx_y_subpixel_position & 0x00ffffff) | ((value & 0x7) << 24);
+					fx_y_subpixel_position = (fx_y_subpixel_position & 0x00ffff00) | ((value & 0x7) << 24) | (value & 0x80);
+					fx_affine_prefetch();
+					break;
+				case 0x14: // DCSEL=5, $9F29
+					fx_x_subpixel_position = (fx_x_subpixel_position & 0x07ff0080) | (value << 8);
+					break;
+				case 0x15: // DCSEL=5, $9F2A
+					fx_y_subpixel_position = (fx_y_subpixel_position & 0x07ff0080) | (value << 8);
+					break;
+				case 0x18: // DCSEL=6, $9F29
+					fx_cache[0] = value;
+					break;
+				case 0x19: // DCSEL=6, $9F2A
+					fx_cache[1] = value;
+					break;
+				case 0x1a: // DCSEL=6, $9F2B
+					fx_cache[2] = value;
+					break;
+				case 0x1b: // DCSEL=6, $9F2C
+					fx_cache[3] = value;
 					break;
 			}
 			break;
