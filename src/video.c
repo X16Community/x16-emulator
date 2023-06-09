@@ -1325,6 +1325,8 @@ video_end()
 		record_gif = RECORD_GIF_DISABLED;
 	}
 
+	is_fullscreen = false;
+	SDL_SetWindowFullscreen(window, 0);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 }

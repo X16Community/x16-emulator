@@ -121,6 +121,7 @@ bool test_init_complete=false;
 bool headless = false;
 bool testbench = false;
 bool enable_midline = false;
+char *cartridge_path = NULL;
 
 uint8_t MHZ = 8;
 
@@ -564,7 +565,6 @@ main(int argc, char **argv)
 	char *prg_path = NULL;
 	char *bas_path = NULL;
 	char *sdcard_path = NULL;
-	char *cartridge_path = NULL;
 	bool run_geos = false;
 	bool run_test = false;
 	int test_number = 0;
@@ -1098,6 +1098,11 @@ main(int argc, char **argv)
 	emulator_loop(NULL);
 #endif
 
+	main_shutdown();
+	return 0;
+}
+
+void main_shutdown() {
 	if (!headless){
 		wav_recorder_shutdown();
 		audio_close();
@@ -1136,7 +1141,6 @@ main(int argc, char **argv)
 	}
 #endif
 
-	return 0;
 }
 
 bool
