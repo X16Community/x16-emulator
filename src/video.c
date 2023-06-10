@@ -145,6 +145,9 @@ static bool fx_cache_fill;
 static bool fx_cache_write;
 static bool fx_trans_writes;
 
+static bool fx_2bit_poly;
+static bool fx_2bit_poking;
+
 static bool fx_cache_increment_mode;
 static bool fx_cache_nibble_index;
 static uint8_t fx_cache_byte_index;
@@ -226,6 +229,9 @@ video_reset()
 	fx_16bit_hop = false;
 	fx_subtract = false;
 	fx_cache_byte_cycling = false;
+
+	fx_2bit_poly = false;
+	fx_2bit_poking = false;
 
 	fx_cache_nibble_index = false;
 	fx_cache_byte_index = 0;
@@ -1687,10 +1693,18 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 				return reg_composer[i];
 			} else if (i == 0x16) { // DCSEL=5, 0x9F2B
 				if (fx_4bit_mode) {
-					return ((!!(fx_poly_fill_length & 0xfff8)) << 7) |
-						((fx_x_pixel_position >> 11) & 0x60) |
-						((fx_x_pixel_position >> 14) & 0x10) |
-						((fx_poly_fill_length & 0x0007) << 1);
+					if (fx_2bit_poly) {
+						return ((fx_y_pixel_position & 0x00008000) >> 8) |
+							((fx_x_pixel_position >> 11) & 0x60) |
+							((fx_x_pixel_position >> 14) & 0x10) |
+							((fx_poly_fill_length & 0x0007) << 1) |
+							((fx_x_pixel_position & 0x00008000) >> 15);
+					} else {
+						return ((!!(fx_poly_fill_length & 0xfff8)) << 7) |
+							((fx_x_pixel_position >> 11) & 0x60) |
+							((fx_x_pixel_position >> 14) & 0x10) |
+							((fx_poly_fill_length & 0x0007) << 1);
+					}
 				} else {
 					return ((!!(fx_poly_fill_length & 0xfff0)) << 7) | 
 						((fx_x_pixel_position >> 11) & 0x60) |
@@ -1734,10 +1748,15 @@ void video_write(uint8_t reg, uint8_t value) {
 	//	printf("ioregisters[%d] = $%02X\n", reg, value);
 	switch (reg & 0x1F) {
 		case 0x00:
-			io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x1ff00) | value;
+			if (fx_2bit_poly && fx_4bit_mode && io_addrsel == 1) {
+				fx_2bit_poking = true;
+				io_addr[1] = (io_addr[1] & 0xfc) | (value & 0x3);
+			} else {
+				io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x1ff00) | value;
+				if (fx_16bit_hop && io_addrsel == 1)
+					fx_16bit_hop_align = value & 3;
+			}
 			io_rddata[io_addrsel] = video_space_read(io_addr[io_addrsel]);
-			if (fx_16bit_hop)
-				fx_16bit_hop_align = value & 3;
 			break;
 		case 0x01:
 			io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x100ff) | (value << 8);
@@ -1752,6 +1771,26 @@ void video_write(uint8_t reg, uint8_t value) {
 			break;
 		case 0x03:
 		case 0x04: {
+			if (fx_2bit_poking) {
+				fx_2bit_poking = false;
+				uint8_t mask = value >> 6;
+				switch (mask) {
+					case 0x00:
+						video_ram[io_addr[1] & 0x1FFFF] = (fx_cache[fx_cache_byte_index] & 0xc0) | (io_rddata[1] & 0x3f);
+						break;
+					case 0x01:
+						video_ram[io_addr[1] & 0x1FFFF] = (fx_cache[fx_cache_byte_index] & 0x30) | (io_rddata[1] & 0xcf);
+						break;
+					case 0x02:
+						video_ram[io_addr[1] & 0x1FFFF] = (fx_cache[fx_cache_byte_index] & 0x0c) | (io_rddata[1] & 0xf3);
+						break;
+					case 0x03:
+						video_ram[io_addr[1] & 0x1FFFF] = (fx_cache[fx_cache_byte_index] & 0x03) | (io_rddata[1] & 0xfc);
+						break;
+				}
+				break; // break out of the enclosing switch statement early, too
+			}
+
 			if (enable_midline)
 				video_step(MHZ, 0, true); // potential midline raster effect
 			bool nibble = fx_nibble_bit[reg -3];
@@ -1845,6 +1884,7 @@ void video_write(uint8_t reg, uint8_t value) {
 				case 0x09: // DCSEL=2, $9F2A
 					fx_affine_tile_base = (value & 0xfc) << 9;
 					fx_affine_clip = (value & 0x02) >> 1;
+					fx_2bit_poly = (value & 0x01);
 					break;
 				case 0x0a: // DCSEL=2, $9F2B
 					fx_affine_map_base = (value & 0xfc) << 9;
