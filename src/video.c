@@ -1693,7 +1693,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 				return reg_composer[i];
 			} else if (i == 0x16) { // DCSEL=5, 0x9F2B
 				if (fx_4bit_mode) {
-					if (fx_2bit_poly) {
+					if (fx_2bit_poly && fx_addr1_mode == 2) {
 						return ((fx_y_pixel_position & 0x00008000) >> 8) |
 							((fx_x_pixel_position >> 11) & 0x60) |
 							((fx_x_pixel_position >> 14) & 0x10) |
@@ -1748,7 +1748,7 @@ void video_write(uint8_t reg, uint8_t value) {
 	//	printf("ioregisters[%d] = $%02X\n", reg, value);
 	switch (reg & 0x1F) {
 		case 0x00:
-			if (fx_2bit_poly && fx_4bit_mode && io_addrsel == 1) {
+			if (fx_2bit_poly && fx_4bit_mode && fx_addr1_mode == 2 && io_addrsel == 1) {
 				fx_2bit_poking = true;
 				io_addr[1] = (io_addr[1] & 0xfc) | (value & 0x3);
 			} else {
