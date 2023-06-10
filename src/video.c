@@ -153,6 +153,8 @@ static bool fx_subtract;
 
 static bool fx_affine_clip;
 
+static uint8_t fx_16bit_hop_align;
+
 static bool fx_nibble_bit[2];
 static bool fx_nibble_incr[2];
 
@@ -227,6 +229,8 @@ video_reset()
 
 	fx_cache_nibble_index = false;
 	fx_cache_byte_index = 0;
+
+	fx_16bit_hop_align = 0;
 
 	fx_nibble_bit[0] = false;
 	fx_nibble_bit[1] = false;
@@ -1448,11 +1452,31 @@ get_and_inc_address(uint8_t sel, bool write)
 
 	if (fx_4bit_mode && fx_nibble_incr[sel]) {
 		if (fx_nibble_bit[sel]) {
-			io_addr[sel] += 1;
+			if ((io_inc[sel] & 1) == 0) io_addr[sel] += 1;
 			fx_nibble_bit[sel] = 0;
+		} else {
+			if (io_inc[sel] & 1) io_addr[sel] -= 1;
+			fx_nibble_bit[sel] = 1;
 		}
 	}
-	io_addr[sel] += increments[io_inc[sel]];
+
+	int16_t incr = increments[io_inc[sel]];
+
+	if (sel == 1 && fx_16bit_hop) {
+		if (incr == 4) {
+			if (fx_16bit_hop_align == (address & 0x3))
+				incr = 1;
+			else
+				incr = 3;
+		} else if (incr == 320) {
+			if (fx_16bit_hop_align == (address & 0x3))
+				incr = 1;
+			else
+				incr = 319;
+		}
+	}
+
+	io_addr[sel] += incr;
 
 	if (sel == 1 && fx_addr1_mode == 1) { // FX line draw mode
 		fx_x_pixel_position += fx_x_pixel_increment;
@@ -1460,8 +1484,11 @@ get_and_inc_address(uint8_t sel, bool write)
 			fx_x_pixel_position &= ~0x10000;
 			if (fx_4bit_mode && fx_nibble_incr[0]) {
 				if (fx_nibble_bit[1]) {
-					io_addr[1] += 1;
+					if ((io_inc[0] & 1) == 0) io_addr[1] += 1;
 					fx_nibble_bit[1] = 0;
+				} else {
+					if (io_inc[0] & 1) io_addr[1] -= 1;
+					fx_nibble_bit[1] = 1;
 				}
 			}
 			io_addr[1] += increments[io_inc[0]];
@@ -1501,20 +1528,23 @@ fx_affine_prefetch(void)
 		affine_y_tile &= fx_affine_map_size - 1;
 	}
 
-	if (affine_x_tile > fx_affine_map_size || affine_y_tile > fx_affine_map_size) {
+	if (affine_x_tile >= fx_affine_map_size || affine_y_tile >= fx_affine_map_size) {
 		// We clipped, return value for tile 0
-		address = fx_affine_tile_base + (affine_y_sub_tile * (8 >> fx_4bit_mode)) + affine_x_sub_tile;
+		address = fx_affine_tile_base + (affine_y_sub_tile << (3 - fx_4bit_mode)) + (affine_x_sub_tile >> fx_4bit_mode);
+		if (fx_4bit_mode) fx_nibble_bit[1] = 0;
 	} else {
 		// Get the address within the tile map
 		address = fx_affine_map_base + (affine_y_tile * fx_affine_map_size) + affine_x_tile;
 		// Now translate that to the tile base address
 		uint8_t affine_tile_idx = video_space_read(address);
-		address = fx_affine_tile_base + (affine_tile_idx << 6);
+		address = fx_affine_tile_base + (affine_tile_idx << (6 - fx_4bit_mode));
 		// Now add the sub-tile address
-		address += (affine_y_sub_tile * (8 >> fx_4bit_mode)) + affine_x_sub_tile;
+		address += (affine_y_sub_tile << (3 - fx_4bit_mode)) + (affine_x_sub_tile >> fx_4bit_mode);
+		if (fx_4bit_mode) fx_nibble_bit[1] = affine_x_sub_tile & 1;
 	}
 	io_addr[1] = address;
 	io_rddata[1] = video_space_read(address);
+//	printf("tile x: %d tile y: %d sub-x: %d sub-y: %d, address: %05x, nibble: %d, mapsize: %d, data: %d\n", affine_x_tile, affine_y_tile, affine_x_sub_tile, affine_y_sub_tile, address, fx_nibble_bit[1], fx_affine_map_size, io_rddata[1]);
 }
 
 //
@@ -1544,12 +1574,12 @@ video_space_write(uint32_t address, bool nibble, uint8_t value)
 {
 	if (fx_4bit_mode) {
 		if (nibble) {
-			if (!fx_trans_writes || (value & 0xf0) > 0) {
-				video_ram[address & 0x1FFFF] = (video_ram[address & 0x1FFFF] & 0x0f) | (value & 0xf0);
-			}
-		} else {
 			if (!fx_trans_writes || (value & 0x0f) > 0) {
 				video_ram[address & 0x1FFFF] = (video_ram[address & 0x1FFFF] & 0xf0) | (value & 0x0f);
+			}
+		} else {
+			if (!fx_trans_writes || (value & 0xf0) > 0) {
+				video_ram[address & 0x1FFFF] = (video_ram[address & 0x1FFFF] & 0x0f) | (value & 0xf0);
 			}
 		}
 	} else {
@@ -1622,11 +1652,11 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 			if (fx_cache_fill) {
 				if (fx_4bit_mode) {
 					if (fx_cache_nibble_index) {
-						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0x0f) | (value & 0xf0);
+						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0xf0) | (value & 0x0f);
 						fx_cache_nibble_index = 0;
 						fx_cache_byte_index = ((fx_cache_byte_index + 1) & 0x3);
 					} else {
-						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0xf0) | (value & 0x0f);
+						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0x0f) | (value & 0xf0);
 						fx_cache_nibble_index = 1;
 					}
 				} else {
@@ -1706,6 +1736,8 @@ void video_write(uint8_t reg, uint8_t value) {
 		case 0x00:
 			io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x1ff00) | value;
 			io_rddata[io_addrsel] = video_space_read(io_addr[io_addrsel]);
+			if (fx_16bit_hop)
+				fx_16bit_hop_align = value & 3;
 			break;
 		case 0x01:
 			io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x100ff) | (value << 8);
@@ -1713,8 +1745,8 @@ void video_write(uint8_t reg, uint8_t value) {
 			break;
 		case 0x02:
 			io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x0ffff) | ((value & 0x1) << 16);
-			fx_nibble_bit[io_addrsel] = (value & 0x1) << 1;
-			fx_nibble_incr[io_addrsel] = (value & 0x1) << 2;
+			fx_nibble_bit[io_addrsel] = (value >> 1) & 0x1;
+			fx_nibble_incr[io_addrsel] = (value >> 2) & 0x1;
 			io_inc[io_addrsel]  = value >> 3;
 			io_rddata[io_addrsel] = video_space_read(io_addr[io_addrsel]);
 			break;
