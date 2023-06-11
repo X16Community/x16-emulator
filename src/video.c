@@ -1828,7 +1828,11 @@ void video_write(uint8_t reg, uint8_t value) {
 				}
 			} else {
 				if (fx_cache_byte_cycling) {
-					fx_vram_cache_write(address, fx_cache[fx_cache_byte_index], 0);
+					if (fx_4bit_mode) {
+						fx_vram_cache_write(address, fx_cache[fx_cache_byte_index], nibble+1);
+					} else {
+						fx_vram_cache_write(address, fx_cache[fx_cache_byte_index], 0);
+					}
 				} else {
 					video_space_write(address, nibble, value); // Normal write
 				}
