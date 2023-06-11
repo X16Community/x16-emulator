@@ -1518,6 +1518,7 @@ get_and_inc_address(uint8_t sel, bool write)
 		fx_x_pixel_position += fx_x_pixel_increment;
 		fx_y_pixel_position += fx_y_pixel_increment;
 		fx_poly_fill_length = ((int32_t) fx_y_pixel_position >> 16) - ((int32_t) fx_x_pixel_position >> 16);
+		if (fx_poly_fill_length >= 768) fx_poly_fill_length = 0x300;
 		if (sel == 0 && fx_cache_byte_cycling && !fx_cache_fill) {
 			fx_cache_byte_index = (fx_cache_byte_index + 1) & 3;
 		}
