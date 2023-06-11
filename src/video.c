@@ -1750,7 +1750,7 @@ void video_write(uint8_t reg, uint8_t value) {
 		case 0x00:
 			if (fx_2bit_poly && fx_4bit_mode && fx_addr1_mode == 2 && io_addrsel == 1) {
 				fx_2bit_poking = true;
-				io_addr[1] = (io_addr[1] & 0xfc) | (value & 0x3);
+				io_addr[1] = (io_addr[1] & 0x1fffc) | (value & 0x3);
 			} else {
 				io_addr[io_addrsel] = (io_addr[io_addrsel] & 0x1ff00) | value;
 				if (fx_16bit_hop && io_addrsel == 1)
