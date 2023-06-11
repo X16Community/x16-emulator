@@ -1518,7 +1518,6 @@ get_and_inc_address(uint8_t sel, bool write)
 		fx_x_pixel_position += fx_x_pixel_increment;
 		fx_y_pixel_position += fx_y_pixel_increment;
 		fx_poly_fill_length = ((int32_t) fx_y_pixel_position >> 16) - ((int32_t) fx_x_pixel_position >> 16);
-		if (fx_poly_fill_length >= 768) fx_poly_fill_length = 0x300;
 		if (sel == 0 && fx_cache_byte_cycling && !fx_cache_fill) {
 			fx_cache_byte_index = (fx_cache_byte_index + 1) & 3;
 		}
@@ -1710,6 +1709,9 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 			if (i < 9) { // DCSEL = [0,1] with any composer register, or [2] at $9f29
 				return reg_composer[i];
 			} else if (i == 0x16) { // DCSEL=5, 0x9F2B
+				if (fx_poly_fill_length >= 768) {
+					return ((fx_2bit_poly && fx_addr1_mode == 2) ? 0x00 : 0x80);
+				}
 				if (fx_4bit_mode) {
 					if (fx_2bit_poly && fx_addr1_mode == 2) {
 						return ((fx_y_pixel_position & 0x00008000) >> 8) |
