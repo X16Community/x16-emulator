@@ -219,9 +219,8 @@ video_reset()
 	fx_addr1_mode = 0;
 	fx_x_pixel_position = 0x8000;
 	fx_y_pixel_position = 0x8000;
-	fx_trans_writes = false;
-	fx_affine_tile_base = 0;
-	fx_affine_clip = false;
+	fx_x_pixel_increment = 0;
+	fx_y_pixel_increment = 0;
 
 	fx_cache_write = false;
 	fx_cache_fill = false;
@@ -229,12 +228,22 @@ video_reset()
 	fx_16bit_hop = false;
 	fx_subtract = false;
 	fx_cache_byte_cycling = false;
+	fx_trans_writes = false;
+	fx_multiplier = false;
+
+	fx_mult_accumulator = 0;
 
 	fx_2bit_poly = false;
 	fx_2bit_poking = false;
 
-	fx_cache_nibble_index = false;
+	fx_cache_nibble_index = 0;
 	fx_cache_byte_index = 0;
+	fx_cache_increment_mode = 0;
+
+	fx_cache[0] = 0;
+	fx_cache[1] = 0;
+	fx_cache[2] = 0;
+	fx_cache[3] = 0;
 
 	fx_16bit_hop_align = 0;
 
@@ -242,6 +251,12 @@ video_reset()
 	fx_nibble_bit[1] = false;
 	fx_nibble_incr[0] = false;
 	fx_nibble_incr[1] = false;
+
+	fx_poly_fill_length = 0;
+	fx_affine_tile_base = 0;
+	fx_affine_map_base = 0;
+	fx_affine_map_size = 2;
+	fx_affine_clip = false;
 
 	// init sprite data
 	memset(sprite_data, 0, sizeof(sprite_data));
