@@ -1542,8 +1542,8 @@ fx_affine_prefetch(void)
 	if (fx_addr1_mode != 3) return; // only if affine mode is selected
 
 	uint32_t address;
-	uint16_t affine_x_tile = (fx_x_pixel_position >> 19);
-	uint16_t affine_y_tile = (fx_y_pixel_position >> 19);
+	uint8_t affine_x_tile = (fx_x_pixel_position >> 19) & 0xff;
+	uint8_t affine_y_tile = (fx_y_pixel_position >> 19) & 0xff;
 	uint8_t affine_x_sub_tile = (fx_x_pixel_position >> 16) & 0x07;
 	uint8_t affine_y_sub_tile = (fx_y_pixel_position >> 16) & 0x07;
 
@@ -1791,7 +1791,7 @@ void video_write(uint8_t reg, uint8_t value) {
 			break;
 		case 0x03:
 		case 0x04: {
-			if (fx_2bit_poking) {
+			if (fx_2bit_poking && fx_addr1_mode) {
 				fx_2bit_poking = false;
 				uint8_t mask = value >> 6;
 				switch (mask) {
