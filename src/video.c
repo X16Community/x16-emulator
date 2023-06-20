@@ -1706,34 +1706,62 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 		case 0x0B:
 		case 0x0C: {
 			int i = reg - 0x09 + (io_dcsel << 2);
-			if (i < 9) { // DCSEL = [0,1] with any composer register, or [2] at $9f29
-				return reg_composer[i];
-			} else if (i == 0x16) { // DCSEL=5, 0x9F2B
-				if (fx_poly_fill_length >= 768) {
-					return ((fx_2bit_poly && fx_addr1_mode == 2) ? 0x00 : 0x80);
-				}
-				if (fx_4bit_mode) {
-					if (fx_2bit_poly && fx_addr1_mode == 2) {
-						return ((fx_y_pixel_position & 0x00008000) >> 8) |
-							((fx_x_pixel_position >> 11) & 0x60) |
-							((fx_x_pixel_position >> 14) & 0x10) |
-							((fx_poly_fill_length & 0x0007) << 1) |
-							((fx_x_pixel_position & 0x00008000) >> 15);
-					} else {
-						return ((!!(fx_poly_fill_length & 0xfff8)) << 7) |
-							((fx_x_pixel_position >> 11) & 0x60) |
-							((fx_x_pixel_position >> 14) & 0x10) |
-							((fx_poly_fill_length & 0x0007) << 1);
+			switch (i) {
+				case 0x00:
+				case 0x01:
+				case 0x02:
+				case 0x03:
+				case 0x04:
+				case 0x05:
+				case 0x06:
+				case 0x07:
+				case 0x08:
+					// DCSEL = [0,1] with any composer register, or [2] at $9f29
+					return reg_composer[i];
+					break;
+				case 0x16: // DCSEL=5, 0x9F2B
+					if (fx_poly_fill_length >= 768) {
+						return ((fx_2bit_poly && fx_addr1_mode == 2) ? 0x00 : 0x80);
 					}
-				} else {
-					return ((!!(fx_poly_fill_length & 0xfff0)) << 7) | 
-						((fx_x_pixel_position >> 11) & 0x60) |
-						((fx_poly_fill_length & 0x000f) << 1);
-				}
-			} else if (i == 0x17) // DCSEL=5, 0x9F2C
-				return ((fx_poly_fill_length & 0x03f8) >> 2);
-			else // The rest of the space is write-only, so reading the values out instead returns the version string.
-				return vera_version_string[i % 4];
+					if (fx_4bit_mode) {
+						if (fx_2bit_poly && fx_addr1_mode == 2) {
+							return ((fx_y_pixel_position & 0x00008000) >> 8) |
+								((fx_x_pixel_position >> 11) & 0x60) |
+								((fx_x_pixel_position >> 14) & 0x10) |
+								((fx_poly_fill_length & 0x0007) << 1) |
+								((fx_x_pixel_position & 0x00008000) >> 15);
+						} else {
+							return ((!!(fx_poly_fill_length & 0xfff8)) << 7) |
+								((fx_x_pixel_position >> 11) & 0x60) |
+								((fx_x_pixel_position >> 14) & 0x10) |
+								((fx_poly_fill_length & 0x0007) << 1);
+						}
+					} else {
+						return ((!!(fx_poly_fill_length & 0xfff0)) << 7) | 
+							((fx_x_pixel_position >> 11) & 0x60) |
+							((fx_poly_fill_length & 0x000f) << 1);
+					}
+					break;
+				case 0x17: // DCSEL=5, 0x9F2C
+					return ((fx_poly_fill_length & 0x03f8) >> 2);
+					break;
+				case 0x18: // DCSEL=6, 0x9F29
+					fx_mult_accumulator = 0;
+					return vera_version_string[i % 4];
+					break;
+				case 0x19: // DCSEL=6, 0x9F2A
+					int32_t m_result = (int16_t)((fx_cache[1] << 8) | fx_cache[0]) * (int16_t)((fx_cache[3] << 8) | fx_cache[2]);
+					if (fx_subtract)
+						fx_mult_accumulator -= m_result;
+					else
+						fx_mult_accumulator += m_result;
+					return vera_version_string[i % 4];
+					break;
+				default: // The rest of the space is write-only, so reading the values out instead returns the version string.
+					return vera_version_string[i % 4];
+					break;
+			}
+			break;
 		}
 		case 0x0D:
 		case 0x0E:
