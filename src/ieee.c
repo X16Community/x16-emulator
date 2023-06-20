@@ -36,9 +36,9 @@ extern SDL_RWops *prg_file;
 
 #define UNIT_NO 8
 
-#define FILETYPE_ALL 0
-#define FILETYPE_PRG 1
-#define FILETYPE_DIR 2
+#define WILDCARD_ALL 0
+#define WILDCARD_PRG 1
+#define WILDCARD_DIR 2
 
 // Globals
 
@@ -326,12 +326,12 @@ resolve_path(const char *name, bool must_exist, int wildcard_filetype)
 					stat(ret, &st);
 					// in a wildcard match where the filetype is wrong, mark as not found
 					// and continue
-					if (wildcard_filetype == FILETYPE_DIR && !S_ISDIR(st.st_mode)) {
+					if (wildcard_filetype == WILDCARD_DIR && !S_ISDIR(st.st_mode)) {
 						free(ret);
 						ret = NULL;
 						found = false;
 						continue;
-					} else if (wildcard_filetype == FILETYPE_PRG && !S_ISREG(st.st_mode)) {
+					} else if (wildcard_filetype == WILDCARD_PRG && !S_ISREG(st.st_mode)) {
 						free(ret);
 						ret = NULL;
 						found = false;
@@ -553,7 +553,7 @@ continue_directory_listing(uint8_t *data)
 
 	while ((dp = readdir(dirlist_dirp))) {
 		size_t namlen = strlen(dp->d_name);
-		tmpnam = resolve_path(dp->d_name, true, FILETYPE_ALL);
+		tmpnam = resolve_path(dp->d_name, true, WILDCARD_ALL);
 		if (tmpnam == NULL) continue;
 		stat(tmpnam, &st);
 		free(tmpnam);
@@ -978,7 +978,7 @@ cchdir(char *dir)
 	char *resolved;
 	struct stat st;
 
-	if ((resolved = resolve_path(dir, true, FILETYPE_DIR)) == NULL) {
+	if ((resolved = resolve_path(dir, true, WILDCARD_DIR)) == NULL) {
 		// error already set
 		return;
 	}
@@ -1009,7 +1009,7 @@ cmkdir(char *dir)
 	char *resolved;
 
 	clear_error();
-	if ((resolved = resolve_path(dir, false, FILETYPE_DIR)) == NULL) {
+	if ((resolved = resolve_path(dir, false, WILDCARD_DIR)) == NULL) {
 		// error already set
 		return;
 	}
@@ -1070,14 +1070,14 @@ crename(char *f)
 	char *dst;
 
 	clear_error();
-	if ((src = resolve_path(s, true, FILETYPE_ALL)) == NULL) {
+	if ((src = resolve_path(s, true, WILDCARD_ALL)) == NULL) {
 		// source not found
 		free(tmp);
 		set_error(0x62, 0, 0);
 		return;
 	}
 
-	if ((dst = resolve_path(d, false, FILETYPE_ALL)) == NULL) {
+	if ((dst = resolve_path(d, false, WILDCARD_ALL)) == NULL) {
 		// dest not found
 		free(tmp);
 		free(src);
@@ -1112,7 +1112,7 @@ crmdir(char *dir)
 	char *resolved;
 
 	clear_error();
-	if ((resolved = resolve_path(dir, true, FILETYPE_DIR)) == NULL) {
+	if ((resolved = resolve_path(dir, true, WILDCARD_DIR)) == NULL) {
 		set_error(0x39, 0, 0);
 		return;
 	}
@@ -1157,7 +1157,7 @@ cunlink(char *f)
 	char *resolved;
 
 	clear_error();
-	if ((resolved = resolve_path(fn, true, FILETYPE_PRG)) == NULL) {
+	if ((resolved = resolve_path(fn, true, WILDCARD_PRG)) == NULL) {
 		free(tmp);
 		set_error(0x62, 0, 0);
 		return;
@@ -1246,7 +1246,7 @@ copen(int channel)
 				return -2; 
 			}
 
-			resolved_filename = resolve_path(parsed_filename, false, FILETYPE_PRG);
+			resolved_filename = resolve_path(parsed_filename, false, WILDCARD_PRG);
 			free(parsed_filename);
 
 			if (resolved_filename == NULL) {
