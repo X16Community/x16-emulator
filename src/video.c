@@ -1747,7 +1747,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 					break;
 				case 0x18: // DCSEL=6, 0x9F29
 					fx_mult_accumulator = 0;
-					return vera_version_string[i % 4];
+					// fall out of the switch
 					break;
 				case 0x19: // DCSEL=6, 0x9F2A
 					int32_t m_result = (int16_t)((fx_cache[1] << 8) | fx_cache[0]) * (int16_t)((fx_cache[3] << 8) | fx_cache[2]);
@@ -1755,12 +1755,15 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 						fx_mult_accumulator -= m_result;
 					else
 						fx_mult_accumulator += m_result;
-					return vera_version_string[i % 4];
+					// fall out of the switch
 					break;
-				default: // The rest of the space is write-only, so reading the values out instead returns the version string.
-					return vera_version_string[i % 4];
+				default:
+					// The rest of the space is write-only,
+					// so reading the values out instead returns the version string.
+					// fall out of the switch
 					break;
 			}
+			return vera_version_string[i % 4];
 			break;
 		}
 		case 0x0D:
