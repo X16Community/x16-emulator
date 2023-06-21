@@ -1470,8 +1470,9 @@ uint32_t
 get_and_inc_address(uint8_t sel, bool write)
 {
 	uint32_t address = io_addr[sel];
+	int16_t incr = increments[io_inc[sel]];
 
-	if (fx_4bit_mode && fx_nibble_incr[sel]) {
+	if (fx_4bit_mode && fx_nibble_incr[sel] && !incr) {
 		if (fx_nibble_bit[sel]) {
 			if ((io_inc[sel] & 1) == 0) io_addr[sel] += 1;
 			fx_nibble_bit[sel] = 0;
@@ -1480,8 +1481,6 @@ get_and_inc_address(uint8_t sel, bool write)
 			fx_nibble_bit[sel] = 1;
 		}
 	}
-
-	int16_t incr = increments[io_inc[sel]];
 
 	if (sel == 1 && fx_16bit_hop) {
 		if (incr == 4) {
