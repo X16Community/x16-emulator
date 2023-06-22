@@ -311,6 +311,11 @@ resolve_path(const char *name, bool must_exist, int wildcard_filetype)
 			if (i == strlen(dp->d_name) && i == strlen(c)) 
 				found = true;
 
+			// If we reach the end of the filename, but the next char
+			// in the search string is *, then it's also a match
+			else if (i == strlen(dp->d_name) && c[i] == '*')
+				found = true;
+
 			if (found) { // simple wildcard match
 				ret = malloc(strlen(tmp)+strlen(dp->d_name)+2);
 				if (ret == NULL) { // memory allocation error
@@ -468,7 +473,7 @@ create_directory_listing(uint8_t *data, char *dirstring)
 
 	dirlist_eof = true;
 	dirlist_cwd = false;
-	int i = 1;
+	int i = 0;
 	int j;
 
 	
@@ -479,25 +484,20 @@ create_directory_listing(uint8_t *data, char *dirstring)
 	// Here's where we parse out directory listing options
 	// Such as "$=T:MATCH*=P"
 
-	// position 0 is assumed to be $
-	// so i starts at 1
 	while (i < strlen(dirstring)) {
-		if (dirstring[i] == '=') {
-			i++;
-			if (dirstring[i] == 'T')
-				dirlist_timestmaps = true;
-		} else if (dirstring[i] == ':') {
+		if (dirstring[i] == ':' || i == 0) {
 			i++;
 			j = 0;
 			while (i < strlen(dirstring)) {
 				if (dirstring[i] == '=' || dirstring[i] == 0) {
 					dirlist_wildcard[j] = 0;
 
-					if (dirstring[++i] == 'D')
+					if (dirstring[++i] == 'D' && i != 2)
 						dirlist_type_filter = 'D';
-					else if (dirstring[i] == 'P')
+					else if (dirstring[i] == 'P' && i != 2)
 						dirlist_type_filter = 'P';
-
+					else if (dirstring[i] == 'T' && i == 2)
+						dirlist_timestmaps = true;
 					break;
 				} else {
 					dirlist_wildcard[j++] = dirstring[i++];
@@ -599,6 +599,11 @@ continue_directory_listing(uint8_t *data)
 
 			// If we reach the end of both strings, it's a match
 			if (i == strlen(dp->d_name) && i == strlen(dirlist_wildcard)) 
+				found = true;
+
+			// If we reach the end of the filename and the following character in
+			// the wildcard string is *, it's also a match
+			else if (i == strlen(dp->d_name) && dirlist_wildcard[i] == '*')
 				found = true;
 
 			if (!found) continue;
