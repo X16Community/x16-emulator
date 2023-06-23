@@ -183,7 +183,7 @@ video_reset()
 }
 
 bool
-video_init(int window_scale, float screen_x_scale, char *quality)
+video_init(int window_scale, float screen_x_scale, char *quality, bool fullscreen)
 {
 	uint32_t window_flags = SDL_WINDOW_ALLOW_HIGHDPI;
 
@@ -208,6 +208,10 @@ video_init(int window_scale, float screen_x_scale, char *quality)
 
 	SDL_SetWindowTitle(window, WINDOW_TITLE);
 	SDL_SetWindowIcon(window, CommanderX16Icon());
+	if(fullscreen) {
+		is_fullscreen = true;
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+	}
 
 	if (record_gif != RECORD_GIF_DISABLED) {
 		if (!strcmp(gif_path+strlen(gif_path)-5, ",wait")) {
