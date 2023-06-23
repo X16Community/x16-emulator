@@ -119,6 +119,7 @@ float screen_x_scale = 1.0;
 char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
+bool fullscreen = false;
 bool testbench = false;
 bool enable_midline = false;
 char *cartridge_path = NULL;
@@ -494,6 +495,8 @@ usage()
 	printf("\tScaling algorithm quality\n");
 	printf("-widescreen\n");
 	printf("\tStretch output to 16:9 resolution to mimic display of a widescreen monitor.\n");
+	printf("-fullscreen\n");
+	printf("\tStart up in fullscreen mode instead of in a window.\n");
 	printf("-debug [<address>]\n");
 	printf("\tEnable debugger. Optionally, set a breakpoint\n");
 	printf("-randram\n");
@@ -902,6 +905,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			screen_x_scale = 4.0/3;
+		} else if (!strcmp(argv[0], "-fullscreen")) {
+			argc--;
+			argv++;
+			fullscreen = true;
 		} else if (!strcmp(argv[0], "-sound")) {
 			argc--;
 			argv++;
@@ -1074,7 +1081,7 @@ main(int argc, char **argv)
 	if (!headless) {
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
 		audio_init(audio_dev_name, audio_buffers);
-		video_init(window_scale, screen_x_scale, scale_quality);
+		video_init(window_scale, screen_x_scale, scale_quality, fullscreen);
 	}
 
 	wav_recorder_set_path(wav_path);
