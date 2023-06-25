@@ -165,7 +165,7 @@ static uint8_t fx_cache[4];
 
 static int32_t fx_mult_accumulator;
 
-static const uint8_t vera_version_string[] = {'V', 
+static const uint8_t vera_version_string[] = {'V',
 	VERA_VERSION_MAJOR,
 	VERA_VERSION_MINOR,
 	VERA_VERSION_PATCH
@@ -1513,7 +1513,7 @@ get_and_inc_address(uint8_t sel, bool write)
 			}
 			io_addr[1] += increments[io_inc[0]];
 		}
-	} else if (fx_addr1_mode == 2 && write == false) { // FX polygon fill mode 
+	} else if (fx_addr1_mode == 2 && write == false) { // FX polygon fill mode
 		fx_x_pixel_position += fx_x_pixel_increment;
 		fx_y_pixel_position += fx_y_pixel_increment;
 		fx_poly_fill_length = ((int32_t) fx_y_pixel_position >> 16) - ((int32_t) fx_x_pixel_position >> 16);
@@ -1553,7 +1553,7 @@ fx_affine_prefetch(void)
 
 	if (affine_x_tile >= fx_affine_map_size || affine_y_tile >= fx_affine_map_size) {
 		// We clipped, return value for tile 0
-		address = fx_affine_tile_base + (affine_y_sub_tile << (3 - fx_4bit_mode)) + (affine_x_sub_tile >> fx_4bit_mode);
+		address = fx_affine_tile_base + (affine_y_sub_tile << (3 - fx_4bit_mode)) + (affine_x_sub_tile >> (uint8_t)fx_4bit_mode);
 		if (fx_4bit_mode) fx_nibble_bit[1] = 0;
 	} else {
 		// Get the address within the tile map
@@ -1562,7 +1562,7 @@ fx_affine_prefetch(void)
 		uint8_t affine_tile_idx = video_space_read(address);
 		address = fx_affine_tile_base + (affine_tile_idx << (6 - fx_4bit_mode));
 		// Now add the sub-tile address
-		address += (affine_y_sub_tile << (3 - fx_4bit_mode)) + (affine_x_sub_tile >> fx_4bit_mode);
+		address += (affine_y_sub_tile << (3 - fx_4bit_mode)) + (affine_x_sub_tile >> (uint8_t)fx_4bit_mode);
 		if (fx_4bit_mode) fx_nibble_bit[1] = affine_x_sub_tile & 1;
 	}
 	io_addr[1] = address;
@@ -1592,7 +1592,25 @@ video_space_read_range(uint8_t* dest, uint32_t address, uint32_t size)
 }
 
 void
-video_space_write(uint32_t address, bool nibble, uint8_t value)
+video_space_write(uint32_t address, uint8_t value)
+{
+	video_ram[address & 0x1FFFF] = value;
+
+	if (address >= ADDR_PSG_START && address < ADDR_PSG_END) {
+		audio_render();
+		psg_writereg(address & 0x3f, value);
+	} else if (address >= ADDR_PALETTE_START && address < ADDR_PALETTE_END) {
+		palette[address & 0x1ff] = value;
+		video_palette.dirty = true;
+	} else if (address >= ADDR_SPRDATA_START && address < ADDR_SPRDATA_END) {
+		sprite_data[(address >> 3) & 0x7f][address & 0x7] = value;
+		refresh_sprite_properties((address >> 3) & 0x7f);
+	}
+}
+
+
+void
+fx_video_space_write(uint32_t address, bool nibble, uint8_t value)
 {
 	if (fx_4bit_mode) {
 		if (nibble) {
@@ -1736,7 +1754,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 								((fx_poly_fill_length & 0x0007) << 1);
 						}
 					} else {
-						return ((!!(fx_poly_fill_length & 0xfff0)) << 7) | 
+						return ((!!(fx_poly_fill_length & 0xfff0)) << 7) |
 							((fx_x_pixel_position >> 11) & 0x60) |
 							((fx_poly_fill_length & 0x000f) << 1);
 					}
@@ -1844,7 +1862,7 @@ void video_write(uint8_t reg, uint8_t value) {
 
 			if (enable_midline)
 				video_step(MHZ, 0, true); // potential midline raster effect
-			bool nibble = fx_nibble_bit[reg -3];
+			bool nibble = fx_nibble_bit[reg - 3];
 			uint32_t address = get_and_inc_address(reg - 3, true);
 			if (log_video) {
 				printf("WRITE video_space[$%X] = $%02X\n", address, value);
@@ -1883,7 +1901,7 @@ void video_write(uint8_t reg, uint8_t value) {
 						fx_vram_cache_write(address, fx_cache[fx_cache_byte_index], 0);
 					}
 				} else {
-					video_space_write(address, nibble, value); // Normal write
+					fx_video_space_write(address, nibble, value); // Normal write
 				}
 			}
 
@@ -1929,7 +1947,7 @@ void video_write(uint8_t reg, uint8_t value) {
 			} else {
 				reg_composer[i] = value;
 			}
-			
+
 			switch (i) {
 				case 0x08: // DCSEL=2, $9F29
 					fx_addr1_mode = value & 0x03;

@@ -430,7 +430,7 @@ static void DEBUGExecCmd() {
 			} else {
 				addr &= 0x1FFFF;
 				do {
-					video_space_write(addr, 0, number);
+					video_space_write(addr, number);
 					if (incr) {
 						addr += incr;
 					} else {
