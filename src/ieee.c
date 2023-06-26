@@ -1245,6 +1245,7 @@ copen(int channel)
 	} else {
 		if (!strcmp(channels[channel].name, ":*") && prg_file) {
 			channels[channel].f = prg_file; // special case
+			prg_file = NULL; // don't allow this handle to be reused
 		} else {
 			if ((parsed_filename = parse_dos_filename(channels[channel].name)) == NULL) {
 				set_error(0x32, 0, 0); // Didn't parse out properly
