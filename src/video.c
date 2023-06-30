@@ -287,7 +287,7 @@ video_reset()
 }
 
 bool
-video_init(int window_scale, float screen_x_scale, char *quality, bool fullscreen)
+video_init(int window_scale, float screen_x_scale, char *quality, bool fullscreen, float opacity)
 {
 	uint32_t window_flags = SDL_WINDOW_ALLOW_HIGHDPI;
 
@@ -316,6 +316,8 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 		is_fullscreen = true;
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 	}
+
+	SDL_SetWindowOpacity(window, opacity);
 
 	if (record_gif != RECORD_GIF_DISABLED) {
 		if (!strcmp(gif_path+strlen(gif_path)-5, ",wait")) {
@@ -1032,12 +1034,12 @@ render_line(uint16_t y, float scan_pos_x)
 				layer_line[layer][i] = 0;
 			}
 		}
-		if (s_pos_x_p == 0) 
+		if (s_pos_x_p == 0)
 			old_layer_line_enable[layer] = layer_line_enable[layer];
 	}
 
 	// clear sprite_line if sprites get disabled
-	if (!sprite_line_enable && old_sprite_line_enable) {	
+	if (!sprite_line_enable && old_sprite_line_enable) {
 		for (uint16_t i = s_pos_x_p; i < SCREEN_WIDTH; i++) {
 			sprite_line_col[i] = 0;
 			sprite_line_z[i] = 0;
@@ -1048,7 +1050,7 @@ render_line(uint16_t y, float scan_pos_x)
 	if (s_pos_x_p == 0)
 		old_sprite_line_enable = sprite_line_enable;
 
-	
+
 
 	if (sprite_line_enable) {
 		render_sprite_line(eff_y);
