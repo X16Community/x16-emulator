@@ -59,6 +59,7 @@ bool talking = false;
 bool opening = false;
 bool overwrite = false;
 bool path_exists = false;
+bool prg_consumed = false;
 
 char *hostfscwd = NULL;
 
@@ -1243,9 +1244,9 @@ copen(int channel)
 			dirlist_len = create_directory_listing(dirlist, channels[channel].name);
 		}
 	} else {
-		if (!strcmp(channels[channel].name, ":*") && prg_file) {
+		if (!strcmp(channels[channel].name, ":*") && prg_file && !prg_consumed) {
 			channels[channel].f = prg_file; // special case
-			prg_file = NULL; // don't allow this handle to be reused
+			prg_consumed = true;
 		} else {
 			if ((parsed_filename = parse_dos_filename(channels[channel].name)) == NULL) {
 				set_error(0x32, 0, 0); // Didn't parse out properly
