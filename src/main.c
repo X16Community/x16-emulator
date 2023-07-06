@@ -116,6 +116,7 @@ char *startin_path = NULL;
 uint8_t keymap = 0; // KERNAL's default
 int window_scale = 1;
 float screen_x_scale = 1.0;
+float window_opacity = 1.0;
 char *scale_quality = "best";
 bool test_init_complete=false;
 bool headless = false;
@@ -497,6 +498,8 @@ usage()
 	printf("\tStretch output to 16:9 resolution to mimic display of a widescreen monitor.\n");
 	printf("-fullscreen\n");
 	printf("\tStart up in fullscreen mode instead of in a window.\n");
+	printf("-opacity (0.0,...,1.0)\n");
+	printf("\tSet the opacity value (0.0 for transparent, 1.0 for opaque) of the window. (default: %.1f)\n", window_opacity);
 	printf("-debug [<address>]\n");
 	printf("\tEnable debugger. Optionally, set a breakpoint\n");
 	printf("-randram\n");
@@ -909,6 +912,15 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			fullscreen = true;
+		} else if (!strcmp(argv[0], "-opacity")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			window_opacity = strtof(argv[0], NULL);
+			argc--;
+			argv++;
 		} else if (!strcmp(argv[0], "-sound")) {
 			argc--;
 			argv++;
@@ -1081,7 +1093,7 @@ main(int argc, char **argv)
 	if (!headless) {
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
 		audio_init(audio_dev_name, audio_buffers);
-		video_init(window_scale, screen_x_scale, scale_quality, fullscreen);
+		video_init(window_scale, screen_x_scale, scale_quality, fullscreen, window_opacity);
 	}
 
 	wav_recorder_set_path(wav_path);
