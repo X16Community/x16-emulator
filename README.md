@@ -174,6 +174,7 @@ Functions while running
 #### Windows and Linux
 * `Ctrl` + `F` and `Ctrl` + `Return` will toggle full screen mode.
 * `Ctrl` + `M` will toggle mouse capture mode.
+* `Ctrl` + `P` will write a screenshot in PNG format to disk.
 * `Ctrl` + `R` will reset the computer.
 * `Ctrl` + `S` will save a system dump configurable with `-dump`) to disk.
 * `Ctrl` + `V` will paste the clipboard by injecting key presses.
@@ -182,6 +183,7 @@ Functions while running
 #### Mac OS
 * `⌘F` and `⌘Return` will toggle full screen mode.
 * `⇧⌘M` will toggle mouse capture mode.
+* `⌘P` will write a screenshot in PNG format to disk.
 * `⌘R` will reset the computer.
 * `⌘S` will save a system dump (configurable with `-dump`) to disk.
 * `⌘V` will paste the clipboard by injecting key presses.

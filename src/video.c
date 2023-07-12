@@ -20,9 +20,15 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef __EMSCRIPTEN__
 #include "emscripten.h"
+#endif
+
+#ifndef __EMSCRIPTEN__
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #endif
 
 #define VERA_VERSION_MAJOR  0x00
@@ -178,6 +184,9 @@ uint16_t ntsc_scan_pos_y;
 int frame_count = 0;
 
 static uint8_t framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT * 4];
+#ifndef __EMSCRIPTEN__
+static uint8_t png_buffer[SCREEN_WIDTH * SCREEN_HEIGHT * 3];
+#endif
 
 static GifWriter gif_writer;
 
@@ -519,6 +528,31 @@ mousegrab_toggle() {
 	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
 	video_update_title(window_title);
 }
+
+#ifndef __EMSCRIPTEN__
+static void
+screenshot(void)
+{
+	char path[PATH_MAX];
+	const time_t now = time(NULL);
+	strftime(path, PATH_MAX, "x16emu-%Y-%m-%d-%H-%M-%S.png", localtime(&now));
+
+	memset(png_buffer, 0, SCREEN_WIDTH * SCREEN_HEIGHT * 3);
+
+	// The framebuffer stores pixels in BRGA but we want RGB:
+	for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
+		png_buffer[(i*3)+0] = framebuffer[(i*4)+2];
+		png_buffer[(i*3)+1] = framebuffer[(i*4)+1];
+		png_buffer[(i*3)+2] = framebuffer[(i*4)+0];
+	}
+
+	if (stbi_write_png(path, SCREEN_WIDTH, SCREEN_HEIGHT, 3, png_buffer, SCREEN_WIDTH*3)) {
+		printf("Wrote screenshot to %s\n", path);
+	} else {
+		printf("WARNING: Couldn't write screenshot to %s\n", path);
+	}
+}
+#endif
 
 struct video_sprite_properties sprite_properties[128];
 
@@ -1345,6 +1379,11 @@ video_update()
 				} else if (event.key.keysym.sym == SDLK_m) {
 					mousegrab_toggle();
 					consumed = true;
+#ifndef __EMSCRIPTEN__
+				} else if (event.key.keysym.sym == SDLK_p) {
+					screenshot();
+					consumed = true;
+#endif
 				}
 			}
 			if (!consumed) {
