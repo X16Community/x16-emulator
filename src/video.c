@@ -26,8 +26,10 @@
 #include "emscripten.h"
 #endif
 
+#ifndef __EMSCRIPTEN__
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#endif
 
 #define VERA_VERSION_MAJOR  0x00
 #define VERA_VERSION_MINOR  0x03
@@ -182,7 +184,9 @@ uint16_t ntsc_scan_pos_y;
 int frame_count = 0;
 
 static uint8_t framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT * 4];
+#ifndef __EMSCRIPTEN__
 static uint8_t png_buffer[SCREEN_WIDTH * SCREEN_HEIGHT * 3];
+#endif
 
 static GifWriter gif_writer;
 
@@ -525,6 +529,7 @@ mousegrab_toggle() {
 	video_update_title(window_title);
 }
 
+#ifndef __EMSCRIPTEN__
 static void
 screenshot(void)
 {
@@ -547,6 +552,7 @@ screenshot(void)
 		printf("WARNING: Couldn't write screenshot to %s\n", path);
 	}
 }
+#endif
 
 struct video_sprite_properties sprite_properties[128];
 
@@ -1373,9 +1379,11 @@ video_update()
 				} else if (event.key.keysym.sym == SDLK_m) {
 					mousegrab_toggle();
 					consumed = true;
+#ifndef __EMSCRIPTEN__
 				} else if (event.key.keysym.sym == SDLK_p) {
 					screenshot();
 					consumed = true;
+#endif
 				}
 			}
 			if (!consumed) {
