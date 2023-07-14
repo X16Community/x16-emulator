@@ -69,6 +69,7 @@ int dirlist_pos = 0;
 bool dirlist_cwd = false; // whether we're doing a cwd dirlist or a normal one
 bool dirlist_eof = true;
 bool dirlist_timestmaps = false;
+bool dirlist_long = false;
 DIR *dirlist_dirp;
 char dirlist_wildcard[256];
 char dirlist_type_filter;
@@ -479,6 +480,7 @@ create_directory_listing(uint8_t *data, char *dirstring)
 
 	
 	dirlist_timestmaps = false;
+	dirlist_long = false;
 	dirlist_type_filter = 0;
 	dirlist_wildcard[0] = 0;
 
@@ -490,18 +492,23 @@ create_directory_listing(uint8_t *data, char *dirstring)
 			i++;
 			j = 0;
 			while (i < strlen(dirstring)) {
+				if (i == 1 && dirstring[i] == ':')
+					i++;
 				if (dirstring[i] == '=' || dirstring[i] == 0) {
-					dirlist_wildcard[j] = 0;
-
-					if (dirstring[++i] == 'D' && i != 2)
+					if (dirstring[++i] == 'D')
 						dirlist_type_filter = 'D';
 					else if (dirstring[i] == 'P' && i != 2)
 						dirlist_type_filter = 'P';
 					else if (dirstring[i] == 'T' && i == 2)
 						dirlist_timestmaps = true;
+					else if (dirstring[i] == 'L' && i == 2) {
+						dirlist_timestmaps = true;
+						dirlist_long = true;
+					}
 					break;
 				} else {
 					dirlist_wildcard[j++] = dirstring[i++];
+					dirlist_wildcard[j] = 0;
 				}
 			}
 		}
@@ -547,7 +554,7 @@ continue_directory_listing(uint8_t *data)
 	uint8_t *data_start = data;
 	struct stat st;
 	struct dirent *dp;
-	int file_size;
+	size_t file_size;
 	char *tmpnam;
 	bool found;
 	int i;
@@ -610,18 +617,38 @@ continue_directory_listing(uint8_t *data)
 			if (!found) continue;
 		}
 
-
-		file_size = (st.st_size + 255)/256;
-		if (file_size > 0xFFFF) {
-			file_size = 0xFFFF;
-		}
-
 		// link
 		*data++ = 1;
 		*data++ = 1;
 
-		*data++ = file_size & 0xFF;
-		*data++ = file_size >> 8;
+		if (dirlist_long) {
+			unsigned char unit = 'K';
+			file_size = (st.st_size + 1023)/1024;
+			if (file_size > 0xFFFF) {
+				file_size /= 1024;
+				unit = 'M';
+			}
+			if (file_size > 0xFFFF) {
+				file_size /= 1024;
+				unit = 'G';
+			}
+			if (file_size > 0xFFFF) {
+				file_size = 0xFFFF;
+			}
+
+			*data++ = file_size & 0xFF;
+			*data++ = file_size >> 8;
+			*data++ = unit;
+			*data++ = 'B';
+		} else {
+			file_size = (st.st_size + 255)/256;
+			if (file_size > 0xFFFF) {
+				file_size = 0xFFFF;
+			}
+			*data++ = file_size & 0xFF;
+			*data++ = file_size >> 8;
+		}
+
 		if (file_size < 1000) {
 			*data++ = ' ';
 			if (file_size < 100) {
@@ -660,7 +687,22 @@ continue_directory_listing(uint8_t *data)
 			if (localtime_r(&st.st_mtime, &mtime)) {
 				*data++ = ' '; // space before the date
 				data += strftime((char *)data, 20, "%Y-%m-%d %H:%M:%S", &mtime);
+				*data++ = ' '; // space after the date
 			}
+		}
+
+		if (dirlist_long) {
+			// attribute and size go at the end if dirlist_long is active
+			uint8_t attrbyte = 0;
+			if (S_ISDIR(st.st_mode)) attrbyte |= 0x10;
+			if (S_ISREG(st.st_mode)) attrbyte |= 0x20;
+			if (!(st.st_mode & 0200)) attrbyte |= 0x01; // read-only
+			size_t fullsize = st.st_size;
+			if (fullsize > 0xffffffff) {
+				fullsize = 0xffffffff;
+			}
+
+			data += sprintf((char *)data, "%02X %08X ", attrbyte, (unsigned int)fullsize);
 		}
 		
 		*data++ = 0;
