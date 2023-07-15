@@ -185,12 +185,8 @@ utf8_to_iso(uint8_t *dst, const uint8_t *src)
 
 		// construct the integer codepoint
 		for (; remlen > 0; remlen--) {
-			if (!src[++i] || ((src[i] & 0xc0) != 0x80)) { // invalid UTF-8 sequence
-				dst[j++] = '?';
-				goto outer;
-			}
 			cp <<= 6;
-			cp |= (src[i] & 0x3f);
+			cp |= (src[++i] & 0x3f);
 		}
 
 		// Resolve the Unicode codepoints that are > 0xff but are in ISO-8859-15
@@ -229,7 +225,6 @@ utf8_to_iso(uint8_t *dst, const uint8_t *src)
 		} else {
 			dst[j++] = cp;
 		}
-outer:
 	}
 
 	dst[j] = 0;
