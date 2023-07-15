@@ -491,7 +491,7 @@ resolve_path_utf8(const uint8_t *name, bool must_exist, int wildcard_filetype)
 		// in a wildcard match that starts at first position, leading dot filenames are not considered
 		if ((*c == '*' || *c == '?') && *(dp->d_name) == '.')
 			continue;
-		for (i = 0, j = 0; i < u8strlen(c) && i < u8strlen(dp->d_name); i++, j++) {
+		for (i = 0, j = 0; j < u8strlen(c) && i < u8strlen(dp->d_name); i++, j++) {
 			if (c[j] == '*') {
 				found = true;
 				break;
