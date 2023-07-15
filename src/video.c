@@ -1436,7 +1436,11 @@ video_update()
 		if (event.type == SDL_MOUSEMOTION) {
 			static int mouse_x;
 			static int mouse_y;
-			mouse_move(event.motion.x - mouse_x, event.motion.y - mouse_y);
+			if (mouse_grabbed) {
+				mouse_move(event.motion.xrel, event.motion.yrel);
+			} else {
+				mouse_move(event.motion.x - mouse_x, event.motion.y - mouse_y);
+			}
 			mouse_x = event.motion.x;
 			mouse_y = event.motion.y;
 			mouse_changed = true;
