@@ -146,7 +146,7 @@ get_kernal_cbdos_flags(void)
 }
 
 
-void
+static void
 utf8_to_iso(uint8_t *dst, const uint8_t *src)
 {
 	int i = 0;
@@ -253,7 +253,7 @@ cgetcwd(uint8_t *buf, size_t len)
 	return 0;
 }
 
-uint32_t
+static uint32_t
 utf8_to_codepoint_i(uint8_t *str, int *off)
 {
 	// convert each UTF-8 sequence into a numeric codepoint
