@@ -111,8 +111,8 @@ bool has_via2 = false;
 gif_recorder_state_t record_gif = RECORD_GIF_DISABLED;
 char *gif_path = NULL;
 char *wav_path = NULL;
-char *fsroot_path = NULL;
-char *startin_path = NULL;
+uint8_t *fsroot_path = NULL;
+uint8_t *startin_path = NULL;
 uint8_t keymap = 0; // KERNAL's default
 int window_scale = 1;
 float screen_x_scale = 1.0;
@@ -957,7 +957,7 @@ main(int argc, char **argv)
 			if (!argc || argv[0][0] == '-') {
 				usage();
 			}
-			fsroot_path = argv[0];
+			fsroot_path = (uint8_t *)argv[0];
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-startin")) {
@@ -966,7 +966,7 @@ main(int argc, char **argv)
 			if (!argc || argv[0][0] == '-') {
 				usage();
 			}
-			startin_path = argv[0];
+			startin_path = (uint8_t *)argv[0];
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-noemucmdkeys")) {
