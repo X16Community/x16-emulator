@@ -159,7 +159,7 @@ cartridge_set_desc(const char *name)
 		namelen = CART_DESCRIPTION_SIZE;
 	}
 
-	memset(Cartridge_info.description, 0x20202020, CART_DESCRIPTION_SIZE);
+	memset(Cartridge_info.description, 0x20, CART_DESCRIPTION_SIZE);
 	memcpy(Cartridge_info.description, name, namelen);
 }
 
@@ -175,7 +175,7 @@ cartridge_set_author(const char *name)
 		namelen = CART_AUTHOR_SIZE;
 	}
 
-	memset(Cartridge_info.author, 0x20202020, CART_AUTHOR_SIZE);
+	memset(Cartridge_info.author, 0x20, CART_AUTHOR_SIZE);
 	memcpy(Cartridge_info.author, name, namelen);
 }
 
@@ -191,7 +191,7 @@ cartridge_set_copyright(const char *name)
 		namelen = CART_COPYRIGHT_SIZE;
 	}
 
-	memset(Cartridge_info.copyright, 0x20202020, CART_COPYRIGHT_SIZE);
+	memset(Cartridge_info.copyright, 0x20, CART_COPYRIGHT_SIZE);
 	memcpy(Cartridge_info.copyright, name, namelen);
 
 }
@@ -208,7 +208,7 @@ cartridge_set_program_version(const char *name)
 		namelen = CART_PROGRAM_VERSION_SIZE;
 	}
 
-	memset(Cartridge_info.prg_version, 0x20202020, CART_PROGRAM_VERSION_SIZE);
+	memset(Cartridge_info.prg_version, 0x20, CART_PROGRAM_VERSION_SIZE);
 	memcpy(Cartridge_info.prg_version, name, namelen);
 }
 
@@ -330,7 +330,7 @@ cartridge_define_bank_range(uint8_t start_bank, uint8_t end_bank, uint8_t bank_t
 }
 
 bool
-cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type, uint32_t fill_value)
+cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type, uint8_t fill_value)
 {
 	if(start_bank < 32) {
 		return false;
@@ -376,7 +376,7 @@ cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint
 }
 
 bool
-cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint32_t fill_value)
+cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint8_t fill_value)
 {
 	if(start_bank < 32) {
 		return false;
