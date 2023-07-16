@@ -88,6 +88,7 @@ uint32_t stat[65536];
 
 bool debugger_enabled = false;
 char *paste_text = NULL;
+char *clipboard_buffer = NULL;
 char paste_text_data[65536];
 bool pasting_bas = false;
 
@@ -305,6 +306,7 @@ machine_paste(char *s)
 {
 	if (s) {
 		paste_text = s;
+		clipboard_buffer = s; // so that we can free this later
 		pasting_bas = true;
 	}
 }
@@ -1574,7 +1576,7 @@ emulator_loop(void *param)
 #if 0 // enable this for slow pasting
 		if (!(instruction_counter % 100000))
 #endif
-		while (pasting_bas && RAM[NDX] < 10) {
+		while (pasting_bas && RAM[NDX] < 10 && !(status & 0x04)) {
 			uint32_t c;
 			int e = 0;
 
@@ -1593,6 +1595,10 @@ emulator_loop(void *param)
 			} else {
 				pasting_bas = false;
 				paste_text = NULL;
+				if (clipboard_buffer) {
+					SDL_free(clipboard_buffer);
+					clipboard_buffer = NULL;
+				}
 			}
 		}
 	}
