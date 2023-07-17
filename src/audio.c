@@ -229,7 +229,7 @@ audio_step(int cpu_clocks)
 		vera_samp_pos_hd = (vera_samp_pos_hd + max_cpu_clks * VERA_SAMP_CLKS_PER_CPU_CLK) & SAMP_POS_MASK_FRAC;
 		ym_samp_pos_hd = (ym_samp_pos_hd + max_cpu_clks * YM_SAMP_CLKS_PER_CPU_CLK) & SAMP_POS_MASK_FRAC;
 		cpu_clocks -= max_cpu_clks;
-		audio_render();
+		if (cpu_clocks > 0) audio_render();
 	}
 }
 
