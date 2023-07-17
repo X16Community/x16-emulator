@@ -256,7 +256,7 @@ utf8_to_codepoint(uint8_t *str, int *off)
 		cp = '?';
 	}
 
-	return e;
+	return cp;
 }
 
 
