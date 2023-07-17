@@ -204,7 +204,7 @@ static uint32_t
 case_fold_unicode(uint32_t cp)
 {
 	// ASCII letters, and most of the ISO letters
-	if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0xc0 && cp <= 0xfe)) cp += 0x20;
+	if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0xc0 && cp <= 0xde)) cp += 0x20;
 	// fold the Š
 	else if (cp == 0x0160) cp = 0x0161;
 	// fold the Ž
@@ -221,7 +221,7 @@ static uint8_t
 case_fold_iso(uint8_t c) {
 	uint8_t f = c;
 	// ASCII letters, and most of the ISO letters
-	if ((f >= 0x41 && f <= 0x5a) || (f >= 0xc0 && f <= 0xfe)) f += 0x20;
+	if ((f >= 0x41 && f <= 0x5a) || (f >= 0xc0 && f <= 0xde)) f += 0x20;
 	// fold the Š
 	else if (f == 0xa6) f = 0xa8;
 	// fold the Ž
@@ -249,7 +249,7 @@ utf8_to_codepoint(uint8_t *str, int *off)
 	
 	uint8_t *so = utf8_decode(s, &cp, &e);
 
-	*off += (so - s);
+	*off += (so - s) - 1;
 	free(s);
 
 	if (e) {
