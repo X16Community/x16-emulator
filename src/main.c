@@ -35,7 +35,7 @@
 #include "joystick.h"
 #include "utf8_encode.h"
 #include "rom_symbols.h"
-#include "ym2151.h"
+#include "ymglue.h"
 #include "audio.h"
 #include "version.h"
 #include "wav_recorder.h"

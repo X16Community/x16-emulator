@@ -11,7 +11,7 @@
 #include "via.h"
 #include "memory.h"
 #include "video.h"
-#include "ym2151.h"
+#include "ymglue.h"
 #include "cpu/fake6502.h"
 #include "wav_recorder.h"
 #include "audio.h"
@@ -152,6 +152,7 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 			if (!debugOn) {
 				clockticks6502 += 3;
 			}
+			if (address == 0x9f41) return YM_read_status();
 			return 0;
 		} else if (address >= 0x9fb0 && address < 0x9fc0) {
 			// emulator state
