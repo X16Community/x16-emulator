@@ -465,8 +465,6 @@ usage()
 	printf("\tkeyboard.\n");
 	printf("-run\n");
 	printf("\tStart the -prg/-bas program using RUN\n");
-	printf("-geos\n");
-	printf("\tLaunch GEOS at startup.\n");
 	printf("-warp\n");
 	printf("\tEnable warp mode, run emulator as fast as possible.\n");
 	printf("-echo [{iso|raw}]\n");
@@ -573,7 +571,6 @@ main(int argc, char **argv)
 	char *prg_path = NULL;
 	char *bas_path = NULL;
 	char *sdcard_path = NULL;
-	bool run_geos = false;
 	bool run_test = false;
 	int test_number = 0;
 	int audio_buffers = 8;
@@ -658,10 +655,6 @@ main(int argc, char **argv)
 			bas_path = argv[0];
 			argc--;
 			argv++;
-		} else if (!strcmp(argv[0], "-geos")) {
-			argc--;
-			argv++;
-			run_geos = true;
 		} else if (!strcmp(argv[0], "-test")) {
 			argc--;
 			argv++;
@@ -1076,9 +1069,6 @@ main(int argc, char **argv)
 		SDL_RWclose(bas_file);
 	}
 
-	if (run_geos) {
-		paste_text = "GEOS\r";
-	}
 	if (run_test) {
 		paste_text = paste_text_data;
 		snprintf(paste_text, sizeof(paste_text_data), "TEST %d\r", test_number);
