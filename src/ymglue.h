@@ -7,10 +7,10 @@ extern "C" {
 	#include <stdint.h>
 
 	uint8_t YM_read_status(void);
-    void YM_Create(int clock);
-    void YM_init(int sample_rate, int frame_rate);
-    void YM_stream_update(uint16_t* output, uint32_t numsamples);
-    void YM_write_reg(uint8_t reg, uint8_t val);
+	void YM_Create(int clock);
+	void YM_init(int sample_rate, int frame_rate);
+	void YM_stream_update(uint16_t* output, uint32_t numsamples);
+	void YM_write_reg(uint8_t reg, uint8_t val);
 
 #ifdef __cplusplus
 }
