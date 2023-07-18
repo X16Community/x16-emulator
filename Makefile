@@ -155,7 +155,6 @@ define add_extra_files_to_package
 	cp ../x16-rom/build/x16/kernal.sym  $(TMPDIR_NAME)
 	cp ../x16-rom/build/x16/keymap.sym  $(TMPDIR_NAME)
 	cp ../x16-rom/build/x16/dos.sym     $(TMPDIR_NAME)
-	cp ../x16-rom/build/x16/geos.sym    $(TMPDIR_NAME)
 	cp ../x16-rom/build/x16/basic.sym   $(TMPDIR_NAME)
 	cp ../x16-rom/build/x16/monitor.sym $(TMPDIR_NAME)
 	cp ../x16-rom/build/x16/charset.sym $(TMPDIR_NAME)
