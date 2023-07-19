@@ -7,7 +7,7 @@
 #include "vera_psg.h"
 #include "vera_pcm.h"
 #include "wav_recorder.h"
-#include "ym2151.h"
+#include "ymglue.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

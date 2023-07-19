@@ -97,12 +97,14 @@ pcm_write_fifo(uint8_t val)
 }
 
 static uint8_t
-read_fifo(void)
+read_fifo(bool continuation)
 {
+	static uint8_t result = 0;
 	if (fifo_cnt == 0) {
-		return 0;
+		if (!continuation) result = 0;
+		return result;
 	}
-	uint8_t result = fifo[fifo_rdidx++];
+	result = fifo[fifo_rdidx++];
 	if (fifo_rdidx == sizeof(fifo)) {
 		fifo_rdidx = 0;
 	}
@@ -128,26 +130,26 @@ pcm_render(int32_t *buf, unsigned num_samples)
 		if ((old_phase & 0x80) != (phase & 0x80)) {
 			switch ((ctrl >> 4) & 3) {
 				case 0: { // mono 8-bit
-					cur_l = (int16_t)read_fifo() << 8;
+					cur_l = (int16_t)read_fifo(false) << 8;
 					cur_r = cur_l;
 					break;
 				}
 				case 1: { // stereo 8-bit
-					cur_l = read_fifo() << 8;
-					cur_r = read_fifo() << 8;
+					cur_l = read_fifo(false) << 8;
+					cur_r = read_fifo(true) << 8;
 					break;
 				}
 				case 2: { // mono 16-bit
-					cur_l = read_fifo();
-					cur_l |= read_fifo() << 8;
+					cur_l = read_fifo(false);
+					cur_l |= read_fifo(true) << 8;
 					cur_r = cur_l;
 					break;
 				}
 				case 3: { // stereo 16-bit
-					cur_l = read_fifo();
-					cur_l |= read_fifo() << 8;
-					cur_r = read_fifo();
-					cur_r |= read_fifo() << 8;
+					cur_l = read_fifo(false);
+					cur_l |= read_fifo(true) << 8;
+					cur_r = read_fifo(true);
+					cur_r |= read_fifo(true) << 8;
 					break;
 				}
 			}
