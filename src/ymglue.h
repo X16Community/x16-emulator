@@ -11,6 +11,7 @@ extern "C" {
 	void YM_init(int sample_rate, int frame_rate);
 	void YM_stream_update(uint16_t* output, uint32_t numsamples);
 	void YM_write_reg(uint8_t reg, uint8_t val);
+	bool YM_irq(void);
 
 #ifdef __cplusplus
 }
