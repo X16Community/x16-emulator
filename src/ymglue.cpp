@@ -54,11 +54,11 @@ class ym2151_interface : public ymfm::ymfm_interface {
 				m_chip.write_address(addr);
 				m_chip.write_data(value);
 			} else {
-				printf("Busy\n");
+				printf("YM2151 write received while busy.\n");
 			}
 		}
 
-		void generate(uint16_t* output, uint32_t numsamples) {
+		void generate(int16_t* output, uint32_t numsamples) {
 			int s = 0;
 			int ls, rs;
 			update_clocks(numsamples);
@@ -70,8 +70,8 @@ class ym2151_interface : public ymfm::ymfm_interface {
 				if (ls > 32767) ls = 32767;
 				if (rs < -32768) rs = -32768;
 				if (rs > 32767) rs = 32767;
-				output[s++] = (uint16_t)ls;
-				output[s++] = (uint16_t)rs;
+				output[s++] = ls;
+				output[s++] = rs;
 			}
 		}
 
@@ -106,7 +106,7 @@ extern "C" {
 	}
 
 	void YM_stream_update(uint16_t* output, uint32_t numsamples) {
-		opm_iface.generate(output, numsamples);
+		opm_iface.generate((int16_t*)output, numsamples);
 	}
 
 	void YM_write_reg(uint8_t reg, uint8_t val) {
