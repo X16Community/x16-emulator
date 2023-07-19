@@ -57,8 +57,8 @@ void cartridge_get_copyright(char *buffer, size_t buffer_size);
 void cartridge_get_program_version(char *buffer, size_t buffer_size);
 
 bool cartridge_define_bank_range(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type);
-bool cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type, uint32_t fill_value);
-bool cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint32_t fill_value);
+bool cartridge_import_files(char **bin_files, int num_files, uint8_t start_bank, uint8_t bank_type, uint8_t fill_value);
+bool cartridge_fill(uint8_t start_bank, uint8_t end_bank, uint8_t bank_type, uint8_t fill_value);
 
 bool cartridge_save(const char *cartridge_file);
 bool cartridge_save_nvram();

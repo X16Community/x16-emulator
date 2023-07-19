@@ -10,7 +10,7 @@
 
 extern uint8_t *CART;
 
-uint32_t fill_value = 0;
+uint8_t fill_value = 0;
 
 static void parse_cmdline(int argc, char **argv);
 
@@ -94,9 +94,8 @@ usage()
 	printf("\n");
 	printf("-fill <value>\n");
 	printf("\tSet the fill value to use with any partially-filled banks of cartridge\n");
-	printf("\tmemory. Value can be defined in decimal, or in hexadecimal with a '$' or\n");
-	printf("\t'0x' prefix. 8-bit values will be repeated every byte, 16-bit values every two\n");
-	printf("\tbytes, and 32-bit values every 4 bytes.\n");
+	printf("\tmemory. Value can be defined in decimal, in hexadecimal with a '$' or\n");
+	printf("\t'0x' prefix, in octal with a leading 0, or in binary with a leading 0b or %%.\n");
 	printf("\n");
 	printf("-rom_file <start_bank> [<filenames.bin>...]\n");
 	printf("\tDefine rom banks from the specified list of files. File data is tightly\n");
@@ -427,13 +426,6 @@ parse_cmdline(int argc, char **argv)
 			}
 			++argv;
 			--argc;
-
-			if((fill_value & 0xffffff00) == 0) {
-				fill_value |= (fill_value << 8);
-			}
-			if((fill_value & 0xffff0000) == 0) {
-				fill_value |= (fill_value << 16);
-			}
 
 		} else if(!strcmp(argv[0], "-rom_file")) {
 			++argv;
