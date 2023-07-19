@@ -469,7 +469,7 @@ usage()
 	printf("\tand palette data. Requires a fast host CPU.\n");
 	printf("-enable-ym2151-irq\n");
 	printf("\tConnect the YM2151 IRQ source to the emulated CPU. This option increases\n");
-	printf("\tCPU usage as audio render is triggered for every every CPU instruction.\n");
+	printf("\tCPU usage as audio render is triggered for every CPU instruction.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
