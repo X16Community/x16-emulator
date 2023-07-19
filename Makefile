@@ -20,7 +20,8 @@ else
 	SDL2CONFIG=sdl2-config
 endif
 
-CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include -Isrc/extern/src
+CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
+CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
 LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
 
 # build with link time optimization
@@ -57,8 +58,10 @@ ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-Wl,--subsystem,console
 ifeq ($(TARGET_CPU),x86)
 	CC=i686-w64-mingw32-gcc
+	CXX=i686-w64-mingw32-g++
 else
 	CC=x86_64-w64-mingw32-gcc
+	CXX=x86_64-w64-mingw32-g++
 endif
 endif
 
@@ -71,8 +74,8 @@ ifdef EMSCRIPTEN
 	MAKECART_OUTPUT=makecart.html
 endif
 
-_X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o
-_X16_OBJS += extern/src/ym2151.o
+_X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o ymglue.o
+_X16_OBJS += extern/ymfm/src/ymfm_opm.o
 X16_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_X16_OBJS))
 X16_DEPS := $(X16_OBJS:.o=.d)
 
@@ -85,11 +88,15 @@ MAKECART_DEPS := $(MAKECART_OBJS:.o=.d)
 all: x16emu makecart
 
 x16emu: $(X16_OBJS)
-	$(CC) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS)
+	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS)
 
 $(X16_ODIR)/%.o: $(X16_SDIR)/%.c
 	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c $< -MD -MT $@ -MF $(@:%o=%d) -o $@
+
+$(X16_ODIR)/%.o: $(X16_SDIR)/%.cpp
+	@mkdir -p $$(dirname $@)
+	$(CXX) $(CXXFLAGS) -c $< -MD -MT $@ -MF $(@:%o=%d) -o $@
 
 makecart: $(MAKECART_OBJS)
 	$(CC) -o $(MAKECART_OUTPUT) $(MAKECART_OBJS) $(LDFLAGS)
