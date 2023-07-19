@@ -1845,7 +1845,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 		case 0x19:
 		case 0x1A: return reg_layer[1][reg - 0x14];
 
-		case 0x1B: return pcm_read_ctrl();
+		case 0x1B: audio_render(); return pcm_read_ctrl();
 		case 0x1C: return pcm_read_rate();
 		case 0x1D: return 0;
 
