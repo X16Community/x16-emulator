@@ -118,6 +118,11 @@ You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the co
 * `-sound` can be used to specify the output sound device.
 * `-abufs` can be used to specify the number of audio buffers (defaults to 8). If you're experiencing stuttering in the audio try to increase this number. This will result in additional audio latency though.
 * `-via2` installs the second VIA chip expansion at $9F10.
+* `-midline-effects` enables mid-scanline raster effects at the cost of vastly increased host CPU usage.
+* `-mhz <n>` sets the emulated CPU's speed. Range is from 1-40. This option is mainly for testing and benchmarking.
+* `-enable-ym2151-irq` connects the YM2151's IRQ pin to the system's IRQ line with a modest increase in host CPU usage.
+* `-wuninit` enables warnings on the console for reads of uninitialized memory.
+* `-zeroram` fills RAM at startup with zeroes instead of the default of random data.
 * `-version` prints additional version information of the emulator and ROM.
 * When compiled with `#define TRACE`, `-trace` will enable an instruction trace on stdout.
 
@@ -372,15 +377,8 @@ For all "No Data" banks, the data in RAM is *undefined*. While the emulator curr
 
 ### Vectors
 
-Since the ROM banks occupy the same address range as the system ROMs, this affects the vectors the system interrupts, as well as the BRK instruction. Programmers are strongly advised to reserve the last 6 bytes of each bank. Use the following values to populate this block: 
+X16 hardware, and thus the emulator, will only read 6502 vectors out of bank 0. This is done via the CPU's VPB pin being connected to the ROM bank latch reset pin. In the past specific vectors were recommended in cartridge ROMs, but this is no longer true. In cartridges, the addresses `$FFFA`-`$FFFF` are free to use for data.
 
-```x86asm
-; These constants should be exposed in the last 6 bytes
-; accessible to the CPU starting at address $FFFA.
-.word $03B7 ; `banked_nmi` ram trampoline
-.word $FFFF ; dummy value, reset outside of bank 0 isn't ever used
-.word $038B ; `banked_irq` ram trampoline
-```
 
 <!-- For PDF formatting -->
 <div class="page-break"></div>
