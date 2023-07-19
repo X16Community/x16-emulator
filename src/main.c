@@ -125,6 +125,7 @@ bool headless = false;
 bool fullscreen = false;
 bool testbench = false;
 bool enable_midline = false;
+bool ym2151_irq_support = false;
 char *cartridge_path = NULL;
 
 uint8_t MHZ = 8;
@@ -466,6 +467,9 @@ usage()
 	printf("-midline-effects\n");
 	printf("\tApproximate mid-line raster effects when changing tile, sprite,\n");
 	printf("\tand palette data. Requires a fast host CPU.\n");
+	printf("-enable-ym2151-irq\n");
+	printf("\tConnect the YM2151 IRQ source to the emulated CPU. This option increases\n");
+	printf("\tCPU usage as audio render is triggered for every CPU instruction.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -931,6 +935,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			enable_midline = true;
+		} else if (!strcmp(argv[0], "-enable-ym2151-irq")){
+			argc--;
+			argv++;
+			ym2151_irq_support = true;
 		} else {
 			usage();
 		}
@@ -1402,6 +1410,14 @@ emulator_loop(void *param)
 			// After completing a frame we yield back control to the browser to stay responsive
 			return 0;
 #endif
+		}
+
+		// The optimization from the opportunistic batching of audio rendering 
+		// is lost if we need to track the YM2151 IRQ, so it has been made a
+		// command-line switch that's disabled by default.
+		if (ym2151_irq_support) {
+			audio_render();
+			if (YM_irq()) irq6502();
 		}
 
 		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq())) {
