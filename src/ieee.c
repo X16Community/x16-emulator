@@ -26,6 +26,9 @@
 #include "memory.h"
 #include "ieee.h"
 #include "glue.h"
+#include "utf8_encode.h"
+#include "utf8.h"
+#include "iso_8859_15.h"
 #ifdef __MINGW32__
 #include <direct.h>
 // Windows just has to be different
@@ -147,87 +150,31 @@ get_kernal_cbdos_flags(void)
 
 
 static void
-utf8_to_iso(uint8_t *dst, const uint8_t *src)
+utf8_to_iso_string(uint8_t *dst, const uint8_t *src)
 {
-	int i = 0;
-	int j = 0;
+	int i;
+	int e;
+	uint32_t cp;
 
-	for (i = 0; src[i]; i++) {
-		// ASCII range is copied verbatim
-		if (src[i] < 0x80) {
-			dst[j++] = src[i];
-			continue;
-		}
-		// Invalid first UTF-8 byte
-		if (src[i] < 0xc0) {
-			dst[j++] = '?';
-			continue;
-		}
-		// Invalid singular UTF-8 byte
-		if (src[i+1] < 0x80) {
-			dst[j++] = '?';
-			continue;	
-		}
+	// utf8_decode requires the source string be at least 4 bytes
+	// longer than the string (IOW, 4 terminating nulls)
+	uint8_t *s = malloc(u8strlen(src)+4);
+	memset(s, 0, u8strlen(src)+4);
+	u8strcpy(s, src);
 
-		uint32_t cp;
-		int remlen;
+	uint8_t *so = s;
 
-		if ((src[i] & 0xf8) == 0xf0) { // four byte
-			cp = src[i] & 0x07;
-			remlen = 3;
-		} else if ((src[i] & 0xf0) == 0xe0) { // three byte
-			cp = src[i] & 0x0f;
-			remlen = 2;
-		} else { // two byte
-			cp = src[i] & 0x1f;
-			remlen = 1;
-		}
-
-		// construct the integer codepoint
-		for (; remlen > 0; remlen--) {
-			cp <<= 6;
-			cp |= (src[++i] & 0x3f);
-		}
-
-		// Resolve the Unicode codepoints that are > 0xff but are in ISO-8859-15
-		switch (cp) {
-			case 0x20ac: // €
-				cp = 0xa4;
-				break;
-			case 0x0160: // Š
-				cp = 0xa6;
-				break;
-			case 0x0161: // š
-				cp = 0xa8;
-				break;
-			case 0x017d: // Ž
-				cp = 0xb4;
-				break;
-			case 0x017e: // ž
-				cp = 0xb8;
-				break;
-			case 0x0152: // Œ
-				cp = 0xbc;
-				break;
-			case 0x0153: // œ
-				cp = 0xbd;
-				break;
-			case 0x0178: // Ÿ
-				cp = 0xbe;
-				break;
-			default:
-				// do nothing here
-				break;
-		}
-
-		if (cp > 0xff) {
-			dst[j++] = '?';
+	for (i = 0; *so; i++) {
+		so = utf8_decode(so, &cp, &e);
+		if (e) {
+			dst[i] = '?';
 		} else {
-			dst[j++] = cp;
+			dst[i] = iso8859_15_from_unicode(cp);
 		}
 	}
 
-	dst[j] = 0;
+	dst[i] = 0;
+	free(s);
 }
 
 // Puts the emulated cwd in buf, up to the maximum length specified by len
@@ -254,35 +201,10 @@ cgetcwd(uint8_t *buf, size_t len)
 }
 
 static uint32_t
-utf8_to_codepoint_i(uint8_t *str, int *off)
+case_fold_unicode(uint32_t cp)
 {
-	// convert each UTF-8 sequence into a numeric codepoint
-	int remlen;
-	uint32_t cp;
-
-	if ((str[*off] & 0xf8) == 0xf0) { // four byte
-		cp = str[*off] & 0x07;
-		remlen = 3;
-	} else if ((str[*off] & 0xf0) == 0xe0) { // three byte
-		cp = str[*off] & 0x0f;
-		remlen = 2;
-	} else if ((str[*off] & 0xe0) == 0xc0) { // two byte
-		cp = str[*off] & 0x1f;
-		remlen = 1;
-	} else {
-		cp = str[*off];
-		remlen = 0;
-	}
-
-	// construct the integer codepoint
-	for (; remlen > 0; remlen--) {
-		cp <<= 6;
-		cp |= (str[++*off] & 0x3f);
-	}
-
-	// now case-fold it
-	// ASCII letters, and most of ISO letters
-	if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0xc0 && cp <= 0xfe)) cp += 0x20;
+	// ASCII letters, and most of the ISO letters
+	if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0xc0 && cp <= 0xde)) cp += 0x20;
 	// fold the Š
 	else if (cp == 0x0160) cp = 0x0161;
 	// fold the Ž
@@ -298,7 +220,8 @@ utf8_to_codepoint_i(uint8_t *str, int *off)
 static uint8_t
 case_fold_iso(uint8_t c) {
 	uint8_t f = c;
-	if ((f >= 0x41 && f <= 0x5a) || (f >= 0xc0 && f <= 0xfe)) f += 0x20;
+	// ASCII letters, and most of the ISO letters
+	if ((f >= 0x41 && f <= 0x5a) || (f >= 0xc0 && f <= 0xde)) f += 0x20;
 	// fold the Š
 	else if (f == 0xa6) f = 0xa8;
 	// fold the Ž
@@ -310,6 +233,32 @@ case_fold_iso(uint8_t c) {
 
 	return f;
 }
+
+
+static uint32_t
+utf8_to_codepoint(uint8_t *str, int *off)
+{
+	uint32_t cp;
+	int e;
+
+	// utf8_decode requires the source string be at least 4 bytes
+	// longer than the string (IOW, 4 terminating nulls)
+	uint8_t *s = malloc(u8strlen(str+(*off))+4);
+	memset(s, 0, u8strlen(str+(*off))+4);
+	u8strcpy(s, str+(*off));
+	
+	uint8_t *so = utf8_decode(s, &cp, &e);
+
+	*off += (so - s) - 1;
+	free(s);
+
+	if (e) {
+		cp = '?';
+	}
+
+	return cp;
+}
+
 
 // compare two characters in a UTF-8 string
 // in a case-insensitive manner,
@@ -323,10 +272,10 @@ u8compare_utf8_char_i(uint8_t *str1, uint8_t *str2, int *off1, int *off2)
 	// these functions will increment *off1/*off2 to the
 	// byte before the next character if the UTF-8
 	// strings are multi-byte
-	cp1 = utf8_to_codepoint_i(str1, off1);
-	cp2 = utf8_to_codepoint_i(str2, off2);
+	cp1 = utf8_to_codepoint(str1, off1);
+	cp2 = utf8_to_codepoint(str2, off2);
 
-	return cp2 - cp1;
+	return case_fold_unicode(cp2) - case_fold_unicode(cp1);
 }
 
 
@@ -672,60 +621,15 @@ resolve_path_iso(const uint8_t *name, bool must_exist, int wildcard_filetype)
 {
 	uint8_t *ret;
 	uint8_t *buf;
-	int i;
-	int j = 0;
+	int i, j;
+	uint32_t cp;
 
 	buf = malloc(u8strlen(name)*3+1);
-	for (i = 0; name[i]; i++) {
-		// 0x00-0x7f is verbatim
-		if (name[i] < 0x80) {
-			buf[j++] = name[i];
-			continue;
-		}
 
-		// Resolve the Unicode codepoints
-		switch (name[i]) {
-			case 0xa4: // €
-				buf[j++] = 0xe2;
-				buf[j++] = 0x82;
-				buf[j++] = 0xac;
-				break;
-			case 0xa6: // Š
-				buf[j++] = 0xc5;
-				buf[j++] = 0xa0;
-				break;
-			case 0xa8: // š
-				buf[j++] = 0xc5;
-				buf[j++] = 0xa1;
-				break;
-			case 0xb4: // Ž
-				buf[j++] = 0xc5;
-				buf[j++] = 0xbd;
-				break;
-			case 0xb8: // ž
-				buf[j++] = 0xc5;
-				buf[j++] = 0xbe;
-				break;
-			case 0xbc: // Œ
-				buf[j++] = 0xc5;
-				buf[j++] = 0x92;
-				break;
-			case 0xbd: // œ
-				buf[j++] = 0xc5;
-				buf[j++] = 0x93;
-				break;
-			case 0xbe: // Ÿ
-				buf[j++] = 0xc5;
-				buf[j++] = 0xb8;
-				break;
-			default:
-				buf[j++] = (0xc0 | (name[i] >> 6));
-				buf[j++] = (0x80 | (name[i] & 0x3f));
-				break;
-		}
+	for (i = 0, j = 0; name[i]; i++) {
+		cp = unicode_from_iso8859_15(name[i]);
+		j += utf8_encode((char *)buf+j, cp);
 	}
-
-	buf[j] = 0;
 
 	ret = resolve_path_utf8(buf, must_exist, wildcard_filetype);
 	free(buf);
@@ -853,7 +757,7 @@ continue_directory_listing(uint8_t *data)
 		}
 
 		tmpnam = malloc(namlen+1);
-		utf8_to_iso(tmpnam, (uint8_t *)dp->d_name);
+		utf8_to_iso_string(tmpnam, (uint8_t *)dp->d_name);
 
 		if (dirlist_wildcard[0]) { // wildcard match selected
 			// in a wildcard match that starts at first position, leading dot filenames are not considered
