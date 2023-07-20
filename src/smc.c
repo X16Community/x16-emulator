@@ -23,6 +23,7 @@
 
 uint8_t activity_led;
 uint8_t mse_count = 0;
+bool smc_requested_reset = false;
 
 uint8_t
 smc_read(uint8_t a) {
@@ -65,12 +66,12 @@ smc_write(uint8_t a, uint8_t v) {
 #endif
 				exit(0);
 			} else if (v == 1) {
-				machine_reset();
+				smc_requested_reset = true;
 			}
 			break;
 		case 2:
 			if (v == 0) {
-				machine_reset();
+				smc_requested_reset = true;
 			}
 			break;
 		case 3:

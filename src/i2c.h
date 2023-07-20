@@ -18,6 +18,7 @@ typedef struct {
 
 extern i2c_port_t i2c_port;
 
+void i2c_reset_state();
 void i2c_step();
 
 void i2c_kbd_buffer_add(uint8_t value);
