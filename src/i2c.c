@@ -31,6 +31,14 @@ uint8_t kbd_buffer[KBD_SIZE];						//Ring buffer for key codes
 #define MSE_SIZE 8
 uint8_t mse_buffer[MSE_SIZE];						//Ring buffer for mouse movement data
 
+void i2c_reset_state() {
+	state = STATE_STOP;
+	read_mode = false;
+	value = 0;
+	count = 0;
+	smc_requested_reset = false;
+}
+
 uint8_t
 i2c_read(uint8_t device, uint8_t offset) {
 	uint8_t value;

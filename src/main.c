@@ -26,6 +26,7 @@
 #include "serial.h"
 #include "i2c.h"
 #include "rtc.h"
+#include "smc.h"
 #include "vera_spi.h"
 #include "sdcard.h"
 #include "ieee.h"
@@ -291,6 +292,7 @@ void mouse_state_init(void)
 void
 machine_reset()
 {
+	i2c_reset_state();
 	ieee_init();
 	memory_reset();
 	vera_spi_init();
@@ -1254,6 +1256,7 @@ emulator_loop(void *param)
 {
 	uint32_t old_clockticks6502 = clockticks6502;
 	for (;;) {
+		if (smc_requested_reset) machine_reset();
 
 		if (testbench && pc == 0xfffd){
 			testbench_init();
