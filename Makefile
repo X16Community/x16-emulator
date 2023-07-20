@@ -56,6 +56,7 @@ ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
 	# this enables printf() to show, but also forces a console window
 	LDFLAGS+=-Wl,--subsystem,console
+	LDFLAGS+=-static-libstdc++ -static-libgcc
 ifeq ($(TARGET_CPU),x86)
 	CC=i686-w64-mingw32-gcc
 	CXX=i686-w64-mingw32-g++
