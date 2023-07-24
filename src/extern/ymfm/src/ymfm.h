@@ -37,7 +37,9 @@
  #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#if defined(__clang__)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 #include <cassert>
 #include <cstdint>
