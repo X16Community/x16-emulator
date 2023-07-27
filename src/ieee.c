@@ -168,10 +168,23 @@ utf8_to_iso_string(uint8_t *dst, const uint8_t *src)
 		so = utf8_decode(so, &cp, &e);
 		if (e) {
 			dst[i] = '?';
-		} else if (cp == ',') { // commas aren't valid filename characters
-			dst[i] = '?';
 		} else {
-			dst[i] = iso8859_15_from_unicode(cp);
+			switch (cp) {
+				case ',':
+				case '"':
+				case '*':
+				case ':':
+				case '\\':
+				case '<':
+				case '>':
+				case '|':
+					// these are not valid in filenames on FAT32 but might be encountered on hostfs
+					dst[i] = '?';
+					break;
+				default:
+					dst[i] = iso8859_15_from_unicode(cp);
+					break;
+			}
 		}
 	}
 
