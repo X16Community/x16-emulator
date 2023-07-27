@@ -728,14 +728,25 @@ continue_directory_listing(uint8_t *data)
 	int i;
 
 	while ((dp = readdir(dirlist_dirp))) {
-		size_t namlen = u8strlen(dp->d_name);
-		tmpnam = resolve_path_utf8((uint8_t *)dp->d_name, true, WILDCARD_ALL);
-		if (tmpnam == NULL) continue;
-		u8stat(tmpnam, &st);
-		free(tmpnam);
-
 		// Type match
 		if (dirlist_type_filter) {
+			// Because resolving the path within the hostfs
+			// logic is expensive, and could keep us here for multiple seconds
+			// when directories are very large, it is much faster and gets us
+			// past the negative matches of the filter ASAP if we do a quick
+			// stat().
+			//
+			// The later logic can validate if the path resolves to something
+			// within the hostfs root or not.
+			size_t nl = u8strlen(dp->d_name);
+			size_t pl = u8strlen(hostfscwd);
+			uint8_t *tn = malloc(nl+pl+3);
+			u8strcpy(tn, hostfscwd);
+			*(tn+pl) = '/';
+			u8strcpy(tn+pl+1, dp->d_name);
+			u8stat(tn, &st);
+			free(tn);
+
 			switch (dirlist_type_filter) {
 				case 'D':
 					if (!S_ISDIR(st.st_mode))
@@ -747,6 +758,12 @@ continue_directory_listing(uint8_t *data)
 					break;
 			}
 		}
+
+		size_t namlen = u8strlen(dp->d_name);
+		tmpnam = resolve_path_utf8((uint8_t *)dp->d_name, true, WILDCARD_ALL);
+		if (tmpnam == NULL) continue;
+		u8stat(tmpnam, &st);
+		free(tmpnam);
 
 		// don't show the . or .. in the root directory
 		// this behaves like SD card/FAT32
