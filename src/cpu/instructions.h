@@ -110,7 +110,11 @@ static void bit() {
     result = (uint16_t)a & value;
 
     zerocalc(result);
-    status = (status & 0x3F) | (uint8_t)(value & 0xC0);
+    // Xark - BUGFIX: 65C02 BIT #$xx only affects Z  See: http://6502.org/tutorials/65c02opcodes.html#2
+    if (opcode != 0x89)
+    {
+        status = (status & 0x3F) | (uint8_t)(value & 0xC0);
+    }
 }
 
 static void bmi() {
