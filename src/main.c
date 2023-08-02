@@ -306,6 +306,12 @@ machine_reset()
 }
 
 void
+machine_nmi()
+{
+	nmi6502();
+}
+
+void
 machine_paste(char *s)
 {
 	if (s) {
