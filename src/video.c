@@ -1360,6 +1360,9 @@ video_update()
 				} else if (event.key.keysym.sym == SDLK_r) {
 					machine_reset();
 					consumed = true;
+				} else if (event.key.keysym.sym == SDLK_n) {
+					machine_nmi();
+					consumed = true;
 				} else if (event.key.keysym.sym == SDLK_v) {
 					machine_paste(SDL_GetClipboardText());
 					consumed = true;
