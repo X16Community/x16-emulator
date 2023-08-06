@@ -223,6 +223,6 @@ SDL_Surface *CommanderX16Icon()
 	SDL_SetPaletteColors(surface->format->palette, color+5, '%', 1);
 	SDL_SetPaletteColors(surface->format->palette, color+6, '&', 1);
 	SDL_SetPaletteColors(surface->format->palette, color+7, '*', 1);
-	SDL_SetPaletteColors(surface->format->palette, color+8, ' ', 1);
+	SDL_SetPaletteColors(surface->format->palette, color+0, ' ', 1);
 	return surface;
 }
