@@ -295,11 +295,11 @@ u8compare_utf8_char_i(uint8_t *str1, uint8_t *str2, int *off1, int *off2)
 
 
 static uint8_t *
-parse_dos_filename(const uint8_t *name)
+parse_dos_filename(const uint8_t *name, bool dirhandling)
 {
 	// in case the name starts with something with special meaning,
 	// such as @0:
-	uint8_t *name_ptr;
+	uint8_t *name_ptr = NULL;
 	uint8_t *newname = malloc(u8strlen(name)+1);
 	int i, j;
 
@@ -322,28 +322,39 @@ parse_dos_filename(const uint8_t *name)
 	// resolve_path*() is responsible for resolving absolute and relative
 	// paths, and for processing the wildcard option
 
+	name_ptr = u8strchr(name,':');
+	if (dirhandling && !name_ptr)
+		name_ptr = (uint8_t *)(name+u8strlen(name));
 
-	if ((name_ptr = u8strchr(name,':'))) {
+	if (name_ptr) {
 		name_ptr++;
 		i = 0;
 		j = 0;
 
-		// @ is overwrite flag
-		if (name[i] == '@') {
-			overwrite = true;
-			i++;
+
+		if (!dirhandling) {
+			// @ is overwrite flag
+			if (name[i] == '@') {
+				overwrite = true;
+				i++;
+			}
+
+			// Medium, we don't care what this number is
+			while (name[i] >= '0' && name[i] <= '9')
+				i++;
 		}
-
-		// Medium, we don't care what this number is
-		while (name[i] >= '0' && name[i] <= '9')
-			i++;
-
 
 		// Directory name
 		if (name[i] == '/') {
 			i++;
 			for (; name+i+1 < name_ptr; i++, j++) {
 				newname[j] = name[i];
+			}
+
+			// mangled directory name (single slash?)
+			if (j == 0) {
+				free(newname);
+				return NULL;
 			}
 
 			// Directory portion must end with /
@@ -1157,10 +1168,8 @@ command(uint8_t *cmd)
 		case 'C': // C (copy), CD (change directory), CP (change partition)
 			switch(cmd[1]) {
 				case 'D': // Change directory
-					if (cmd[2] == ':') {
-						cchdir(cmd+3);
+						cchdir(cmd+2);
 						return;
-					}
 				case 'P': // Change partition
 					set_error(0x02, 0, 0);
 					return;
@@ -1175,10 +1184,8 @@ command(uint8_t *cmd)
 		case 'M': // MD
 			switch(cmd[1]) {
 				case 'D': // Make directory
-					if (cmd[2] == ':') {
-						cmkdir(cmd+3);
-						return;
-					}
+					cmkdir(cmd+2);
+					return;
 				default: // Memory (not implemented)
 					set_error(0x31, 0, 0);
 					return;
@@ -1193,10 +1200,8 @@ command(uint8_t *cmd)
 		case 'R': // RD
 			switch(cmd[1]) {
 				case 'D': // Remove directory
-					if (cmd[2] == ':') {
-						crmdir(cmd+3);
-						return;
-					}
+					crmdir(cmd+2);
+					return;
 				default: // Rename 
 					crename(cmd); // Need to parse out the arg in this function
 					return;
@@ -1228,14 +1233,29 @@ static void
 cchdir(uint8_t *dir)
 {
 	// The directory name is in dir, coming from the command channel
-	// with the CD: portion stripped off
+	// with the CD portion stripped off
+	uint8_t *parsed;
 	uint8_t *resolved;
 	struct stat st;
 
-	if ((resolved = resolve_path_iso(dir, true, WILDCARD_DIR)) == NULL) {
+	if (!u8strcmp(dir,":_")) { // turn CD:← into CD:..
+		parsed = parse_dos_filename((uint8_t *)":..", true);
+	} else {
+		parsed = parse_dos_filename(dir, true);
+	}
+
+	if (parsed == NULL) {
+		set_error(0x32, 0, 0);
+		return;
+	}
+	
+	if ((resolved = resolve_path_iso(parsed, true, WILDCARD_DIR)) == NULL) {
+		free(parsed);
 		// error already set
 		return;
 	}
+
+	free(parsed);
 
 	// Is it a directory?
 	if (u8stat(resolved, &st)) {
@@ -1259,14 +1279,25 @@ static void
 cmkdir(uint8_t *dir)
 {
 	// The directory name is in dir, coming from the command channel
-	// with the MD: portion stripped off
+	// with the MD portion stripped off
 	uint8_t *resolved;
+	uint8_t *parsed;
+
+	parsed = parse_dos_filename(dir, true);
+
+	if (parsed == NULL) {
+		set_error(0x32, 0, 0);
+		return;
+	}
 
 	clear_error();
-	if ((resolved = resolve_path_iso(dir, false, WILDCARD_DIR)) == NULL) {
+	if ((resolved = resolve_path_iso(parsed, false, WILDCARD_DIR)) == NULL) {
+		free(parsed);
 		// error already set
 		return;
 	}
+
+	free(parsed);
 #ifdef __MINGW32__
 	if (_mkdir((char *)resolved))
 #else
@@ -1364,12 +1395,23 @@ crmdir(uint8_t *dir)
 	// The directory name is in dir, coming from the command channel
 	// with the RD: portion stripped off
 	uint8_t *resolved;
+	uint8_t *parsed;
+
+	parsed = parse_dos_filename(dir, true);
+
+	if (parsed == NULL) {
+		set_error(0x32, 0, 0);
+		return;
+	}
 
 	clear_error();
-	if ((resolved = resolve_path_iso(dir, true, WILDCARD_DIR)) == NULL) {
+	if ((resolved = resolve_path_iso(parsed, true, WILDCARD_DIR)) == NULL) {
+		free(parsed);
 		set_error(0x39, 0, 0);
 		return;
 	}
+
+	free(parsed);
 
 	if (rmdir((char *)resolved)) {
 		if (errno == ENOTEMPTY || errno == EACCES) {
@@ -1496,7 +1538,7 @@ copen(int channel)
 			channels[channel].f = prg_file; // special case
 			prg_consumed = true;
 		} else {
-			if ((parsed_filename = parse_dos_filename(channels[channel].name)) == NULL) {
+			if ((parsed_filename = parse_dos_filename(channels[channel].name, false)) == NULL) {
 				set_error(0x32, 0, 0); // Didn't parse out properly
 				return -2; 
 			}
