@@ -308,6 +308,7 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 	video_reset();
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality);
+	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1"); // Grabs keyboard shortcuts from the system during window grab
 	SDL_CreateWindowAndRenderer(SCREEN_WIDTH * window_scale * screen_x_scale, SCREEN_HEIGHT * window_scale, window_flags, &window, &renderer);
 #ifndef __MORPHOS__
 	SDL_SetWindowResizable(window, true);
