@@ -523,8 +523,7 @@ struct video_sprite_properties
 void
 mousegrab_toggle() {
 	mouse_grabbed = !mouse_grabbed;
-	SDL_SetRelativeMouseMode(mouse_grabbed);
-	SDL_SetWindowKeyboardGrab(window, mouse_grabbed);
+	SDL_SetWindowGrab(window, mouse_grabbed);
 	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
 	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
 	video_update_title(window_title);
