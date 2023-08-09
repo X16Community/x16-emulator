@@ -308,6 +308,7 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 	video_reset();
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality);
+	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1"); // Grabs keyboard shortcuts from the system during window grab
 	SDL_CreateWindowAndRenderer(SCREEN_WIDTH * window_scale * screen_x_scale, SCREEN_HEIGHT * window_scale, window_flags, &window, &renderer);
 #ifndef __MORPHOS__
 	SDL_SetWindowResizable(window, true);
@@ -523,7 +524,7 @@ struct video_sprite_properties
 void
 mousegrab_toggle() {
 	mouse_grabbed = !mouse_grabbed;
-	SDL_SetRelativeMouseMode(mouse_grabbed);
+	SDL_SetWindowGrab(window, mouse_grabbed);
 	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
 	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
 	video_update_title(window_title);
