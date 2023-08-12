@@ -48,13 +48,17 @@ pcm_reset(void)
 void
 pcm_write_ctrl(uint8_t val)
 {
-	if (val & 0x80) {
-		fifo_reset();
+	if ((val & 0xc0) == 0xc0) {
+		loop = true;
+	} else {
+		loop = false;
+		if (val & 0x80) {
+			fifo_reset();
+		}
 	}
 	if (val & 0x40) {
 		fifo_restart();
 	}
-
 	ctrl = val & 0x3F;
 }
 
@@ -74,8 +78,7 @@ pcm_read_ctrl(void)
 void
 pcm_write_rate(uint8_t val)
 {
-	loop = (val > 128);
-	rate = loop ? (val & 0x7f) : val;
+	rate = (val > 128) ? (256 - val) : val;
 }
 
 uint8_t
