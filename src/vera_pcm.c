@@ -100,21 +100,17 @@ pcm_write_fifo(uint8_t val)
 }
 
 static uint8_t
-read_fifo(bool continuation)
+read_fifo()
 {
 	static uint8_t result = 0;
 	if (fifo_cnt == 0) {
-		if (!continuation) result = 0;
-		return result;
+		return 0;
 	}
 	result = fifo[fifo_rdidx++];
 	if (fifo_rdidx == sizeof(fifo)) {
 		fifo_rdidx = 0;
 	}
 	fifo_cnt--;
-	if (loop && fifo_cnt == 0) {
-		fifo_restart();
-	}
 	return result;
 }
 
@@ -131,29 +127,52 @@ pcm_render(int32_t *buf, unsigned num_samples)
 		uint8_t old_phase = phase;
 		phase += rate;
 		if ((old_phase & 0x80) != (phase & 0x80)) {
-			switch ((ctrl >> 4) & 3) {
-				case 0: { // mono 8-bit
-					cur_l = (int16_t)read_fifo(false) << 8;
-					cur_r = cur_l;
-					break;
+			if (fifo_cnt == 0) {
+				cur_l = 0;
+				cur_r = 0;
+			} else {
+				switch ((ctrl >> 4) & 3) {
+					case 0: { // mono 8-bit
+						cur_l = (int16_t)read_fifo() << 8;
+						cur_r = cur_l;
+						break;
+					}
+					case 1: { // stereo 8-bit
+						if (fifo_cnt < 2) {
+							fifo_cnt = 0;
+							fifo_rdidx = fifo_wridx;
+						} else {
+							cur_l = read_fifo() << 8;
+							cur_r = read_fifo() << 8;
+						}
+						break;
+					}
+					case 2: { // mono 16-bit
+						if (fifo_cnt < 2) {
+							fifo_cnt = 0;
+							fifo_rdidx = fifo_wridx;
+						} else {
+							cur_l = read_fifo();
+							cur_l |= read_fifo() << 8;
+							cur_r = cur_l;
+						}
+						break;
+					}
+					case 3: { // stereo 16-bit
+						if (fifo_cnt < 4) {
+							fifo_cnt = 0;
+							fifo_rdidx = fifo_wridx;
+						} else {
+							cur_l = read_fifo();
+							cur_l |= read_fifo() << 8;
+							cur_r = read_fifo();
+							cur_r |= read_fifo() << 8;
+						}
+						break;
+					}
 				}
-				case 1: { // stereo 8-bit
-					cur_l = read_fifo(false) << 8;
-					cur_r = read_fifo(true) << 8;
-					break;
-				}
-				case 2: { // mono 16-bit
-					cur_l = read_fifo(false);
-					cur_l |= read_fifo(true) << 8;
-					cur_r = cur_l;
-					break;
-				}
-				case 3: { // stereo 16-bit
-					cur_l = read_fifo(false);
-					cur_l |= read_fifo(true) << 8;
-					cur_r = read_fifo(true);
-					cur_r |= read_fifo(true) << 8;
-					break;
+				if (loop && fifo_cnt == 0) {
+					fifo_restart();
 				}
 			}
 		}
