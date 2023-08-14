@@ -181,7 +181,7 @@ Functions while running
 * `Ctrl` + `M` will toggle mouse capture mode.
 * `Ctrl` + `P` will write a screenshot in PNG format to disk.
 * `Ctrl` + `R` will reset the computer.
-* `Ctrl` + `N` will send an NMI to the computer (like RESTORE key).
+* `Ctrl` + `Backspace` will send an NMI to the computer (like RESTORE key).
 * `Ctrl` + `S` will save a system dump configurable with `-dump`) to disk.
 * `Ctrl` + `V` will paste the clipboard by injecting key presses.
 * `Ctrl` + `=` and `Ctrl` + `+` will toggle warp mode.
@@ -191,7 +191,7 @@ Functions while running
 * `⇧⌘M` will toggle mouse capture mode.
 * `⌘P` will write a screenshot in PNG format to disk.
 * `⌘R` will reset the computer.
-* `⌘N` will send an NMI to the computer (like RESTORE key).
+* `⌘Delete` aka `⌘Backspace` will send an NMI to the computer (like RESTORE key).
 * `⌘S` will save a system dump (configurable with `-dump`) to disk.
 * `⌘V` will paste the clipboard by injecting key presses.
 * `⌘=` and `⇧⌘+` will toggle warp mode.
