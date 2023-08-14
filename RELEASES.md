@@ -5,6 +5,51 @@
 
 ## Releases
 
+### Release 44 ("Milan")
+
+This is the third release of x16-emulator by the X16Community team
+
+* Features/Fixes
+	* Many changes to HostFS, including
+		* Fix regression for loading "`:*`" from HostFS while also using an SD card image
+		* Fix `-prg` and `-sdcard` options working together, which did not properly handle the case after emulator reset
+		* Proper wildcard behavior in dir filters and OPEN string
+		* Fix filetype directory filter command parsing
+		* Add `$=L` long mode directory listing to emulate the new feature in the ROM.
+		* Speed up directory filetype filter
+		* Add CMD/SD2IEC style directory navigation: `CD:←` to enter parent directory
+		* Partial emulation of case-insensitivity in filenames on case-sensitive host filesystems.
+			* This works in `OPEN` strings and directory names in commands (`CD:`, etc.) which do not contain a `/` character.
+			* It also works on the last path segment in relative or absolute paths in directory names or `OPEN` strings. In other words, if given a path specification containing one or more `/` characters, it will do only a case-insensitive search on the part after the final `/`.
+		* Proper translation between UTF-8 filenames and their ISO representations.
+	* Implement VPB behavior to match hardware [akumanatt]
+		* Fix BRK to have VPB behavior
+	* Support for additional keycodes (NumLock, Menu) [stefan-b-jakobsson]
+	* Fix debugger to set the correct bank for breakpoints [gaekwad]
+	* New `-fullscreen` CLI option
+	* Proper cleanup when the emulator exits when in full screen [irmen]
+	* FX emulation, which mirrors the features in the FX enhancement to the VERA firmware. See the [VERA FX Reference](https://github.com/X16Community/x16-docs/blob/master/VERA%20FX%20Reference.md) for details.
+	* Writing bit 6 and bit 7 together into VERA_AUDIO_CTRL now enables looping the PCM FIFO (and does not reset the FIFO). Any other write into VERA_AUDIO_CTRL disables looping.
+	* New `-opacity` CLI option for window transparency [tstibor]
+	* New support for screenshots (Ctrl+P/⌘P) [dressupgeekout]
+	* Fix small memory leak caused by pasting into the emulator
+	* Use relative mouse motion while in grabbed mode
+	* Remove `-geos` CLI option [dressupgeekout]
+	* New YM2151 audio core: remove old MAME core, replace with ymfm
+		* Allows for IRQs from the YM, requires specifying `-enable-ym2151-irq` on the command line
+	* Emulate hardware open bus behavior when reading from a device that doesn't exist in the `$9Fxx` space
+	* Reset via I2C command: defer machine reset to the main loop, which allows the I2C write routine to return cleanly.
+	* Fix 65C02 `BIT` immediate behavior [XarkLabs]
+	* New NMI trigger emulator hotkey, emulates Ctrl+Alt+Restore on hardware (Ctrl+Backspace/⌘Delete) [XarkLabs]
+	* Fix line artifact in application icon/logo
+	* Grabbing the mouse with (Ctrl+M/⇧⌘M) now grabs the keyboard as well. It allows the emulator to receive keystrokes and key combinations which would otherwise be intercepted by the operating system.
+	* Fix description of fill value in `makecart`
+	* New features implemented in the [ROM](https://github.com/X16Community/x16-rom/tree/r44#release-44-milan)
+* Build
+	* Link-time optimization is now enabled by default
+	* Portability enhancements [dressupgeekout]
+	* Suppress clang warnings due to deprecated sprintf usage in ymfm lib [XarkLabs]
+
 ### Release 43 ("Stockholm")
 
 This is the second release of x16-emulator by the X16Community team
