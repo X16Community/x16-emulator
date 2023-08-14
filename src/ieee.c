@@ -1,5 +1,5 @@
 // Commander X16 Emulator
-// Copyright (c) 2022 Michael Steil
+// Copyright (c) 2022, 2023 Michael Steil, et al
 // All rights reserved. License: 2-clause BSD
 
 // Commodore Bus emulation
