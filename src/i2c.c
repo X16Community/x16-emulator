@@ -278,7 +278,15 @@ static uint8_t mouse_device_id = 3;
 static bool
 mouse_send(int x, int y, int b, uint8_t w)
 {
-	if (i2c_mse_buffer_count()<100) {
+	uint8_t psize;
+	if (mouse_device_id == 3 || mouse_device_id == 4) {
+		psize = 4;
+	}
+	else {
+		psize  = 3;
+	}
+
+	if (i2c_mse_buffer_count() < MSE_SIZE-psize) {
 		uint8_t byte0 =
 		    ((y >> 9) & 1) << 5 |
 		    ((x >> 9) & 1) << 4 |
