@@ -1449,6 +1449,10 @@ video_update()
 			mouse_y = event.motion.y;
 			mouse_changed = true;
 		}
+		if (event.type == SDL_MOUSEWHEEL) {
+			mouse_set_wheel(event.wheel.y);
+			mouse_changed = true;
+		}
 
 		if (event.type == SDL_JOYDEVICEADDED) {
 			joystick_add(event.jdevice.which);
