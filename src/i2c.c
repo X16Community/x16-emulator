@@ -317,6 +317,7 @@ mouse_send_state(void)
 
 		mouse_diff_x -= send_diff_x;
 		mouse_diff_y -= send_diff_y;
+		wheel = 0;
 	} while (mouse_diff_x != 0 && mouse_diff_y != 0);
 }
 
