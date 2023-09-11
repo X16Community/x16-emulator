@@ -144,7 +144,7 @@ void opm_registers::operator_map(operator_mapping &dest) const
 
 bool opm_registers::write(uint16_t index, uint8_t data, uint32_t &channel, uint32_t &opmask)
 {
-	assert(index < REGISTERS);
+	if(index >= REGISTERS) return false;
 
 	// LFO AM/PM depth are written to the same register (0x19);
 	// redirect the PM depth to an unused neighbor (0x1a)
