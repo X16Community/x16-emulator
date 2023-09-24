@@ -28,7 +28,7 @@ static uint8_t offset;
 #define KBD_SIZE 16
 uint8_t kbd_buffer[KBD_SIZE];						//Ring buffer for key codes
 
-#define MSE_SIZE 8
+#define MSE_SIZE 16
 uint8_t mse_buffer[MSE_SIZE];						//Ring buffer for mouse movement data
 
 void i2c_reset_state() {
@@ -261,6 +261,8 @@ uint8_t i2c_mse_buffer_count() {
 static uint8_t buttons;
 static int16_t mouse_diff_x = 0;
 static int16_t mouse_diff_y = 0;
+static int8_t wheel = 0;
+static uint8_t mouse_device_id = 3;
 
 // byte 0, bit 7: Y overflow
 // byte 0, bit 6: X overflow
@@ -274,9 +276,17 @@ static int16_t mouse_diff_y = 0;
 // byte 3:        Y Movement
 
 static bool
-mouse_send(int x, int y, int b)
+mouse_send(int x, int y, int b, uint8_t w)
 {
-	if (i2c_mse_buffer_count()<5) {
+	uint8_t psize;
+	if (mouse_device_id == 3 || mouse_device_id == 4) {
+		psize = 4;
+	}
+	else {
+		psize  = 3;
+	}
+
+	if (i2c_mse_buffer_count() < MSE_SIZE-psize) {
 		uint8_t byte0 =
 		    ((y >> 9) & 1) << 5 |
 		    ((x >> 9) & 1) << 4 |
@@ -285,6 +295,10 @@ mouse_send(int x, int y, int b)
 		i2c_mse_buffer_add(byte0);
 		i2c_mse_buffer_add(x);
 		i2c_mse_buffer_add(y);
+
+		if (mouse_device_id == 3 || mouse_device_id == 4) {
+			i2c_mse_buffer_add(w);
+		}
 
 		return true;
 	} else {
@@ -299,10 +313,11 @@ mouse_send_state(void)
 		int send_diff_x = mouse_diff_x > 255 ? 255 : (mouse_diff_x < -256 ? -256 : mouse_diff_x);
 		int send_diff_y = mouse_diff_y > 255 ? 255 : (mouse_diff_y < -256 ? -256 : mouse_diff_y);
 
-		mouse_send(send_diff_x, send_diff_y, buttons);
+		mouse_send(send_diff_x, send_diff_y, buttons, wheel);
 
 		mouse_diff_x -= send_diff_x;
 		mouse_diff_y -= send_diff_y;
+		wheel = 0;
 	} while (mouse_diff_x != 0 && mouse_diff_y != 0);
 }
 
@@ -329,4 +344,42 @@ uint8_t
 mouse_read(uint8_t reg)
 {
 	return 0xff;
+}
+
+void 
+mouse_set_wheel(int8_t y)
+{
+	if (mouse_device_id == 3 || mouse_device_id == 4) {
+		if (y < -7) {
+			wheel = 7;
+		}
+		else if (y > 8) {
+			wheel = -8;
+		}
+		else {
+			wheel = -y;
+		}
+	}
+}
+
+uint8_t 
+mouse_get_device_id() {
+	return mouse_device_id;
+}
+
+void 
+mouse_set_device_id(uint8_t d) {
+	switch(d) {
+		case 0:
+		case 3:
+			mouse_device_id = d;
+			break;
+		case 4:
+			mouse_device_id =3;
+			break;
+		default:
+			mouse_device_id = 0;
+			break;
+	}
+	i2c_mse_buffer_flush();
 }
