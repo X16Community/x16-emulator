@@ -35,7 +35,6 @@
 #include "utf8.h"
 #include "iso_8859_15.h"
 #include "joystick.h"
-#include "utf8_encode.h"
 #include "rom_symbols.h"
 #include "ymglue.h"
 #include "audio.h"
@@ -328,15 +327,6 @@ machine_toggle_warp()
 	timing_init();
 }
 
-
-// converts the character to UTF-8 and prints it
-static void
-print_iso8859_15_char(char c)
-{
-	char utf8[5];
-	utf8_encode(utf8, unicode_from_iso8859_15(c));
-	printf("%s", utf8);
-}
 
 static bool
 is_kernal()

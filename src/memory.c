@@ -16,6 +16,7 @@
 #include "wav_recorder.h"
 #include "audio.h"
 #include "cartridge.h"
+#include "iso_8859_15.h"
 
 uint8_t ram_bank;
 uint8_t rom_bank;
@@ -29,6 +30,9 @@ static uint8_t addr_ym = 0;
 bool randomizeRAM = false;
 bool reportUninitializedAccess = false;
 bool *RAM_access_flags;
+
+static uint32_t clock_snap = 0UL;
+static uint32_t clock_base = 0UL;
 
 #define DEVICE_EMULATOR (0x9fb0)
 
@@ -335,6 +339,15 @@ emu_recorder_set(gif_recorder_command_t command)
 // 4: save_on_exit
 // 5: record_gif
 // 6: record_wav
+// 7: cmd key toggle
+// 8: write: reset cpu clock counter
+// 8: read: snapshots cpu clock counter and reads the LSB bits 0-7
+// 9: write: output debug byte 1
+// 9: read: cpu clock bits 8-15
+// 10: write: output debug byte 2
+// 10: read: cpu clock bits 16-23
+// 11: write: write character to STDOUT of console
+// 11: read: cpu clock MSB bits 24-31
 // POKE $9FB3,1:PRINT"ECHO MODE IS ON":POKE $9FB3,0
 void
 emu_write(uint8_t reg, uint8_t value)
@@ -349,6 +362,19 @@ emu_write(uint8_t reg, uint8_t value)
 		case 5: emu_recorder_set((gif_recorder_command_t) value); break;
 		case 6: wav_recorder_set((wav_recorder_command_t) value); break;
 		case 7: disable_emu_cmd_keys = v; break;
+		case 8: clock_base = clockticks6502; break;
+		case 9: printf("User debug 1: $%02x\n", value); break;
+		case 10: printf("User debug 2: $%02x\n", value); break;
+		case 11: {
+			if (value == 0x09 || value == 0x0a || value == 0x0d || (value >= 0x20 && value < 0x7f)) {
+				printf("%c", value);
+			} else if (value >= 0xa1) {
+				print_iso8859_15_char((char) value);
+			} else {
+				printf("\xef\xbf\xbd"); // �
+			}
+			break;
+		}
 		default: printf("WARN: Invalid register %x\n", DEVICE_EMULATOR + reg);
 	}
 }
@@ -374,13 +400,14 @@ emu_read(uint8_t reg, bool debugOn)
 		return disable_emu_cmd_keys ? 1 : 0;
 
 	} else if (reg == 8) {
-		return (clockticks6502 >> 0) & 0xff;
+		clock_snap = clockticks6502 - clock_base;
+		return (clock_snap >> 0) & 0xff;
 	} else if (reg == 9) {
-		return (clockticks6502 >> 8) & 0xff;
+		return (clock_snap >> 8) & 0xff;
 	} else if (reg == 10) {
-		return (clockticks6502 >> 16) & 0xff;
+		return (clock_snap >> 16) & 0xff;
 	} else if (reg == 11) {
-		return (clockticks6502 >> 24) & 0xff;
+		return (clock_snap >> 24) & 0xff;
 
 	} else if (reg == 13) {
 		return keymap;
