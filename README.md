@@ -213,6 +213,18 @@ With the argument `-wav`, followed by a filename, an audio recording will be sav
 If the option `,wait` is specified after the filename, it will start recording on `POKE $9FB6,1`. If the option `,auto` is specified after the filename, it will start recording on the first non-zero audio signal. It will pause recording on `POKE $9FB6,0`. `PEEK($9FB6)` returns a 1 if recording is enabled but not active.
 
 
+Debug I/O registers
+-------------------
+In addition to the built-in debugger. x16-emulator exposes 4 registers, from `$9FB8`-`$9FBB`, which can be used to facilitate debugging a machine language program. 
+
+| Register | Read Behavior | Write Behavior |
+|-|-|-|
+| \$9FB8 | Latches the cpu clock counter and returns bits 0-7 | Resets the cpu clock counter to 0 |
+| \$9FB9 | Returns bits 8-15 from the latched cpu clock counter value | Outputs `"User debug 1: $xx"` to the console with xx replaced by the value written. |
+| \$9FBA | Returns bits 16-23 from the latched cpu clock counter value | Outputs `"User debug 2: $xx"` to the console with xx replaced by the value written. |
+| \$9FBB | Returns bits 24-31 from the latched cpu clock counter value | Outputs the given character to the console. This is basically a STDOUT port for programs running in the emulator. Only printable characters are allowed. Nonprintables are replaced with &#xfffd;.
+
+
 BASIC and the Screen Editor
 ---------------------------
 
