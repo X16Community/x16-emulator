@@ -346,6 +346,7 @@ emu_recorder_set(gif_recorder_command_t command)
 // 9: read: cpu clock bits 8-15
 // 10: write: output debug byte 2
 // 10: read: cpu clock bits 16-23
+// 11: write: write character to STDOUT of console
 // 11: read: cpu clock MSB bits 24-31
 // POKE $9FB3,1:PRINT"ECHO MODE IS ON":POKE $9FB3,0
 void
