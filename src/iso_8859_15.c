@@ -3,6 +3,8 @@
 // All rights reserved. License: 2-clause BSD
 
 #include <stdint.h>
+#include <stdio.h>
+#include "utf8_encode.h"
 
 uint8_t
 iso8859_15_from_unicode(uint32_t c)
@@ -80,3 +82,11 @@ unicode_from_iso8859_15(uint8_t c)
 	}
 }
 
+// converts the character to UTF-8 and prints it
+void
+print_iso8859_15_char(char c)
+{
+	char utf8[5];
+	utf8_encode(utf8, unicode_from_iso8859_15(c));
+	printf("%s", utf8);
+}
