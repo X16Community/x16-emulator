@@ -373,6 +373,7 @@ emu_write(uint8_t reg, uint8_t value)
 			} else {
 				printf("\xef\xbf\xbd"); // �
 			}
+			fflush(stdout);
 			break;
 		}
 		default: printf("WARN: Invalid register %x\n", DEVICE_EMULATOR + reg);
