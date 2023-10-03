@@ -213,16 +213,33 @@ With the argument `-wav`, followed by a filename, an audio recording will be sav
 If the option `,wait` is specified after the filename, it will start recording on `POKE $9FB6,1`. If the option `,auto` is specified after the filename, it will start recording on the first non-zero audio signal. It will pause recording on `POKE $9FB6,0`. `PEEK($9FB6)` returns a 1 if recording is enabled but not active.
 
 
-Debug I/O registers
+Emulator I/O registers
 -------------------
-In addition to the built-in debugger. x16-emulator exposes 4 registers, from `$9FB8`-`$9FBB`, which can be used to facilitate debugging a machine language program. 
+x16-emulator exposes registers in the range of, from `$9FB0`-`$9FBF`, which allows one to control or toggle various emulator features from within emulated code.
+
+When writing machine code that uses these registers, good practice is to read `$9FBE` and `$9FBF` and check for their return values. If the emulator is present, those memory locations will return the ASCII/PETSCII characters "1" and "6" respectively (`$31` and `$36` hex).  After verifying that the code is running under the emulator, you can confidently use the features provided by these registers.
+
+Several of the following registers are particularly useful for debugging. In particular, writing data to `$9FB9`, `$9FBA`, or `$9FBB` will output debug information to the console, terminal, or command prompt window from which you ran x16emu.
+
 
 | Register | Read Behavior | Write Behavior |
 |-|-|-|
+| \$9FB0 | Returns debugger enabled flag | `0` disables, `1` enables the debugger, overriding the absence or presence of the `-debug` command line argument. |
+| \$9FB1 | Returns video logging flag | `0` disables, `1` enables logging of VRAM accesses to the console |
+| \$9FB2 | Returns keyboard logging flag | `0` disables, `1` enables logging of keyboard events to the console |
+| \$9FB3 | Returns echo mode | `0` disables, `1` enables raw echo, `2` enables cooked (`\Xnn` for non-ASCII), and `3` enables ISO (w/ conversion to UTF-8). When on, characters sent via the `BSOUT` KERNAL call will also appear on the console. |
+| \$9FB4 | Returns save-on-exit flag | `0` disables, `1` enables save-on-exit. When this option is set and the program counter reaches \$FFFF, the emulator outputs a dump of emulator state to `dump.bin` before exiting. |
+| \$9FB5 | Returns GIF recorder state | `0` pauses, `1` captures a single frame, and `2` activates/resumes GIF recording. The path to the GIF file must have been passed to the `-gif` command line option in advance. |
+| \$9FB6 | Returns WAV recorder state | `0` pauses, `1` enables WAV recording, and `2` sets up autostart. The path to the WAV file must have been passed to the `-wav` command line option in advance. |
+| \$9FB7 | Returns emu command key flag | `0` allows, and `1` inhibits most emulator command keys. Setting this flag prevents the emulator from intercepting keystrokes such as Ctrl+V/⌘V or Ctrl+R/⌘R, allowing the Commander X16 application running inside to make use of them. |
 | \$9FB8 | Latches the cpu clock counter and returns bits 0-7 | Resets the cpu clock counter to 0 |
 | \$9FB9 | Returns bits 8-15 from the latched cpu clock counter value | Outputs `"User debug 1: $xx"` to the console with xx replaced by the value written. |
 | \$9FBA | Returns bits 16-23 from the latched cpu clock counter value | Outputs `"User debug 2: $xx"` to the console with xx replaced by the value written. |
-| \$9FBB | Returns bits 24-31 from the latched cpu clock counter value | Outputs the given character to the console. This is basically a STDOUT port for programs running in the emulator. Only printable characters are allowed. Nonprintables are replaced with &#xfffd;.
+| \$9FBB | Returns bits 24-31 from the latched cpu clock counter value | Outputs the given character to the console. This is basically a STDOUT port for programs running in the emulator. Only printable characters are allowed. Non-printables are replaced with &#xfffd;.
+| \$9FBC | - | - |
+| \$9FBD | Returns the keymap index, based on the argument to the `-keymap` command line option | - |
+| \$9FBE | Returns the value `$31`/ASCII "1", useful for emulator presence detection | - |
+| \$9FBF | Returns the value `$36`/ASCII "6", useful for emulator presence detection | - |
 
 
 BASIC and the Screen Editor
@@ -230,10 +247,10 @@ BASIC and the Screen Editor
 
 On startup, the X16 presents direct mode of BASIC V2. You can enter BASIC statements, or line numbers with BASIC statements and `RUN` the program, just like on Commodore computers.
 
-* To stop execution of a BASIC program, hit the `RUN/STOP` key (`Pause`), or `Ctrl + C`.
-* To insert characters, first insert spaces by pressing `Shift + Backspace` or `Insert`, then type over those spaces.
-* To clear the screen, press `Shift + Home`.
-* The X16 emulator does not have a way to send NMI via `STOP + RESTORE`. On real hardware this is done with `Ctrl + Alt + RESTORE` (`Ctrl + Alt + PrtScr`) or by pressing the NMI button.
+* To stop execution of a BASIC program, hit the `RUN/STOP` key (`Pause`), or `Ctrl+C`.
+* To insert characters, first insert spaces by pressing `Shift+Backspace` or `Insert`, then type over those spaces.
+* To clear the screen, press `Shift+Home`.
+* To send NMI, similar to `STOP+RESTORE` on the C64, use Ctrl+Backspace/⌘Delete. On real hardware this is done with `Ctrl+Alt+RESTORE` (`Ctrl+Alt+PrtScr`) or by pressing the NMI button.
 
 
 SD Card Images
