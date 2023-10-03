@@ -401,7 +401,8 @@ emu_read(uint8_t reg, bool debugOn)
 		return disable_emu_cmd_keys ? 1 : 0;
 
 	} else if (reg == 8) {
-		clock_snap = clockticks6502 - clock_base;
+		if (!debugOn)
+			clock_snap = clockticks6502 - clock_base;
 		return (clock_snap >> 0) & 0xff;
 	} else if (reg == 9) {
 		return (clock_snap >> 8) & 0xff;
