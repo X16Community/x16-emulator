@@ -1157,7 +1157,7 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	if (!is_kernal() || pc < 0xFF44) {
+	if (!is_kernal() || pc < 0xFEB1) {
 		return false;
 	}
 
@@ -1167,6 +1167,18 @@ handle_ieee_intercept()
 	bool handled = true;
 	int s = -1;
 	switch(pc) {
+		case 0xFEB1: {
+			uint16_t count = a;
+			s=MCIOUT(y << 8 | x, &count, status & 0x01);
+			x = count & 0xff;
+			y = count >> 8;
+			if (s == -2) {
+				status = (status | 1); // SEC (unsupported, or in this case, no open context)
+			} else {
+				status &= 0xfe; // clear C -> supported
+			}
+			break;
+		}
 		case 0xFF44: {
 			uint16_t count = a;
 			s=MACPTR(y << 8 | x, &count, status & 0x01);

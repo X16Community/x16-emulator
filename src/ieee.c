@@ -1925,3 +1925,35 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	*c = i;
 	return ret;
 }
+
+int
+MCIOUT(uint16_t addr, uint16_t *c, uint8_t stream_mode)
+{
+	int ret = 0;
+	int count = *c ?: 256;
+	uint8_t ram_bank = read6502(0);
+	int i = 0;
+	if (channels[channel].f && channels[channel].write) {
+		do {
+			uint8_t byte;
+			byte = read6502(addr);
+			i++;
+			if (!stream_mode) {
+				addr++;
+				if (addr == 0xc000) {
+					addr = 0xa000;
+					ram_bank++;
+					write6502(0, ram_bank);
+				}
+			}
+			ret = CIOUT(byte);
+			if (ret) {
+				break;
+			}
+		} while(i < count);
+	} else {
+		ret = -2;
+	}
+	*c = i;
+	return ret;
+}
