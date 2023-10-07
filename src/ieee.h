@@ -12,3 +12,4 @@ int UNLSN(void);
 void LISTEN(uint8_t a);
 void TALK(uint8_t a);
 int MACPTR(uint16_t addr, uint16_t *count, uint8_t stream_mode);
+int MCIOUT(uint16_t addr, uint16_t *count, uint8_t stream_mode);
