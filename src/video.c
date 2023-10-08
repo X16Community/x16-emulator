@@ -1354,7 +1354,7 @@ video_update()
 		}
 		if (event.type == SDL_KEYDOWN) {
 			bool consumed = false;
-			if (cmd_down) {
+			if (cmd_down && !(disable_emu_cmd_keys || mouse_grabbed)) {
 				if (event.key.keysym.sym == SDLK_s) {
 					machine_dump("user keyboard request");
 					consumed = true;
@@ -1380,9 +1380,6 @@ video_update()
 				} else if (event.key.keysym.sym == SDLK_d) {
 					sdcard_detach();
 					consumed = true;
-				} else if (event.key.keysym.sym == SDLK_m) {
-					mousegrab_toggle();
-					consumed = true;
 #ifndef __EMSCRIPTEN__
 				} else if (event.key.keysym.sym == SDLK_p) {
 					screenshot();
@@ -1390,8 +1387,14 @@ video_update()
 #endif
 				}
 			}
+			if (cmd_down) {
+				if (event.key.keysym.sym == SDLK_m) {
+					mousegrab_toggle();
+					consumed = true;
+				}
+			}
 			if (!consumed) {
-				if (!disable_emu_cmd_keys && (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY)) {
+				if (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY) {
 					cmd_down = true;
 				}
 				handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
