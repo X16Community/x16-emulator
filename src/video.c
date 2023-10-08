@@ -1394,7 +1394,7 @@ video_update()
 				}
 			}
 			if (!consumed) {
-				if ((event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY)) {
+				if (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY) {
 					cmd_down = true;
 				}
 				handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
