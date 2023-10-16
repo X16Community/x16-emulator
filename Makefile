@@ -33,7 +33,7 @@ endif
 X16_OUTPUT=x16emu
 MAKECART_OUTPUT=makecart
 
-GIT_REV=$(shell git diff --quiet && echo -n $$(git rev-parse --short=8 HEAD || /bin/echo "00000000") || /bin/echo -n $$( /bin/echo -n $$(git rev-parse --short=7 HEAD || /bin/echo "0000000"); /bin/echo -n '+'))
+GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD || /bin/echo "00000000") || /bin/echo -n $$( /bin/echo -n $$(git rev-parse --short=7 HEAD || /bin/echo "0000000"); /bin/echo -n '+'))
 
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 

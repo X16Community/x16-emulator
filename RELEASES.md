@@ -5,6 +5,30 @@
 
 ## Releases
 
+### Release 45 ("Nuuk")
+
+This is a minor release with respect to the emulator.  The bulk of the changes are in the [ROM](https://github.com/X16Community/x16-rom/tree/r45#release-45-nuuk).
+
+* Features/Fixes
+	* Revert VERA PSG amplitude resolution back to 6 bits. This was upped previously to match VERA firmware. It was subsequently reverted in VERA to make room for the FX feature. [akumanatt]
+	* Intellimouse support added to the emulated SMC, partially implementing the new feature in hardware SMC firmware 45.1.0. [stefan-b-jakobsson]
+		* Scroll wheel is supported (mouse device ID 3)
+		* Not implemented: Extra buttons (mouse device ID 4)
+	* New emulator debug register behaviors
+		* Reading from \$9FB8-\$9FBB in this order returns the 32-bit CPU clock counter, snapshotted at the time \$9FB8 is read. Previously the clock counter would remain in motion and the upper counter bits could roll over unpredictably.
+		* Writing to \$9FB8-\$9FBB has new behaviors:
+			* \$9FB8: resets the cpu clock counter to 0.
+			* \$9FB9: prints a debug message to the console `User debug 1: $xx`.
+			* \$9FBA: prints a debug message to the console `User debug 2: $xx`.
+			* \$9FBB: prints the UTF-8 representation of the ISO character to the console. This can be treated like a debug STDOUT.
+		* Before using any of these emulator debug registers, it's recommended to test for emulator presence first.
+			* Read from `$9FBE` and `$9FBF`. When running under the emulator, the returned values should be `$31` and `$36` respectively. If any other values are returned, you can usually assume to be running on real hardware. While the stock machine doesn't have any I/O devices that listen to the emulator I/O range, an add-on card could choose to use that same address space in the future for its own functions.
+	* New MCIOUT (blockwise write) implementation for HostFS, mirroring the feature in the kernal for use on SD card.
+	* New command key and capture behavior:
+		* Ctrl+M/⇧⌘M is always processed by the emulator to toggle (mouse/keyboard) capture, regardless of the state of the "Disable Emulator Keys" flag.
+		* Turning capture mode on disables all other emulator keys until capture mode is toggled off. While capture is on, the emulator also routes most OS shortcut key combos to the X16: for instance, Alt+Tab.
+
+
 ### Release 44 ("Milan")
 
 This is the third release of x16-emulator by the X16Community team
