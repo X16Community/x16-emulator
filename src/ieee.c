@@ -1861,7 +1861,7 @@ UNLSN() {
 	if (opening) {
 		channels[channel].name[namelen] = 0; // term
 		opening = false;
-		ret = copen(channel);
+		copen(channel);
 	} else if (channel == 15) {
 		cmd[cmdlen] = 0;
 		command(cmd);
