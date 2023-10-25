@@ -282,8 +282,11 @@ function loadZip(zipFileUrl) {
 function extractManifestFromBuffer(zip) {
     if (zip.file("manifest.json") == null) {
         console.log("Unable to find manifest.json file. Writing all files from zip.");
-        writeAllFilesFromZip(zip, [], []);
-        return Promise.resolve();
+        const promises = [];
+        writeAllFilesFromZip(zip, promises, []);
+        return Promise.all(promises).then((value) => {
+            console.log("Emulator filesystem loading complete.")
+        });
     }
     else {
         return zip.file("manifest.json").async("uint8array")
