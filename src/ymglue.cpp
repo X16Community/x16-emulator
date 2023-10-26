@@ -94,6 +94,7 @@ class ym2151_interface : public ymfm::ymfm_interface {
 
 namespace {
 	ym2151_interface opm_iface;
+	bool initialized = false;
 }
 
 extern "C" {
@@ -103,21 +104,28 @@ extern "C" {
 
 	void YM_init(int sample_rate, int frame_rate) {
 		// args are ignored
+		initialized = true;
 	}
 
 	void YM_stream_update(uint16_t* output, uint32_t numsamples) {
-		opm_iface.generate((int16_t*)output, numsamples);
+		if (initialized) opm_iface.generate((int16_t*)output, numsamples);
 	}
 
 	void YM_write_reg(uint8_t reg, uint8_t val) {
-		opm_iface.write(reg, val);
+		if (initialized) opm_iface.write(reg, val);
 	}
 
 	uint8_t YM_read_status() {
-		return opm_iface.read_status();
+		if (initialized)
+			return opm_iface.read_status();
+		else
+			return 0x00; // prevent programs that wait for the busy flag to clear from locking up (emulator compromise)
 	}
 
 	bool YM_irq() {
-		return opm_iface.irq();
+		if (initialized)
+			return opm_iface.irq();
+		else
+			return false;
 	}
 }
