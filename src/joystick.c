@@ -11,21 +11,21 @@ struct joystick_info {
 };
 
 static const uint16_t button_map[SDL_CONTROLLER_BUTTON_MAX] = {
-    1 << 1,  //SDL_CONTROLLER_BUTTON_A,
-    1 << 9,  //SDL_CONTROLLER_BUTTON_B,
-    1 << 2,  //SDL_CONTROLLER_BUTTON_X,
-    1 << 10,  //SDL_CONTROLLER_BUTTON_Y,
-    1 << 3,  //SDL_CONTROLLER_BUTTON_BACK,
+    1 << 0,  //SDL_CONTROLLER_BUTTON_A,
+    1 << 8,  //SDL_CONTROLLER_BUTTON_B,
+    1 << 1,  //SDL_CONTROLLER_BUTTON_X,
+    1 << 9,  //SDL_CONTROLLER_BUTTON_Y,
+    1 << 2,  //SDL_CONTROLLER_BUTTON_BACK,
     0,       //SDL_CONTROLLER_BUTTON_GUIDE,
-    1 << 4,  //SDL_CONTROLLER_BUTTON_START,
+    1 << 3,  //SDL_CONTROLLER_BUTTON_START,
     0,       //SDL_CONTROLLER_BUTTON_LEFTSTICK,
     0,       //SDL_CONTROLLER_BUTTON_RIGHTSTICK,
-    1 << 11, //SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
-    1 << 12, //SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
-    1 << 5,  //SDL_CONTROLLER_BUTTON_DPAD_UP,
-    1 << 6,  //SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-    1 << 7,  //SDL_CONTROLLER_BUTTON_DPAD_LEFT,
-    1 << 8,  //SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
+    1 << 10, //SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+    1 << 11, //SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+    1 << 4,  //SDL_CONTROLLER_BUTTON_DPAD_UP,
+    1 << 5,  //SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+    1 << 6,  //SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+    1 << 7,  //SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
 };
 
 static struct joystick_info *Joystick_controllers     = NULL;
@@ -240,10 +240,10 @@ joystick_set_latch(bool value)
 	if (value) {
 		for (int i = 0; i < Num_joystick_controllers; ++i) {
 			if (Joystick_controllers[i].instance_id != -1) {
-				Joystick_controllers[i].shift_mask = Joystick_controllers[i].button_mask | 0x8000;
+				Joystick_controllers[i].shift_mask = Joystick_controllers[i].button_mask | 0xF000;
 			}
 		}
-		do_shift();
+		//do_shift();
 	}
 }
 
