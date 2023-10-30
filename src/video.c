@@ -307,12 +307,24 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 
 	video_reset();
 
+	int windowSizeX = SCREEN_WIDTH * window_scale * screen_x_scale;
+	int windowSizeY = SCREEN_HEIGHT * window_scale;
+
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality);
 	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1"); // Grabs keyboard shortcuts from the system during window grab
-	SDL_CreateWindowAndRenderer(SCREEN_WIDTH * window_scale * screen_x_scale, SCREEN_HEIGHT * window_scale, window_flags, &window, &renderer);
+	SDL_CreateWindowAndRenderer(windowSizeX, windowSizeY, window_flags, &window, &renderer);
 #ifndef __MORPHOS__
 	SDL_SetWindowResizable(window, true);
 #endif
+
+	SDL_DisplayMode desktopMode;
+	if(SDL_GetDesktopDisplayMode(0, &desktopMode)==0) {
+		if(desktopMode.w < windowSizeX || desktopMode.h < windowSizeY) {
+			printf("Scaled window size (%d*%d) too large to be displayed on the desktop screen, using maximized window size instead.\n", windowSizeX, windowSizeY);
+			SDL_MaximizeWindow(window);
+		}
+	}
+
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH * screen_x_scale, SCREEN_HEIGHT);
 
 	sdlTexture = SDL_CreateTexture(renderer,
