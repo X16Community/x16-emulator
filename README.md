@@ -78,48 +78,53 @@ Starting
 --------
 
 You can start `x16emu`/`x16emu.exe` either by double-clicking it, or from the command line. The latter allows you to specify additional arguments.
+When starting `x16emu` without arguments, it will pick up the system ROM (`rom.bin`) from the executable's directory.
 
-* When starting `x16emu` without arguments, it will pick up the system ROM (`rom.bin`) from the executable's directory.
-* The system ROM filename/path can be overridden with the `-rom` command line argument.
-* `-prg` lets you specify a `.prg` file that gets loaded after start. It is fetched from the host filesystem, even if an SD card is attached!
-* `-bas` lets you specify a BASIC program in ASCII format that automatically typed in (and tokenized).
+* `-prg <app.prg>[,<load_addr>]` lets you specify a `.prg` file that gets loaded after start. It is fetched from the host filesystem, even if an SD card is attached. The override load address is hex without a prefix.
+* `-bas <app.txt>` lets you specify a BASIC program in ASCII format that automatically typed in (and tokenized).
 * `-run` executes the application specified through `-prg` or `-bas` using `RUN`.
-* `-scale` scales video output to an integer multiple of 640x480
+* `-scale {1|2|3|4}` scales video output to an integer multiple of 640x480
+* `-quality {nearest|linear|best}` change image scaling algorithm quality
+    * `nearest`: nearest pixel sampling
+    * `linear`: linear filtering
+    * `best`: (default) anisotropic filtering
+* `-widescreen` Stretch output to 16:9 resolution to mimic display of a widescreen monitor.
+* `-fullscreen` Start up in fullscreen mode instead of in a window.
+* `-opacity (0.0,...,1.0)` Set the opacity value (0.0 for transparent, 1.0 for opaque) of the window. (default: 1.0)
 * `-rtc` causes the real-time-clock set to the system's time and date.
 * `-echo [{iso|raw}]` causes all KERNAL/BASIC output to be printed to the host's terminal. Enable this and use the BASIC command "LIST" to convert a BASIC program to ASCII (detokenize).
 * `-rom <rom.bin>` Override KERNAL/BASIC/* ROM file.
 * `-ram <ramsize>` specifies banked RAM size in KB (8, 16, 32, ..., 2048). The default is 512.
 * `-cart <crtfile.crt>` loads a cartridge file. This requires a specially formatted cartridge file, as specified in the documentation.
 * `-cartbin <romfile.bin>` loads a raw cartridge file. This will be loaded starting at ROM bank 32. All cart banks will be flagged as RAM.
-* `-joy1` , `-joy2`, `-joy3`, `-joy4` enables binding a gamepad to that SNES controller port
+* `-joy1`, `-joy2`, `-joy3`, `-joy4` enables binding a gamepad to that SNES controller port
 * `-nvram` lets you specify a 64 byte file for the system's non-volatile RAM. If it does not exist, it will be created once the NVRAM is modified.
 * `-keymap` tells the KERNAL to switch to a specific keyboard layout. Use it without an argument to view the supported layouts.
+* `-noemucmdkeys`  Disable emulator command keys.
 * `-sdcard` lets you specify an SD card image (partition table + FAT32). Without this option, drive 8 will interface to the current directory on the host.
-* `-fsroot <dir>` specifies a file system root for the HostFS interface. This lets you save and load files without an SD card image. (As of R42, this is the preferred method.)
+* `-fsroot <dir>` specifies a file system root for the HostFS interface. This lets you save and load files without an SD card image. (As of R42, this is the preferred method.) Default is the current working directory.
+* `-startin <dir>` specify the host filesystem directory path that the emulated filesystem starts in. Default is the current working directory if it lies within the hierarchy of fsroot, otherwise it defaults to fsroot itself.
 * `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].
-* `-nohostieee` disables IEEE API interception to access the host fs.
+* `-nohostieee` disables IEEE API interception to access the host fs. IEEE API host fs is normally enabled unless -sdcard or -serial is specified.
 * `-warp` causes the emulator to run as fast as possible, possibly faster than a real X16.
 * `-gif <filename>[,wait]` to record the screen into a GIF. See below for more info.
 * `-wav <filename>[{,wait|,auto}]` to record audio into a WAV. See below for more info.
-* `-quality` change image scaling algorithm quality
-	* `nearest`: nearest pixel sampling
-	* `linear`: linear filtering
-	* `best`: (default) anisotropic filtering
 * `-log` enables one or more types of logging (e.g. `-log KS`):
 	* `K`: keyboard (key-up and key-down events)
 	* `S`: speed (CPU load, frame misses)
 	* `V`: video I/O reads and writes
-* `-debug` enables the debugger.
+* `-debug [<address>]` enables the debugger. Optionally, set a breakpoint
 * `-dump` configure system dump (e.g. `-dump CB`):
 	* `C`: CPU registers (7 B: A,X,Y,SP,STATUS,PC)
 	* `R`: RAM (40 KiB)
 	* `B`: Banked RAM (2 MiB)
 	* `V`: Video RAM and registers (128 KiB VRAM, 32 B composer registers, 512 B palette, 16 B layer0 registers, 16 B layer1 registers, 16 B sprite registers, 2 KiB sprite attributes)
-* `-sound` can be used to specify the output sound device.
+* `-testbench` Headless mode for unit testing with an external test runner
+* `-sound <device>` can be used to specify the output sound device. If 'none', no audio is generated.
 * `-abufs` can be used to specify the number of audio buffers (defaults to 8). If you're experiencing stuttering in the audio try to increase this number. This will result in additional audio latency though.
 * `-via2` installs the second VIA chip expansion at $9F10.
 * `-midline-effects` enables mid-scanline raster effects at the cost of vastly increased host CPU usage.
-* `-mhz <n>` sets the emulated CPU's speed. Range is from 1-40. This option is mainly for testing and benchmarking.
+* `-mhz <integer>` sets the emulated CPU's speed. Range is from 1-40. This option is mainly for testing and benchmarking.
 * `-enable-ym2151-irq` connects the YM2151's IRQ pin to the system's IRQ line with a modest increase in host CPU usage.
 * `-wuninit` enables warnings on the console for reads of uninitialized memory.
 * `-zeroram` fills RAM at startup with zeroes instead of the default of random data.
@@ -276,13 +281,13 @@ On Linux, you can use the command line:
 	# sudo umount /mnt
 	# sudo losetup -d /dev/loop21
 
-On Windows, you can use the [OSFMount](https://www.osforensics.com/tools/mount-disk-images.html) tool. Windows VHD files can also be created using the built-in Disk Manager. Careful attention should be paid to the settings when creating and formatting the VHD: 
+On Windows, you can use the [OSFMount](https://www.osforensics.com/tools/mount-disk-images.html) tool. Windows VHD files can also be created using the built-in Disk Manager. Careful attention should be paid to the settings when creating and formatting the VHD:
 
  * The file must be at least 32MB and must be fixed size. Expanding VHDs are not supported.
  * Use an MBR partition tables. The Commander X16 does not recognize GPT partition tables.
  * You must format the VHD with FAT32. Other file formats are not supported.
- 
- This is a trick, since Fixed-size VHD files contain the data first, with the metadata in a footer at the end. Since the emulator does not read or edit that medatada, it will only work with fixed-size files that are fully populated. 
+
+ This is a trick, since Fixed-size VHD files contain the data first, with the metadata in a footer at the end. Since the emulator does not read or edit that medatada, it will only work with fixed-size files that are fully populated.
 
 
 Host Filesystem Interface
@@ -304,7 +309,7 @@ To avoid compatibility problems between the PETSCII and ASCII encodings, you can
 * use `Ctrl+O` to switch to the X16 to ISO mode for ASCII compatibility.
 * use `Ctrl+N` to switch to the upper/lower character set for a workaround.
 
-As of R42, the Host Filesystem interface (or HostFS) is the preferred method of accessing files. It does not require creating or managing an SDcard image, and it supports all of the CMDR-DOS commands. However, it is not cycle-accurate, since the emulator traps calls to DOS and performs the same actions in the host environment. If performance and hardware accuracy is required, you will want to perform final testing using an SD card image. 
+As of R42, the Host Filesystem interface (or HostFS) is the preferred method of accessing files. It does not require creating or managing an SDcard image, and it supports all of the CMDR-DOS commands. However, it is not cycle-accurate, since the emulator traps calls to DOS and performs the same actions in the host environment. If performance and hardware accuracy is required, you will want to perform final testing using an SD card image.
 
 Dealing with BASIC Programs
 ---------------------------
@@ -368,11 +373,11 @@ Keyboard routines only work when the emulator is running normally. Single steppi
 CRT File Format
 ---------------
 
-The Commander X16 will support cartridge ROMs, including auto-booting game cartridges. On the Gen-1 Developer board, the first slot will be used for cartridges. On the Gen-2 console machine, there is only one slot. ROM carts should work on both systems. 
+The Commander X16 will support cartridge ROMs, including auto-booting game cartridges. On the Gen-1 Developer board, the first slot will be used for cartridges. On the Gen-2 console machine, there is only one slot. ROM carts should work on both systems.
 
 This CRT format is intended for the emulator, and it is not required or used by the hardware. You can, however, use the MakeCart tool to convert between a single CRT file and BIN files that can be used to program a ROM burner. Also, note that this is different from the CRT format used the VICE emualtor, so files are not interchangable.
 
-Commander X16 cartridges will occupy the same address space as the Commander's KERNAL and BASIC ROMs. You can control the active bank by writing to address $0001 on the computer. Banks 0-31 are the built-in ROM banks, and banks 32-255 will select the cartridge ROMs. 
+Commander X16 cartridges will occupy the same address space as the Commander's KERNAL and BASIC ROMs. You can control the active bank by writing to address $0001 on the computer. Banks 0-31 are the built-in ROM banks, and banks 32-255 will select the cartridge ROMs.
 
 ### Header Layout
 
@@ -400,11 +405,11 @@ This is the cartridge header. The first 256 bytes are ASCII data and Human reada
 |          |        | 0 bytes for types 0,2, and 4.                                                                      |
 
 
-For NVRAM banks: on shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file. 
+For NVRAM banks: on shutdown, the emulator will write out an NVRAM file that contains the data of all of the NVRAM banks. The next time this cartridge is started, the NVRAM file will be loaded into any NVRAM bank. This overwrites any data present in NVRAM banks in the CRT file.
 
-For types 00, 02, and 04: The file does *not* contain data for these bank types. Instead, the file skips straight to the next bank with initialized data (01, 03, or 05). 
+For types 00, 02, and 04: The file does *not* contain data for these bank types. Instead, the file skips straight to the next bank with initialized data (01, 03, or 05).
 
-For all "No Data" banks, the data in RAM is *undefined*. While the emulator currently initializes RAM to 0 bytes, the hardware will have random values. In addition, unpopulated addresses will be "open collector" and will have unpredicatable results. 
+For all "No Data" banks, the data in RAM is *undefined*. While the emulator currently initializes RAM to 0 bytes, the hardware will have random values. In addition, unpopulated addresses will be "open collector" and will have unpredicatable results.
 
 ### Vectors
 
@@ -418,10 +423,10 @@ X16 hardware, and thus the emulator, will only read 6502 vectors out of bank 0. 
 
 A conversion tool to pack cartridge data into a CRT file, `makecart`, is included in this release.
 
-`-cfg <filename.cfg>` 
+`-cfg <filename.cfg>`
 Use this file to pack the cartridge data. Config file is simply the command line switches, one per line.
 
-`-desc "Name/Description"` 
+`-desc "Name/Description"`
 Set the description field of the cartridge file. Up to 32 bytes of ASCII text.
 
 `-author "Author Information"`
@@ -433,12 +438,12 @@ Set the copyright information field of the cartridge file. Up to 32 bytes of ASC
 `-version "version"`
 Set the version information field of the cartridge file. Up to 32 bytes of ASCII text.
 
-`-fill <value>` 
+`-fill <value>`
 Set the fill value to use with any partially-filled banks of cartridge memory. Value can be defined in decimal, or in hexadecimal with a '$' or '0x' prefix. 8-bit values will be repeated every byte, 16-bit values every two bytes, and 32-bit values every 4 bytes.
 
-`-rom_file <start_bank> [<filename.bin> [<filename.bin>] ... ]` 
+`-rom_file <start_bank> [<filename.bin> [<filename.bin>] ... ]`
 
-Define rom banks from the specified list of files. File data is tightly packed -- if a file does not end on a 16KB interval, the next file will be inserted immediately after it within the same bank. If the last file does not end on a 16KB interval, the remainder of the rom will be filled with the value set by '-fill'. 
+Define rom banks from the specified list of files. File data is tightly packed -- if a file does not end on a 16KB interval, the next file will be inserted immediately after it within the same bank. If the last file does not end on a 16KB interval, the remainder of the rom will be filled with the value set by '-fill'.
 
 Valid bank numbers are 32 - 255.
 
@@ -446,7 +451,7 @@ Valid bank numbers are 32 - 255.
 Define one or more banks of RAM. RAM banks are not included in the payload.
 
 `-ram_file <start_bank> [<filename.bin> [<filename.bin>] ... ]`
-Define one or more banks of initialized RAM. Note that Initialized RAM banks are not saved to the NVRAM file at shutdown. 
+Define one or more banks of initialized RAM. Note that Initialized RAM banks are not saved to the NVRAM file at shutdown.
 
 `-nvram <start_bank> [<end_bank>]`
 Define one or more uninitalized nvram banks.
@@ -466,8 +471,8 @@ Set the filename of the output cartridge file.
 
 All options can be specified multiple times, and are applied  in-order from left to right. For -desc and -o, it is legal to specify them multiple times but only the right-most instances of each will have effect.
 
-`-unpack <input.crt> [<rom_size>]` 
-Unpacks the binary data from the cartridge file into `<rom_size>` slices. (for use with an EPROM programmer.) The ouptut files will be the same filename as the input file, with _### appended. This will also create a .cfg file that can be used to re-pack the files into a new CRT if needed. 
+`-unpack <input.crt> [<rom_size>]`
+Unpacks the binary data from the cartridge file into `<rom_size>` slices. (for use with an EPROM programmer.) The ouptut files will be the same filename as the input file, with _### appended. This will also create a .cfg file that can be used to re-pack the files into a new CRT if needed.
 
 The config file is just a series of command-line switches, with one item per line. This example assumes ladder.bin uses 3 banks, for a total of 48K, and that each level map is 4KB in size.
 
@@ -476,18 +481,18 @@ The config file is just a series of command-line switches, with one item per lin
 -name "Ladder"
 -author "Yahoo Software"
 -copyright "(c) 1982, 1983 Yahoo Software"
--version "1.30TP" 
+-version "1.30TP"
 -rom_file 32 ladder.bin
 -rom_file 35 level_01.bin level_02.bin level_03.bin level_04.bin
 -nvram 37
 -fill 0
 ```
 
-This would create file with 
+This would create file with
 
 * 512 byte header
-* 5 ROM banks 
-  * 3 for the 48K ladder.bin 
+* 5 ROM banks
+  * 3 for the 48K ladder.bin
   * 1 for the four 4KB level files.
 * 1 empty NVRAM bank
 
