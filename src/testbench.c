@@ -72,6 +72,11 @@ void testbench_init()
     while (!init_done) {
         size_t len = get_testline(&line, &slen, stdin);     //Read command from stdin
 
+		if(len==0) {
+			puts("Exit testbench.");
+			exit(0);
+		}
+
         if (strncmp(line, "RAM", 3) == 0) {                 //Set RAM bank
             if (len < 7) {
                 invalid();
