@@ -330,7 +330,7 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 	} else {
 		int winX, winY;
 		SDL_GetWindowPosition(window, &winX, &winY);
-		if (winX < 0 || winY < 0) {
+		if (winX < 0 || winY < APPROX_TITLEBAR_HEIGHT) {
 			winX = winX < 0 ? 0 : winX;
 			winY = winY < APPROX_TITLEBAR_HEIGHT ? APPROX_TITLEBAR_HEIGHT : winY;
 			SDL_SetWindowPosition(window, winX, winY);
