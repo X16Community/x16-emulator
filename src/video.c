@@ -202,6 +202,16 @@ static void video_space_read_range(uint8_t* dest, uint32_t address, uint32_t siz
 static void refresh_palette();
 
 void
+mousegrab_toggle() {
+	mouse_grabbed = !mouse_grabbed;
+	SDL_SetWindowGrab(window, mouse_grabbed);
+	SDL_SetRelativeMouseMode(mouse_grabbed);
+	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
+	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
+	video_update_title(window_title);
+}
+
+void
 video_reset()
 {
 	// init I/O registers
@@ -357,6 +367,9 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 	if (debugger_enabled) {
 		DEBUGInitUI(renderer);
 	}
+
+	if (grab_mouse && !mouse_grabbed)
+		mousegrab_toggle();
 
 	return true;
 }
@@ -530,16 +543,6 @@ struct video_sprite_properties
 
 	uint16_t palette_offset;
 };
-
-void
-mousegrab_toggle() {
-	mouse_grabbed = !mouse_grabbed;
-	SDL_SetWindowGrab(window, mouse_grabbed);
-	SDL_SetRelativeMouseMode(mouse_grabbed);
-	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
-	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
-	video_update_title(window_title);
-}
 
 #ifndef __EMSCRIPTEN__
 static void

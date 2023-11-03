@@ -103,6 +103,7 @@ bool dump_ram = true;
 bool dump_bank = true;
 bool dump_vram = false;
 bool warp_mode = false;
+bool grab_mouse = false;
 echo_mode_t echo_mode;
 bool save_on_exit = true;
 bool disable_emu_cmd_keys = false;
@@ -381,6 +382,8 @@ usage()
 	printf("\totherwise it defaults to fsroot itself.\n");
 	printf("-noemucmdkeys\n");
 	printf("\tDisable emulator command keys.\n");
+	printf("-capture\n");
+	printf("\tStart emulator with mouse/keyboard captured.\n");
 	printf("-prg <app.prg>[,<load_addr>]\n");
 	printf("\tLoad application from the *host filesystem* into RAM,\n");
 	printf("\teven if an SD card is attached.\n");
@@ -896,6 +899,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			disable_emu_cmd_keys = true;
+		} else if (!strcmp(argv[0], "-capture")) {
+			argc--;
+			argv++;
+			grab_mouse = true;
 		} else if (!strcmp(argv[0], "-via2")) {
 			argc--;
 			argv++;
