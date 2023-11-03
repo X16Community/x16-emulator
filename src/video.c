@@ -31,6 +31,8 @@
 #include "stb_image_write.h"
 #endif
 
+#define APPROX_TITLEBAR_HEIGHT 30
+
 #define VERA_VERSION_MAJOR  0x00
 #define VERA_VERSION_MINOR  0x03
 #define VERA_VERSION_PATCH  0x01
@@ -322,9 +324,17 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 
 	SDL_SetWindowTitle(window, WINDOW_TITLE);
 	SDL_SetWindowIcon(window, CommanderX16Icon());
-	if(fullscreen) {
+	if (fullscreen) {
 		is_fullscreen = true;
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+	} else {
+		int winX, winY;
+		SDL_GetWindowPosition(window, &winX, &winY);
+		if (winX < 0 || winY < APPROX_TITLEBAR_HEIGHT) {
+			winX = winX < 0 ? 0 : winX;
+			winY = winY < APPROX_TITLEBAR_HEIGHT ? APPROX_TITLEBAR_HEIGHT : winY;
+			SDL_SetWindowPosition(window, winX, winY);
+		}
 	}
 
 	SDL_SetWindowOpacity(window, opacity);
@@ -1302,7 +1312,6 @@ bool
 video_update()
 {
 	static bool cmd_down = false;
-
 	bool mouse_changed = false;
 
 	// for activity LED, overlay red 8x4 square into top right of framebuffer
