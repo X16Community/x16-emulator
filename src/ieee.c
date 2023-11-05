@@ -33,6 +33,9 @@
 #include <direct.h>
 // Windows just has to be different
 #define localtime_r(S,D) !localtime_s(D,S)
+#include <io.h>
+#define F_OK 0
+#define access _access
 #endif
 
 extern SDL_RWops *prg_file;
@@ -1560,7 +1563,11 @@ copen(int channel)
 			if (append) {
 				channels[channel].f = SDL_RWFromFile((char *)resolved_filename, "ab+");
 			} else if (channels[channel].read && channels[channel].write) {
-				channels[channel].f = SDL_RWFromFile((char *)resolved_filename, "rb+");
+				if (access((char *)resolved_filename, F_OK) == 0) {
+					channels[channel].f = SDL_RWFromFile((char *)resolved_filename, "rb+");
+				} else {
+					channels[channel].f = SDL_RWFromFile((char *)resolved_filename, "wb+");
+				}
 			} else {
 				channels[channel].f = SDL_RWFromFile((char *)resolved_filename, channels[channel].write ? "wb" : "rb");
 			}
