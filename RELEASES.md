@@ -5,6 +5,22 @@
 
 ## Releases
 
+### Release 46 ("Winnipeg")
+
+This is mainly a bugfix release.
+
+* Features/Fixes
+	* A change in the ROM caused controllers to have their buttons offset due to how the emulated VIA responds to polling. The issue was fixed in the ROM and while it was not technically an emulator bug and no changes were made to the emulator's joystick routines, it gets a mention here.
+	* HostFS: UNLSN was incorrectly setting the KERNAL status byte based on whether a file existed upon open. It has been changed to behave like CMDR-DOS. (discovered by [voidstar78])
+	* HostFS: Opening a file in Modify mode now properly creates file if it doesn't yet exist (discovered by [m00dawg])
+	* Audio: prevent `-sound none` from trying to use the uninitialized ymfm YM2151 library. The YM status register was also modified to always return 0 in this case. (discovered by [jestin])
+	* WebAssembly: improve handling of zip files without `manifest.json` [Cyber-Ex]
+	* GUI: If emulator launches in a window with the titlebar offscreen, move the window so that it is visible. (with help from [irmen])
+	* GUI: Mouse movement now uses relative motion in capture mode, which makes the position of the host mouse irrelevant while in capture mode.
+	* GUI: new `-capture` command line option to start emulator with mouse captured
+	* Testbench: miscellaneous fixes [irmen]
+	* More changes in the [ROM](https://github.com/X16Community/x16-rom/tree/r46#release-46-winnipeg).
+
 ### Release 45 ("Nuuk")
 
 This is a minor release with respect to the emulator.  The bulk of the changes are in the [ROM](https://github.com/X16Community/x16-rom/tree/r45#release-45-nuuk).
