@@ -1741,19 +1741,25 @@ SECOND(uint8_t a)
 				namelen = 0;
 				break;
 		}
+	} else {
+		ret = -2;	// Not listening, do not handle.
 	}
 	return ret;
 }
 
-void
+int
 TKSA(uint8_t a)
 {
+	int ret = -1;
 	if (log_ieee) {
 		printf("%s $%02x\n", __func__, a);
 	}
 	if (talking) {
 		channel = a & 0xf;
+	} else {
+		ret = -2;	// Not talking, do not handle.
 	}
+	return ret;
 }
 
 
@@ -1761,50 +1767,54 @@ int
 ACPTR(uint8_t *a)
 {
 	int ret = 0;
-	if (channel == 15) {
-		*a = error[error_pos++];
-		if (error_pos >= error_len) {
-			clear_error();
-			ret = 0x40; // EOI
-		}
-	} else if (channels[channel].read) {
-		if (channels[channel].name[0] == '$') {
-			if (dirlist_pos < dirlist_len) {
-				*a = dirlist[dirlist_pos++];
-			} else {
-				*a = 0;
+	if (talking) {
+		if (channel == 15) {
+			*a = error[error_pos++];
+			if (error_pos >= error_len) {
+				clear_error();
+				ret = 0x40; // EOI
 			}
-			if (dirlist_pos == dirlist_len) {
-				if (dirlist_eof) {
-					ret = 0x40;
+		} else if (channels[channel].read) {
+			if (channels[channel].name[0] == '$') {
+				if (dirlist_pos < dirlist_len) {
+					*a = dirlist[dirlist_pos++];
 				} else {
-					dirlist_pos = 0;
-					dirlist_len = continue_directory_listing(dirlist);
+					*a = 0;
 				}
-			}
-		} else if (channels[channel].f) {
-			if (SDL_RWread(channels[channel].f, a, 1, 1) != 1) {
+				if (dirlist_pos == dirlist_len) {
+					if (dirlist_eof) {
+						ret = 0x40;
+					} else {
+						dirlist_pos = 0;
+						dirlist_len = continue_directory_listing(dirlist);
+					}
+				}
+			} else if (channels[channel].f) {
+				if (SDL_RWread(channels[channel].f, a, 1, 1) != 1) {
+					ret = 0x42;
+					*a = 0;
+				} else {
+					// We need to send EOI on the last byte of the file.
+					// We have to check every time since CMDR-DOS
+					// supports random access R/W mode
+					
+					Sint64 curpos = SDL_RWtell(channels[channel].f);
+					if (curpos == SDL_RWseek(channels[channel].f, 0, RW_SEEK_END)) {
+						ret = 0x40;
+						channels[channel].read = false;
+						cclose(channel);
+					} else {
+						SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
+					}
+				}
+			} else {
 				ret = 0x42;
-				*a = 0;
-			} else {
-				// We need to send EOI on the last byte of the file.
-				// We have to check every time since CMDR-DOS
-				// supports random access R/W mode
-				
-				Sint64 curpos = SDL_RWtell(channels[channel].f);
-				if (curpos == SDL_RWseek(channels[channel].f, 0, RW_SEEK_END)) {
-					ret = 0x40;
-					channels[channel].read = false;
-					cclose(channel);
-				} else {
-					SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
-				}
 			}
 		} else {
-			ret = 0x42;
+			ret = 0x42; // FNF
 		}
 	} else {
-		ret = 0x42; // FNF
+		ret = -2;	// Not talking, do not handle.
 	}
 	if (log_ieee) {
 		printf("%s-> $%02x\n", __func__, *a);
@@ -1844,17 +1854,25 @@ CIOUT(uint8_t a)
 				ret = 2; // FNF
 			}
 		}
+	} else {
+		ret = -2;	// Not listening, do not handle.
 	}
 	return ret;
 }
 
-void
+int
 UNTLK() {
+	int ret = -1;
 	if (log_ieee) {
 		printf("%s\n", __func__);
 	}
-	talking = false;
-	set_activity(false);
+	if (talking) {
+		talking = false;
+		set_activity(false);
+	} else {
+		ret = -2;	// Not talking, do not handle.
+	}
+	return ret;
 }
 
 int
@@ -1863,42 +1881,54 @@ UNLSN() {
 	if (log_ieee) {
 		printf("%s\n", __func__);
 	}
-	listening = false;
-	set_activity(false);
-	if (opening) {
-		channels[channel].name[namelen] = 0; // term
-		opening = false;
-		copen(channel);
-	} else if (channel == 15) {
-		cmd[cmdlen] = 0;
-		command(cmd);
-		cmdlen = 0;
+	if (listening) {
+		listening = false;
+		set_activity(false);
+		if (opening) {
+			channels[channel].name[namelen] = 0; // term
+			opening = false;
+			copen(channel);
+		} else if (channel == 15) {
+			cmd[cmdlen] = 0;
+			command(cmd);
+			cmdlen = 0;
+		}
+	} else {
+		ret = -3;	// Not listening, do not handle.
 	}
 	return ret;
 }
 
-void
+int
 LISTEN(uint8_t a)
 {
+	int ret = -1;
 	if (log_ieee) {
 		printf("%s $%02x\n", __func__, a);
 	}
 	if ((a & 0x1f) == UNIT_NO) {
 		listening = true;
 		set_activity(true);
+	} else {
+		ret = -2;	// Not us, do not handle.
 	}
+	return ret;
 }
 
-void
+int
 TALK(uint8_t a)
 {
+	int ret = -1;
 	if (log_ieee) {
 		printf("%s $%02x\n", __func__, a);
 	}
 	if ((a & 0x1f) == UNIT_NO) {
 		talking = true;
 		set_activity(true);
+	} else {
+		ret = -2;	// Not us, do not handle.
 	}
+	return ret;
 }
 
 int

@@ -1200,26 +1200,45 @@ handle_ieee_intercept()
 		}
 		case 0xFF93:
 			s=SECOND(a);
+			if (s == -2) {
+				handled = false;
+			}
 			break;
 		case 0xFF96:
 			TKSA(a);
+			if (s == -2) {
+				handled = false;
+			}
 			break;
 		case 0xFFA5:
 			s=ACPTR(&a);
-			status = (status & ~3) | (!a << 1); // unconditional CLC, and set zero flag based on byte read
+			if (s == -2) {
+				handled = false;
+			} else {
+				status = (status & ~3) | (!a << 1); // unconditional CLC, and set zero flag based on byte read
+			}
 			break;
 		case 0xFFA8:
 			s=CIOUT(a);
-			status = (status & ~1); // unconditonal CLC
+			if (s == -2) {
+				handled = false;
+			} else {
+				status = (status & ~1); // unconditonal CLC
+			}
 			break;
 		case 0xFFAB:
-			UNTLK();
+			s=UNTLK();
+			if (s == -2) {
+				handled = false;
+			}
 			break;
 		case 0xFFAE:
 			s=UNLSN();
 			if (s == -2) { // special error behavior
 				status = (status | 1); // SEC
 				s = 0x42;
+			} else if (s == -3) {
+				handled = false;
 			} else {
 				status = (status & ~1); // CLC
 			}
@@ -1234,10 +1253,20 @@ handle_ieee_intercept()
 			}
 			break;
 		case 0xFFB1:
-			LISTEN(a);
+			s=LISTEN(a);
+			if (s == -2) {
+				handled = false;
+			} else {
+				status = (status & ~1); // unconditonal CLC
+			}
 			break;
 		case 0xFFB4:
-			TALK(a);
+			s=TALK(a);
+			if (s == -2) {
+				handled = false;
+			} else {
+				status = (status & ~1); // unconditonal CLC
+			}
 			break;
 		default:
 			handled = false;
