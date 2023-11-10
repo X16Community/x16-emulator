@@ -504,7 +504,11 @@ main(int argc, char **argv)
 	char *sdcard_path = NULL;
 	bool run_test = false;
 	int test_number = 0;
-	int audio_buffers = 8;
+#ifdef __EMSCRIPTEN__
+	int audio_buffers = 8; // wasm has larger buffers in audio.c
+#else
+	int audio_buffers = 32;
+#endif
 	bool zeroram = false;
 
 	const char *audio_dev_name = NULL;
@@ -1247,11 +1251,9 @@ handle_ieee_intercept()
 	if (handled) {
 		// Add the number CPU cycles equivalent to the amount of time that the operation actually took
 		// to prevent the emu from warping after a hostfs load
-		uint32_t missed_ticks = (uint64_t)((SDL_GetPerformanceCounter() - base_ticks) * 1000000ULL * MHZ) / SDL_GetPerformanceFrequency();
+		uint64_t perf_diff = SDL_GetPerformanceCounter() - base_ticks;
+		uint32_t missed_ticks = (uint64_t)(perf_diff * 1000000ULL * MHZ) / SDL_GetPerformanceFrequency();
 		clockticks6502 += missed_ticks;
-		if (missed_ticks > 13333) {
-			printf("HostFS: missed ticks: %d\n", missed_ticks);
-		}
 		if (s >= 0) {
 			if (!set_kernal_status(s)) {
 				printf("Warning: Could not set STATUS!\n");
