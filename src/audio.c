@@ -83,6 +83,8 @@ static int16_t psg_buf[2 * SAMPLES_PER_BUFFER];
 static int16_t pcm_buf[2 * SAMPLES_PER_BUFFER];
 static int16_t ym_buf[2 * SAMPLES_PER_BUFFER];
 
+static bool abufmsg = false;
+
 uint32_t host_sample_rate = 0;
 
 static void
@@ -352,6 +354,10 @@ audio_render()
 	}
 	buffer_written += len * 2;
 	if (buffer_written > buffer_size) {
+		if (!abufmsg && !warp_mode) {
+			printf("Audio buffer overrun: considering increasing the size of -abufs\n");
+			abufmsg = true;
+		}
 		// Prevent the buffer from overflowing by skipping the read pointer ahead.
 		uint32_t buffer_skip_amount = (buffer_written / buffer_size) * SAMPLES_PER_BUFFER * 2;
 		rdidx = (rdidx + buffer_skip_amount) % buffer_size;
