@@ -371,6 +371,8 @@ usage()
 	printf("\tDisable HostFS through IEEE API interception.\n");
 	printf("\tIEEE API HostFS is normally enabled unless -sdcard or\n");
 	printf("\t-serial is specified.\n");
+	printf("-hostfsdev <unit>\n");
+	printf("\tSet the HostFS IEEE device number. Range 8-31. Default: %d.\n", ieee_unit);
 	printf("-fsroot <directory>\n");
 	printf("\tSpecify the host filesystem directory path which is to\n");
 	printf("\tact as the emulated root directory of the Commander X16.\n");
@@ -882,6 +884,19 @@ main(int argc, char **argv)
 			argv++;
 			no_ieee_intercept = true;
 			using_hostfs = false;
+		} else if (!strcmp(argv[0], "-hostfsdev")){
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			ieee_unit = (uint8_t)strtol(argv[0], NULL, 10);
+			if (ieee_unit < 8 || ieee_unit > 31) {
+				usage();
+			}
+			using_hostfs = true;
+			argc--;
+			argv++;
 		} else if (!strcmp(argv[0], "-fsroot")) {
 			argc--;
 			argv++;
@@ -1159,25 +1174,25 @@ handle_ieee_intercept()
 		return false;
 	}
 
+	if (pc < 0xFEB1 || !is_kernal()) {
+		return false;
+	}
+
 	if (has_serial) {
 		// if we do bit-level serial bus emulation, we don't
 		// do high-level KERNAL IEEE API interception
 		return false;
 	}
 
-	if (sdcard_attached && !prg_file) {
+	if (sdcard_attached && !prg_file && ieee_unit == 8) {
 		// if should emulate an SD card (and don't need to
-		// hack a PRG into RAM), we'll always skip host fs
+		// hack a PRG into RAM), we skip HostFS if it uses unit 8
 		return false;
 	}
 
-	if (sdcard_attached && prg_file && prg_finished_loading) {
+	if (sdcard_attached && prg_file && prg_finished_loading && ieee_unit == 8) {
 		// also skip if we should do SD card and we're done
-		// with the PRG hack
-		return false;
-	}
-
-	if (!is_kernal() || pc < 0xFEB1) {
+		// with the PRG hack if HostFS uses unit 8
 		return false;
 	}
 
@@ -1190,11 +1205,13 @@ handle_ieee_intercept()
 		case 0xFEB1: {
 			uint16_t count = a;
 			s=MCIOUT(y << 8 | x, &count, status & 0x01);
-			x = count & 0xff;
-			y = count >> 8;
 			if (s == -2) {
+				handled = false;
+			} else if (s == -3) {
 				status = (status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
+				x = count & 0xff;
+				y = count >> 8;
 				status &= 0xfe; // clear C -> supported
 			}
 			break;
@@ -1203,6 +1220,8 @@ handle_ieee_intercept()
 			uint16_t count = a;
 			s=MACPTR(y << 8 | x, &count, status & 0x01);
 			if (s == -2) {
+				handled = false;
+			} else if (s == -3) {
 				status = (status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
 				x = count & 0xff;
@@ -1218,7 +1237,7 @@ handle_ieee_intercept()
 			}
 			break;
 		case 0xFF96:
-			TKSA(a);
+			s=TKSA(a);
 			if (s == -2) {
 				handled = false;
 			}
@@ -1247,13 +1266,8 @@ handle_ieee_intercept()
 			break;
 		case 0xFFAE:
 			s=UNLSN();
-			if (s == -2) { // special error behavior
-				status = (status | 1); // SEC
-				s = 0x42;
-			} else if (s == -3) {
+			if (s == -2) {
 				handled = false;
-			} else {
-				status = (status & ~1); // CLC
 			}
 			if (prg_file && sdcard_path_is_set() && ++count_unlistn == 4) {
 				// after auto-loading a PRG from the host fs,
@@ -1539,9 +1553,9 @@ emulator_loop(void *param)
 					// LOAD":*" will cause the IEEE library
 					// to load from "prg_file"
 					if (prg_override_start >= 0) {
-						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1,$%04X\r", prg_override_start);
+						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",%d,1,$%04X\r", ieee_unit, prg_override_start);
 					} else {
-						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",8,1\r");
+						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",%d,1\r", ieee_unit);
 					}
 					paste_text = paste_text_data;
 					prg_done = true;

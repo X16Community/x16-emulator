@@ -40,8 +40,6 @@
 
 extern SDL_RWops *prg_file;
 
-#define UNIT_NO 8
-
 #define WILDCARD_ALL 0
 #define WILDCARD_PRG 1
 #define WILDCARD_DIR 2
@@ -66,6 +64,8 @@ bool opening = false;
 bool overwrite = false;
 bool path_exists = false;
 bool prg_consumed = false;
+
+int ieee_unit = 8;
 
 uint8_t *hostfscwd = NULL;
 
@@ -1716,10 +1716,10 @@ int
 SECOND(uint8_t a)
 {
 	int ret = -1;
-	if (log_ieee) {
-		printf("%s $%02x\n", __func__, a);
-	}
 	if (listening) {
+		if (log_ieee) {
+			printf("%s $%02x\n", __func__, a);
+		}
 		channel = a & 0xf;
 		opening = false;
 		if (channel == 15)
@@ -1751,10 +1751,10 @@ int
 TKSA(uint8_t a)
 {
 	int ret = -1;
-	if (log_ieee) {
-		printf("%s $%02x\n", __func__, a);
-	}
 	if (talking) {
+		if (log_ieee) {
+			printf("%s $%02x\n", __func__, a);
+		}
 		channel = a & 0xf;
 	} else {
 		ret = -2;	// Not talking, do not handle.
@@ -1768,6 +1768,9 @@ ACPTR(uint8_t *a)
 {
 	int ret = 0;
 	if (talking) {
+		if (log_ieee) {
+			printf("%s-> $%02x\n", __func__, *a);
+		}
 		if (channel == 15) {
 			*a = error[error_pos++];
 			if (error_pos >= error_len) {
@@ -1816,9 +1819,6 @@ ACPTR(uint8_t *a)
 	} else {
 		ret = -2;	// Not talking, do not handle.
 	}
-	if (log_ieee) {
-		printf("%s-> $%02x\n", __func__, *a);
-	}
 	return ret;
 }
 
@@ -1826,10 +1826,10 @@ int
 CIOUT(uint8_t a)
 {
 	int ret = 0;
-	if (log_ieee) {
-		printf("%s $%02x\n", __func__, a);
-	}
 	if (listening) {
+		if (log_ieee) {
+			printf("%s $%02x\n", __func__, a);
+		}
 		if (opening) {
 			if (namelen < sizeof(channels[channel].name) - 1) {
 				channels[channel].name[namelen++] = a;
@@ -1862,26 +1862,24 @@ CIOUT(uint8_t a)
 
 int
 UNTLK() {
-	int ret = -1;
-	if (log_ieee) {
-		printf("%s\n", __func__);
-	}
 	if (talking) {
+		if (log_ieee) {
+			printf("%s\n", __func__);
+		}
 		talking = false;
 		set_activity(false);
+		return -1;
 	} else {
-		ret = -2;	// Not talking, do not handle.
+		return -2;
 	}
-	return ret;
 }
 
 int
 UNLSN() {
-	int ret = -1;
-	if (log_ieee) {
-		printf("%s\n", __func__);
-	}
 	if (listening) {
+		if (log_ieee) {
+			printf("%s\n", __func__);
+		}
 		listening = false;
 		set_activity(false);
 		if (opening) {
@@ -1893,20 +1891,20 @@ UNLSN() {
 			command(cmd);
 			cmdlen = 0;
 		}
+		return -1;
 	} else {
-		ret = -3;	// Not listening, do not handle.
+		return -2;
 	}
-	return ret;
 }
 
 int
 LISTEN(uint8_t a)
 {
 	int ret = -1;
-	if (log_ieee) {
-		printf("%s $%02x\n", __func__, a);
-	}
-	if ((a & 0x1f) == UNIT_NO) {
+	if ((a & 0x1f) == ieee_unit) {
+		if (log_ieee) {
+			printf("%s $%02x\n", __func__, a);
+		}
 		listening = true;
 		set_activity(true);
 	} else {
@@ -1919,10 +1917,10 @@ int
 TALK(uint8_t a)
 {
 	int ret = -1;
-	if (log_ieee) {
-		printf("%s $%02x\n", __func__, a);
-	}
-	if ((a & 0x1f) == UNIT_NO) {
+	if ((a & 0x1f) == ieee_unit) {
+		if (log_ieee) {
+			printf("%s $%02x\n", __func__, a);
+		}
 		talking = true;
 		set_activity(true);
 	} else {
@@ -1934,63 +1932,71 @@ TALK(uint8_t a)
 int
 MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {
-	int ret = 0;
-	int count = *c ?: 256;
-	uint8_t ram_bank = read6502(0);
-	int i = 0;
-	if (channels[channel].f) {
-		do {
-			uint8_t byte = 0;
-			ret = ACPTR(&byte);
-			write6502(addr, byte);
-			i++;
-			if (!stream_mode) {
-				addr++;
-				if (addr == 0xc000) {
-					addr = 0xa000;
-					ram_bank++;
-					write6502(0, ram_bank);
+	if (talking) {
+		int ret = 0;
+		int count = *c ?: 256;
+		uint8_t ram_bank = read6502(0);
+		int i = 0;
+		if (channels[channel].f) {
+			do {
+				uint8_t byte = 0;
+				ret = ACPTR(&byte);
+				write6502(addr, byte);
+				i++;
+				if (!stream_mode) {
+					addr++;
+					if (addr == 0xc000) {
+						addr = 0xa000;
+						ram_bank++;
+						write6502(0, ram_bank);
+					}
 				}
-			}
-			if (ret > 0) {
-				break;
-			}
-		} while(i < count);
+				if (ret > 0) {
+					break;
+				}
+			} while(i < count);
+		} else {
+			ret = -3; // unsupported
+		}
+		*c = i;
+		return ret;
 	} else {
-		ret = -2;
+		return -2; // not us, do not handle
 	}
-	*c = i;
-	return ret;
 }
 
 int
 MCIOUT(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {
-	int ret = 0;
-	int count = *c ?: 256;
-	uint8_t ram_bank = read6502(0);
-	int i = 0;
-	if (channels[channel].f && channels[channel].write) {
-		do {
-			uint8_t byte;
-			byte = read6502(addr);
-			i++;
-			if (!stream_mode) {
-				addr++;
-				if (addr == 0xc000) {
-					addr = 0xa000;
-					ram_bank++;
-					write6502(0, ram_bank);
+	if (listening) {
+		int ret = 0;
+		int count = *c ?: 256;
+		uint8_t ram_bank = read6502(0);
+		int i = 0;
+		if (channels[channel].f && channels[channel].write) {
+			do {
+				uint8_t byte;
+				byte = read6502(addr);
+				i++;
+				if (!stream_mode) {
+					addr++;
+					if (addr == 0xc000) {
+						addr = 0xa000;
+						ram_bank++;
+						write6502(0, ram_bank);
+					}
 				}
-			}
-			ret = CIOUT(byte);
-			if (ret) {
-				break;
-			}
-		} while(i < count);
+				ret = CIOUT(byte);
+				if (ret) {
+					break;
+				}
+			} while(i < count);
+		} else {
+			ret = -3; // unsupported
+		}
+		*c = i;
+		return ret;
 	} else {
-		ret = -2;
+		return -2; // not us, do not handle
 	}
-	*c = i;
-	return ret;
 }
