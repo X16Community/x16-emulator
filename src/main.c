@@ -129,6 +129,8 @@ bool enable_midline = false;
 bool ym2151_irq_support = false;
 char *cartridge_path = NULL;
 
+bool using_hostfs = true;
+
 uint8_t MHZ = 8;
 
 #ifdef TRACE
@@ -510,7 +512,7 @@ main(int argc, char **argv)
 	int audio_buffers = 8;
 	bool zeroram = false;
 	bool audio_buffers_set = false;
-	bool using_hostfs = true;
+	bool hostfs_set = false;
 
 	const char *audio_dev_name = NULL;
 
@@ -883,6 +885,7 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			no_ieee_intercept = true;
+			hostfs_set = false;
 			using_hostfs = false;
 		} else if (!strcmp(argv[0], "-hostfsdev")){
 			argc--;
@@ -894,6 +897,7 @@ main(int argc, char **argv)
 			if (ieee_unit < 8 || ieee_unit > 31) {
 				usage();
 			}
+			hostfs_set = true;
 			using_hostfs = true;
 			argc--;
 			argv++;
@@ -969,14 +973,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (using_hostfs && !audio_buffers_set) {
-#ifdef __EMSCRIPTEN__
-		audio_buffers = 8; // wasm has larger buffers in audio.c, so we keep it 8 even w/ HostFS
-#else
-		audio_buffers = 32;
-#endif
-	}
-
 	SDL_RWops *f = SDL_RWFromFile(rom_path, "rb");
 	if (!f) {
 		printf("Cannot open %s!\n", rom_path);
@@ -996,6 +992,17 @@ main(int argc, char **argv)
 
 	if (sdcard_path) {
 		sdcard_set_path(sdcard_path);
+		if (!hostfs_set) {
+			using_hostfs = false;
+		}
+	}
+
+	if (using_hostfs && !audio_buffers_set) {
+#ifdef __EMSCRIPTEN__
+		audio_buffers = 8; // wasm has larger buffers in audio.c, so we keep it 8 even w/ HostFS
+#else
+		audio_buffers = 32;
+#endif
 	}
 
 	if (cartridge_path) {
@@ -1183,14 +1190,14 @@ handle_ieee_intercept()
 		// do high-level KERNAL IEEE API interception
 		return false;
 	}
-
-	if (sdcard_attached && !prg_file && ieee_unit == 8) {
+	
+	if (sdcard_attached && !prg_file && !using_hostfs) {
 		// if should emulate an SD card (and don't need to
 		// hack a PRG into RAM), we skip HostFS if it uses unit 8
 		return false;
 	}
 
-	if (sdcard_attached && prg_file && prg_finished_loading && ieee_unit == 8) {
+	if (sdcard_attached && prg_file && prg_finished_loading && !using_hostfs) {
 		// also skip if we should do SD card and we're done
 		// with the PRG hack if HostFS uses unit 8
 		return false;

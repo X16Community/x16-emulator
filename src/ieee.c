@@ -1171,8 +1171,8 @@ command(uint8_t *cmd)
 		case 'C': // C (copy), CD (change directory), CP (change partition)
 			switch(cmd[1]) {
 				case 'D': // Change directory
-						cchdir(cmd+2);
-						return;
+					cchdir(cmd+2);
+					return;
 				case 'P': // Change partition
 					set_error(0x02, 0, 0);
 					return;
@@ -1212,7 +1212,15 @@ command(uint8_t *cmd)
 		case 'S':
 			switch(cmd[1]) {
 				case '-': // Swap
-					set_error(0x31, 0, 0);
+					if (cmd[2] == '8' || cmd[2] == 'D') {
+						ieee_unit = 8;
+						clear_error();
+					} else if (cmd[2] == '9') {
+						ieee_unit = 9;
+						clear_error();
+					} else {
+						set_error(0x31, 0, 0);
+					}
 					return;
 				default: // Scratch
 					cunlink(cmd); // Need to parse out the arg in this function
@@ -1223,7 +1231,16 @@ command(uint8_t *cmd)
 				case 'I': // UI: Reset
 					set_error(0x73, 0, 0);
 					return;
+				case '0': // U0
+					if (cmd[2] == '>') {
+						if (cmd[3] >= 8 && cmd[3] <= 15) {
+							ieee_unit = cmd[3];
+							clear_error();
+							return;
+						}
+					}
 			}
+
 		default:
 			if (log_ieee) {
 				printf("    (unsupported command ignored)\n");
