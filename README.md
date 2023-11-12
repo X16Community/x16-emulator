@@ -100,13 +100,13 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-joy1`, `-joy2`, `-joy3`, `-joy4` enables binding a gamepad to that SNES controller port
 * `-nvram` lets you specify a 64 byte file for the system's non-volatile RAM. If it does not exist, it will be created once the NVRAM is modified.
 * `-keymap` tells the KERNAL to switch to a specific keyboard layout. Use it without an argument to view the supported layouts.
-* `-noemucmdkeys`  Disable emulator command keys.
+* `-noemucmdkeys`  Disable emulator command keys. `Ctrl+M`/`⇧⌘M` will always be intercepted by the emulator.
 * `-capture` starts the emulator with the mouse/keyboard captured
 * `-sdcard` lets you specify an SD card image (partition table + FAT32). Without this option, drive 8 will interface to the current directory on the host.
 * `-fsroot <dir>` specifies a file system root for the HostFS interface. This lets you save and load files without an SD card image. (As of R42, this is the preferred method.) Default is the current working directory.
 * `-startin <dir>` specify the host filesystem directory path that the emulated filesystem starts in. Default is the current working directory if it lies within the hierarchy of fsroot, otherwise it defaults to fsroot itself.
 * `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].
-* `-nohostieee` disables IEEE API interception to access the host fs. IEEE API host fs is normally enabled unless -sdcard or -serial is specified.
+* `-nohostieee` or `-nohostfs` disables IEEE API interception to access the host fs. IEEE API HostFS is normally enabled unless `-sdcard` or `-serial` is specified.
 * `-warp` causes the emulator to run as fast as possible, possibly faster than a real X16.
 * `-gif <filename>[,wait]` to record the screen into a GIF. See below for more info.
 * `-wav <filename>[{,wait|,auto}]` to record audio into a WAV. See below for more info.
