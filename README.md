@@ -102,7 +102,8 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-keymap` tells the KERNAL to switch to a specific keyboard layout. Use it without an argument to view the supported layouts.
 * `-noemucmdkeys`  Disable emulator command keys. `Ctrl+M`/`⇧⌘M` will always be intercepted by the emulator.
 * `-capture` starts the emulator with the mouse/keyboard captured
-* `-sdcard` lets you specify an SD card image (partition table + FAT32). Without this option, drive 8 will interface to the current directory on the host.
+* `-sdcard` lets you specify an SD card image (partition table + FAT32) which will be presented as device 8 at boot.
+* `-hostfsdev <unit>` specifies the device number to use for the HostFS device. If this argument is not used, and `-sdcard` is specified, HostFS is disabled. If `-sdcard` is not specified, the default is 8. If both `-sdcard` and `-hostfsdev 8` are specified, HostFS will take precedence, but both will be active. In this circumstance, if the HostFS device is changed away from unit 8 via a channel 15 command (e.g. `"S-9"`), the SD card device will then become visible on unit 8.
 * `-fsroot <dir>` specifies a file system root for the HostFS interface. This lets you save and load files without an SD card image. (As of R42, this is the preferred method.) Default is the current working directory.
 * `-startin <dir>` specify the host filesystem directory path that the emulated filesystem starts in. Default is the current working directory if it lies within the hierarchy of fsroot, otherwise it defaults to fsroot itself.
 * `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].

@@ -89,6 +89,8 @@ extern bool video_is_tilemap_address(int addr);
 extern bool video_is_tiledata_address(int addr);
 extern bool video_is_special_address(int addr);
 
+extern int ieee_unit;
+extern bool using_hostfs;
 extern uint8_t activity_led;
 extern bool nvram_dirty;
 extern uint8_t nvram[0x40];
