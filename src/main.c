@@ -367,9 +367,9 @@ usage()
 	printf("\tloading, all of the affected banks will function as RAM.\n");
 	printf("-serial\n");
 	printf("\tConnect host fs through Serial Bus [experimental]\n");
-	printf("-nohostieee\n");
-	printf("\tDisable host fs through IEEE API interception.\n");
-	printf("\tIEEE API host fs is normally enabled unless -sdcard or\n");
+	printf("-nohostieee / -nohostfs\n");
+	printf("\tDisable HostFS through IEEE API interception.\n");
+	printf("\tIEEE API HostFS is normally enabled unless -sdcard or\n");
 	printf("\t-serial is specified.\n");
 	printf("-fsroot <directory>\n");
 	printf("\tSpecify the host filesystem directory path which is to\n");
@@ -451,7 +451,8 @@ usage()
 	printf("\tSet the output device used for audio emulation\n");
 	printf("\tIf output device is 'none', no audio is generated\n");
 	printf("-abufs <number of audio buffers>\n");
-	printf("\tSet the number of audio buffers used for playback. (default: 8)\n");
+	printf("\tSet the number of audio buffers used for playback.\n");
+	printf("\tIf using HostFS, the default is 32, otherwise 8.\n");
 	printf("\tIncreasing this will reduce stutter on slower computers,\n");
 	printf("\tbut will increase audio latency.\n");
 	printf("-rtc\n");
@@ -506,6 +507,8 @@ main(int argc, char **argv)
 	int test_number = 0;
 	int audio_buffers = 8;
 	bool zeroram = false;
+	bool audio_buffers_set = false;
+	bool using_hostfs = true;
 
 	const char *audio_dev_name = NULL;
 
@@ -863,6 +866,7 @@ main(int argc, char **argv)
 				usage();
 			}
 			audio_buffers = (int)strtol(argv[0], NULL, 10);
+			audio_buffers_set = true;
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-rtc")) {
@@ -873,10 +877,11 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			has_serial = true;
-		} else if (!strcmp(argv[0], "-nohostieee")) {
+		} else if (!strcmp(argv[0], "-nohostieee") || !strcmp(argv[0], "-nohostfs")) {
 			argc--;
 			argv++;
 			no_ieee_intercept = true;
+			using_hostfs = false;
 		} else if (!strcmp(argv[0], "-fsroot")) {
 			argc--;
 			argv++;
@@ -947,6 +952,14 @@ main(int argc, char **argv)
 		} else {
 			usage();
 		}
+	}
+
+	if (using_hostfs && !audio_buffers_set) {
+#ifdef __EMSCRIPTEN__
+		audio_buffers = 8; // wasm has larger buffers in audio.c, so we keep it 8 even w/ HostFS
+#else
+		audio_buffers = 32;
+#endif
 	}
 
 	SDL_RWops *f = SDL_RWFromFile(rom_path, "rb");
@@ -1022,7 +1035,7 @@ main(int argc, char **argv)
 	emscripten_set_main_loop(emscripten_main_loop, 0, 0);
 #endif
 	if (!headless) {
-		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
+		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 		audio_init(audio_dev_name, audio_buffers);
 		video_init(window_scale, screen_x_scale, scale_quality, fullscreen, window_opacity);
 	}
@@ -1276,7 +1289,9 @@ handle_ieee_intercept()
 	if (handled) {
 		// Add the number CPU cycles equivalent to the amount of time that the operation actually took
 		// to prevent the emu from warping after a hostfs load
-		clockticks6502 += (uint64_t)((SDL_GetPerformanceCounter() - base_ticks) * 1000000 * MHZ) / SDL_GetPerformanceFrequency();
+		uint64_t perf_diff = SDL_GetPerformanceCounter() - base_ticks;
+		uint32_t missed_ticks = (uint64_t)(perf_diff * 1000000ULL * MHZ) / SDL_GetPerformanceFrequency();
+		clockticks6502 += missed_ticks;
 		if (s >= 0) {
 			if (!set_kernal_status(s)) {
 				printf("Warning: Could not set STATUS!\n");
