@@ -932,8 +932,12 @@ render_layer_line_tile(uint8_t layer, uint16_t y)
 		color_shift += color_shift_incr;
 
 		// Apply Palette Offset
-		if (palette_offset && col_index > 0 && col_index < 16) {
-			col_index += palette_offset;
+		if (col_index > 0 && col_index < 16) {
+			if (props->text_mode_256c) {
+				col_index |= 0x80;
+			} else {
+				col_index += palette_offset;
+			}
 		}
 		layer_line[layer][x] = col_index;
 	}
