@@ -35,7 +35,7 @@
 
 #define VERA_VERSION_MAJOR  0x00
 #define VERA_VERSION_MINOR  0x03
-#define VERA_VERSION_PATCH  0x01
+#define VERA_VERSION_PATCH  0x02
 
 #define ADDR_VRAM_START     0x00000
 #define ADDR_VRAM_END       0x20000
@@ -932,8 +932,11 @@ render_layer_line_tile(uint8_t layer, uint16_t y)
 		color_shift += color_shift_incr;
 
 		// Apply Palette Offset
-		if (palette_offset && col_index > 0 && col_index < 16) {
+		if (col_index > 0 && col_index < 16) {
 			col_index += palette_offset;
+			if (props->text_mode_256c) {
+				col_index |= 0x80;
+			}
 		}
 		layer_line[layer][x] = col_index;
 	}
@@ -966,8 +969,11 @@ render_layer_line_bitmap(uint8_t layer, uint16_t y)
 		uint8_t col_index = (s >> (props->first_color_pos - ((xx & props->color_fields_max) << props->color_depth))) & props->color_mask;
 
 		// Apply Palette Offset
-		if (palette_offset && col_index > 0 && col_index < 16) {
+		if (col_index > 0 && col_index < 16) {
 			col_index += palette_offset << 4;
+			if (props->text_mode_256c) {
+				col_index |= 0x80;
+			}			
 		}
 		layer_line[layer][x] = col_index;
 	}
