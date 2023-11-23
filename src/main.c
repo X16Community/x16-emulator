@@ -1500,10 +1500,9 @@ emulator_loop(void *param)
 		// command-line switch that's disabled by default.
 		if (ym2151_irq_support) {
 			audio_render();
-			if (YM_irq()) irq6502();
 		}
 
-		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq())) {
+		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq())) {
 //			printf("IRQ!\n");
 			irq6502();
 		}
