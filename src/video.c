@@ -1205,7 +1205,7 @@ update_isr_and_coll(uint16_t y, uint16_t compare)
 		sprite_line_collisions = 0;
 		isr |= 1; // VSYNC IRQ
 	}
-	if ((y < SCREEN_HEIGHT) && (y == compare)) { // LINE IRQ
+	if (y == compare) { // LINE IRQ
 		isr |= 2;
 	}
 }
