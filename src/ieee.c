@@ -1543,6 +1543,11 @@ copen(int channel)
 			channels[channel].read ? "R" : "",
 			channels[channel].write ? "W" : "");
 	}
+	
+	if (channels[channel].name[0] == 0) { // empty filename
+		set_error(0x34, 0, 0);
+		return -2;
+	}
 
 	if (!channels[channel].write && channels[channel].name[0] == '$') {	
 		dirlist_pos = 0;
