@@ -1544,7 +1544,7 @@ copen(int channel)
 			channels[channel].write ? "W" : "");
 	}
 	
-	if (channels[channel].name[0] == 0x00) { // empty filename
+	if (channels[channel].name[0] == 0) { // empty filename
 		set_error(0x34, 0, 0);
 		return -2;
 	}
