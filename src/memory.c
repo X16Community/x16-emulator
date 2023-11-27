@@ -156,7 +156,7 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 			if (!debugOn) {
 				clockticks6502 += 3;
 			}
-			if (address == 0x9f41) {
+			if ((address & 0x01) != 0) { // partial decoding in this range
 				audio_render();
 				return YM_read_status();
 			}
@@ -223,14 +223,12 @@ write6502(uint16_t address, uint8_t value)
 		} else if (address >= 0x9f40 && address < 0x9f60) {
 			// slow IO3 range
 			clockticks6502 += 3;
-			if (address == 0x9f40) {        // YM address
+			if ((address & 0x01) == 0) {   // YM reg (partially decoded)
 				addr_ym = value;
-			} else if (address == 0x9f41) { // YM data
+			} else {                       // YM data (partially decoded)
 				audio_render();
 				YM_write_reg(addr_ym, value);
 			}
-			// TODO:
-			//   $9F42 & $9F43: SAA1099P
 		} else if (address >= 0x9fb0 && address < 0x9fc0) {
 			// emulator state
 			emu_write(address & 0xf, value);
