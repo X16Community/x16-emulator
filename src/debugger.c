@@ -471,6 +471,7 @@ static void DEBUGExecCmd() {
 
 			if(!strcmp(reg, "pc")) {
 				pc= number & 0xFFFF;
+				waiting = 0;
 			}
 			if(!strcmp(reg, "a")) {
 				a= number & 0x00FF;
