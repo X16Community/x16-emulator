@@ -88,6 +88,7 @@ static SDL_Renderer *renderer;
 static SDL_Texture *sdlTexture;
 static bool is_fullscreen = false;
 bool mouse_grabbed = false;
+bool no_keyboard_capture = false;
 bool kernal_mouse_enabled = false;
 
 static uint8_t video_ram[0x20000];
@@ -204,7 +205,7 @@ static void refresh_palette();
 void
 mousegrab_toggle() {
 	mouse_grabbed = !mouse_grabbed;
-	SDL_SetWindowGrab(window, mouse_grabbed);
+	SDL_SetWindowGrab(window, mouse_grabbed && !no_keyboard_capture);
 	SDL_SetRelativeMouseMode(mouse_grabbed);
 	SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
 	sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");

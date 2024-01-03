@@ -388,6 +388,10 @@ usage()
 	printf("\tDisable emulator command keys.\n");
 	printf("-capture\n");
 	printf("\tStart emulator with mouse/keyboard captured.\n");
+	printf("-nokeyboardcapture\n");
+	printf("\tWhile in capture mode, causes the emulator not to intercept\n");
+	printf("\tkeyboard combinations which are used by the operating system,\n");
+	printf("\tsuch as Alt+Tab.\n");
 	printf("-prg <app.prg>[,<load_addr>]\n");
 	printf("\tLoad application from the *host filesystem* into RAM,\n");
 	printf("\teven if an SD card is attached.\n");
@@ -927,6 +931,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			grab_mouse = true;
+		} else if (!strcmp(argv[0], "-nokeyboardcapture")) {
+			argc--;
+			argv++;
+			no_keyboard_capture = true;
 		} else if (!strcmp(argv[0], "-via2")) {
 			argc--;
 			argv++;
