@@ -98,6 +98,7 @@ extern uint8_t nvram[0x40];
 extern uint8_t MHZ;
 
 extern bool mouse_grabbed;
+extern bool no_keyboard_capture;
 extern bool kernal_mouse_enabled;
 extern char window_title[];
 #endif
