@@ -338,7 +338,7 @@ Please see the [KERNAL/BASIC documentation](https://github.com/X16Community/x16-
 Debugger
 --------
 
-The debugger requires `-debug` to start. Without it, it is disabled.
+The debugger requires `-debug`.  To start the debugger, press the F12 key. Without `-debug`, the debugger is disabled and won't start.  If you wish to set an initial breakpoint you can also include the memory address, in hexadecimal, of the breakpoint after the `-debug` switch. For example `-debug 080d`.
 
 There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, X, Y, and SP.
 
