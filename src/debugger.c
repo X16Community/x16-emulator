@@ -511,15 +511,15 @@ void DEBUGRenderDisplay(int width, int height) {
 	SDL_SetRenderDrawColor(dbgRenderer,0,0,0,SDL_ALPHA_OPAQUE);
 	SDL_RenderFillRect(dbgRenderer,&rc);
 
-	DEBUGRenderRegisters();							// Draw register name and values.
-	DEBUGRenderCode(20, currentPC);							// Render 6502 disassembly.
+	int register_lines = DEBUGRenderRegisters();							// Draw register name and values.
+	DEBUGRenderCode(register_lines, currentPC);							// Render 6502 disassembly.
 	if (dumpmode == DDUMP_RAM) {
-		DEBUGRenderData(21, currentData);
-		DEBUGRenderZeroPageRegisters(21);
+		DEBUGRenderData(register_lines + 1, currentData);
+		DEBUGRenderZeroPageRegisters(register_lines + 1);
 	} else {
-		DEBUGRenderVRAM(21, currentData);
+		DEBUGRenderVRAM(register_lines + 1, currentData);
 	}
-	DEBUGRenderStack(20);
+	DEBUGRenderStack(register_lines);
 
 	DEBUGRenderCmdLine(xPos, rc.w, height);
 }
