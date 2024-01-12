@@ -151,9 +151,9 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 					*eff_addr += regs.y;
 			}
 		}
-		if (opcode == 0x00) {
-			// BRK instruction is 2 bytes long according to WDC datasheet.
-			// CPU skips the second byte when it executes a BRK.
+		if (opcode == 0x00 || opcode == 0x02) {
+			// BRK and COP instructions are 2 bytes long according to WDC datasheet.
+			// CPU skips the second byte when it executes a BRK / COP.
 			length = 2;
 		}
 	}
