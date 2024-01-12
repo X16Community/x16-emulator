@@ -18,6 +18,23 @@ ora ind0 5 $12
 sbc ind0 5 $f2
 sta ind0 5 $92
 
+adc sr 4 $63
+and sr 4 $23
+cmp sr 4 $c3
+eor sr 4 $43
+lda sr 4 $a3
+ora sr 4 $03
+sbc sr 4 $e3
+sta sr 4 $83
+
+adc sridy 7 $73
+and sridy 7 $33
+cmp sridy 7 $d3
+eor sridy 7 $53
+lda sridy 7 $b3
+ora sridy 7 $13
+sbc sridy 7 $f3
+sta sridy 7 $93
 
 bit immm 2 $89
 bit zpx 4 $34

@@ -2,60 +2,60 @@
 
 static void (*addrtable[256])() = {
 /*        |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
-/* 0 */     imp, indx,  imp,  imp,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 0 */
-/* 1 */     rel, indy, ind0,  imp,   zp,  zpx,  zpx,  imp,  imp, absy,  acc,  imp, abso, absx, absx,  imp, /* 1 */
-/* 2 */    abso, indx,  imp,  imp,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 2 */
-/* 3 */     rel, indy, ind0,  imp,  zpx,  zpx,  zpx,  imp,  imp, absy,  acc,  imp, absx, absx, absx,  imp, /* 3 */
-/* 4 */     imp, indx,  imp,  imp,  bmv,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 4 */
-/* 5 */     rel, indy, ind0,  imp,  bmv,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp, /* 5 */
-/* 6 */     imp, indx,  imp,  imp,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp,  ind, abso, abso,  imp, /* 6 */
-/* 7 */     rel, indy, ind0,  imp,  zpx,  zpx,  zpx,  imp,  imp, absy,  imp,  imp, ainx, absx, absx,  imp, /* 7 */
-/* 8 */     rel, indx,  imp,  imp,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* 8 */
-/* 9 */     rel, indy, ind0,  imp,  zpx,  zpx,  zpy,  imp,  imp, absy,  imp,  imp, abso, absx, absx,  imp, /* 9 */
-/* A */    immx, indx, immx,  imp,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* A */
-/* B */     rel, indy, ind0,  imp,  zpx,  zpx,  zpy,  imp,  imp, absy,  imp,  imp, absx, absx, absy,  imp, /* B */
-/* C */    immx, indx, imm8,  imp,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* C */
-/* D */     rel, indy, ind0,  imp,  imp,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp, /* D */
-/* E */    immx, indx, imm8,  imp,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* E */
-/* F */     rel, indy, ind0,  imp,imm16,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp  /* F */
+/* 0 */     imp, indx,  imp,   sr,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 0 */
+/* 1 */     rel, indy, ind0,sridy,   zp,  zpx,  zpx,  imp,  imp, absy,  acc,  imp, abso, absx, absx,  imp, /* 1 */
+/* 2 */    abso, indx,  imp,   sr,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 2 */
+/* 3 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,  imp,  imp, absy,  acc,  imp, absx, absx, absx,  imp, /* 3 */
+/* 4 */     imp, indx,  imp,   sr,  bmv,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 4 */
+/* 5 */     rel, indy, ind0,sridy,  bmv,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp, /* 5 */
+/* 6 */     imp, indx,  imp,   sr,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp,  ind, abso, abso,  imp, /* 6 */
+/* 7 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,  imp,  imp, absy,  imp,  imp, ainx, absx, absx,  imp, /* 7 */
+/* 8 */     rel, indx,  imp,   sr,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* 8 */
+/* 9 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpy,  imp,  imp, absy,  imp,  imp, abso, absx, absx,  imp, /* 9 */
+/* A */    immx, indx, immx,   sr,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* A */
+/* B */     rel, indy, ind0,sridy,  zpx,  zpx,  zpy,  imp,  imp, absy,  imp,  imp, absx, absx, absy,  imp, /* B */
+/* C */    immx, indx, imm8,   sr,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* C */
+/* D */     rel, indy, ind0,sridy,  imp,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp, /* D */
+/* E */    immx, indx, imm8,   sr,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* E */
+/* F */     rel, indy, ind0,sridy,imm16,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp  /* F */
 };
 
 static void (*optable[256])() = {
 /*        |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
-/* 0 */      brk,  ora,  cop,  nop,  tsb,  ora,  asl,  nop,  php,  ora,  asl,  phd,  tsb,  ora,  asl,  nop, /* 0 */
-/* 1 */      bpl,  ora,  ora,  nop,  trb,  ora,  asl,  nop,  clc,  ora,  inc,  tcs,  trb,  ora,  asl,  nop, /* 1 */
-/* 2 */      jsr,  and,  nop,  nop,  bit,  and,  rol,  nop,  plp,  and,  rol,  pld,  bit,  and,  rol,  nop, /* 2 */
-/* 3 */      bmi,  and,  and,  nop,  bit,  and,  rol,  nop,  sec,  and,  dec,  tsc,  bit,  and,  rol,  nop, /* 3 */
-/* 4 */      rti,  eor,  nop,  nop,  mvp,  eor,  lsr,  nop,  pha,  eor,  lsr,  phk,  jmp,  eor,  lsr,  nop, /* 4 */
-/* 5 */      bvc,  eor,  eor,  nop,  mvn,  eor,  lsr,  nop,  cli,  eor,  phy,  tcd,  nop,  eor,  lsr,  nop, /* 5 */
-/* 6 */      rts,  adc,  nop,  nop,  stz,  adc,  ror,  nop,  pla,  adc,  ror,  nop,  jmp,  adc,  ror,  nop, /* 6 */
-/* 7 */      bvs,  adc,  adc,  nop,  stz,  adc,  ror,  nop,  sei,  adc,  ply,  tdc,  jmp,  adc,  ror,  nop, /* 7 */
-/* 8 */      bra,  sta,  nop,  nop,  sty,  sta,  stx,  nop,  dey,  bit,  txa,  phb,  sty,  sta,  stx,  nop, /* 8 */
-/* 9 */      bcc,  sta,  sta,  nop,  sty,  sta,  stx,  nop,  tya,  sta,  txs,  txy,  stz,  sta,  stz,  nop, /* 9 */
-/* A */      ldy,  lda,  ldx,  nop,  ldy,  lda,  ldx,  nop,  tay,  lda,  tax,  plb,  ldy,  lda,  ldx,  nop, /* A */
-/* B */      bcs,  lda,  lda,  nop,  ldy,  lda,  ldx,  nop,  clv,  lda,  tsx,  tyx,  ldy,  lda,  ldx,  nop, /* B */
-/* C */      cpy,  cmp,  rep,  nop,  cpy,  cmp,  dec,  nop,  iny,  cmp,  dex,  wai,  cpy,  cmp,  dec,  nop, /* C */
-/* D */      bne,  cmp,  cmp,  nop,  nop,  cmp,  dec,  nop,  cld,  cmp,  phx,  stp,  nop,  cmp,  dec,  nop, /* D */
-/* E */      cpx,  sbc,  sep,  nop,  cpx,  sbc,  inc,  nop,  inx,  sbc,  nop,  xba,  cpx,  sbc,  inc,  nop, /* E */
-/* F */      beq,  sbc,  sbc,  nop,  pea,  sbc,  inc,  nop,  sed,  sbc,  plx,  xce,  nop,  sbc,  inc,  nop  /* F */
+/* 0 */      brk,  ora,  cop,  ora,  tsb,  ora,  asl,  nop,  php,  ora,  asl,  phd,  tsb,  ora,  asl,  nop, /* 0 */
+/* 1 */      bpl,  ora,  ora,  ora,  trb,  ora,  asl,  nop,  clc,  ora,  inc,  tcs,  trb,  ora,  asl,  nop, /* 1 */
+/* 2 */      jsr,  and,  nop,  and,  bit,  and,  rol,  nop,  plp,  and,  rol,  pld,  bit,  and,  rol,  nop, /* 2 */
+/* 3 */      bmi,  and,  and,  and,  bit,  and,  rol,  nop,  sec,  and,  dec,  tsc,  bit,  and,  rol,  nop, /* 3 */
+/* 4 */      rti,  eor,  nop,  eor,  mvp,  eor,  lsr,  nop,  pha,  eor,  lsr,  phk,  jmp,  eor,  lsr,  nop, /* 4 */
+/* 5 */      bvc,  eor,  eor,  eor,  mvn,  eor,  lsr,  nop,  cli,  eor,  phy,  tcd,  nop,  eor,  lsr,  nop, /* 5 */
+/* 6 */      rts,  adc,  nop,  adc,  stz,  adc,  ror,  nop,  pla,  adc,  ror,  nop,  jmp,  adc,  ror,  nop, /* 6 */
+/* 7 */      bvs,  adc,  adc,  adc,  stz,  adc,  ror,  nop,  sei,  adc,  ply,  tdc,  jmp,  adc,  ror,  nop, /* 7 */
+/* 8 */      bra,  sta,  nop,  sta,  sty,  sta,  stx,  nop,  dey,  bit,  txa,  phb,  sty,  sta,  stx,  nop, /* 8 */
+/* 9 */      bcc,  sta,  sta,  sta,  sty,  sta,  stx,  nop,  tya,  sta,  txs,  txy,  stz,  sta,  stz,  nop, /* 9 */
+/* A */      ldy,  lda,  ldx,  lda,  ldy,  lda,  ldx,  nop,  tay,  lda,  tax,  plb,  ldy,  lda,  ldx,  nop, /* A */
+/* B */      bcs,  lda,  lda,  lda,  ldy,  lda,  ldx,  nop,  clv,  lda,  tsx,  tyx,  ldy,  lda,  ldx,  nop, /* B */
+/* C */      cpy,  cmp,  rep,  cmp,  cpy,  cmp,  dec,  nop,  iny,  cmp,  dex,  wai,  cpy,  cmp,  dec,  nop, /* C */
+/* D */      bne,  cmp,  cmp,  cmp,  nop,  cmp,  dec,  nop,  cld,  cmp,  phx,  stp,  nop,  cmp,  dec,  nop, /* D */
+/* E */      cpx,  sbc,  sep,  sbc,  cpx,  sbc,  inc,  nop,  inx,  sbc,  nop,  xba,  cpx,  sbc,  inc,  nop, /* E */
+/* F */      beq,  sbc,  sbc,  sbc,  pea,  sbc,  inc,  nop,  sed,  sbc,  plx,  xce,  nop,  sbc,  inc,  nop  /* F */
 };
 
 static const uint32_t ticktable[256] = {
 /*        |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
-/* 0 */       7,    6,    7,    2,    5,    3,    5,    2,    3,    2,    2,    4,    6,    4,    6,    2, /* 0 */
-/* 1 */       2,    5,    5,    2,    5,    4,    6,    2,    2,    4,    2,    2,    6,    4,    7,    2, /* 1 */
-/* 2 */       6,    6,    2,    2,    3,    3,    5,    2,    4,    2,    2,    5,    4,    4,    6,    2, /* 2 */
-/* 3 */       2,    5,    5,    2,    4,    4,    6,    2,    2,    4,    2,    2,    4,    4,    7,    2, /* 3 */
-/* 4 */       6,    6,    2,    2,    7,    3,    5,    2,    3,    2,    2,    3,    3,    4,    6,    2, /* 4 */
-/* 5 */       2,    5,    5,    2,    7,    4,    6,    2,    2,    4,    3,    2,    2,    4,    7,    2, /* 5 */
-/* 6 */       6,    6,    2,    2,    3,    3,    5,    2,    4,    2,    2,    2,    5,    4,    6,    2, /* 6 */
-/* 7 */       2,    5,    5,    2,    4,    4,    6,    2,    2,    4,    4,    2,    6,    4,    7,    2, /* 7 */
-/* 8 */       3,    6,    2,    2,    3,    3,    3,    2,    2,    2,    2,    3,    4,    4,    4,    2, /* 8 */
-/* 9 */       2,    6,    5,    2,    4,    4,    4,    2,    2,    5,    2,    2,    4,    5,    5,    2, /* 9 */
-/* A */       2,    6,    2,    2,    3,    3,    3,    2,    2,    2,    2,    4,    4,    4,    4,    2, /* A */
-/* B */       2,    5,    5,    2,    4,    4,    4,    2,    2,    4,    2,    2,    4,    4,    4,    2, /* B */
-/* C */       2,    6,    3,    2,    3,    3,    5,    2,    2,    2,    2,    3,    4,    4,    6,    2, /* C */
-/* D */       2,    5,    5,    2,    2,    4,    6,    2,    2,    4,    3,    1,    2,    4,    7,    2, /* D */
-/* E */       2,    6,    3,    2,    3,    3,    5,    2,    2,    2,    2,    3,    4,    4,    6,    2, /* E */
-/* F */       2,    5,    5,    2,    5,    4,    6,    2,    2,    4,    4,    2,    2,    4,    7,    2  /* F */
+/* 0 */       7,    6,    7,    4,    5,    3,    5,    2,    3,    2,    2,    4,    6,    4,    6,    2, /* 0 */
+/* 1 */       2,    5,    5,    7,    5,    4,    6,    2,    2,    4,    2,    2,    6,    4,    7,    2, /* 1 */
+/* 2 */       6,    6,    2,    4,    3,    3,    5,    2,    4,    2,    2,    5,    4,    4,    6,    2, /* 2 */
+/* 3 */       2,    5,    5,    7,    4,    4,    6,    2,    2,    4,    2,    2,    4,    4,    7,    2, /* 3 */
+/* 4 */       6,    6,    2,    4,    7,    3,    5,    2,    3,    2,    2,    3,    3,    4,    6,    2, /* 4 */
+/* 5 */       2,    5,    5,    7,    7,    4,    6,    2,    2,    4,    3,    2,    2,    4,    7,    2, /* 5 */
+/* 6 */       6,    6,    2,    4,    3,    3,    5,    2,    4,    2,    2,    2,    5,    4,    6,    2, /* 6 */
+/* 7 */       2,    5,    5,    7,    4,    4,    6,    2,    2,    4,    4,    2,    6,    4,    7,    2, /* 7 */
+/* 8 */       3,    6,    2,    4,    3,    3,    3,    2,    2,    2,    2,    3,    4,    4,    4,    2, /* 8 */
+/* 9 */       2,    6,    5,    7,    4,    4,    4,    2,    2,    5,    2,    2,    4,    5,    5,    2, /* 9 */
+/* A */       2,    6,    2,    4,    3,    3,    3,    2,    2,    2,    2,    4,    4,    4,    4,    2, /* A */
+/* B */       2,    5,    5,    7,    4,    4,    4,    2,    2,    4,    2,    2,    4,    4,    4,    2, /* B */
+/* C */       2,    6,    3,    4,    3,    3,    5,    2,    2,    2,    2,    3,    4,    4,    6,    2, /* C */
+/* D */       2,    5,    5,    7,    2,    4,    6,    2,    2,    4,    3,    1,    2,    4,    7,    2, /* D */
+/* E */       2,    6,    3,    4,    3,    3,    5,    2,    2,    2,    2,    3,    4,    4,    6,    2, /* E */
+/* F */       2,    5,    5,    7,    5,    4,    6,    2,    2,    4,    4,    2,    2,    4,    7,    2  /* F */
 };

@@ -141,17 +141,22 @@ static void indy() { // (indirect),Y
 }
 */
 
-#include <stdlib.h>
-
-/*static void sr() { // absolute,S
-    ea = (uint16_t)read6502((uint16_t)regs.pc++ + regs.sp);
+static void sr() { // absolute,S
+    ea = regs.sp + (uint16_t)read6502(regs.pc++);
 }
 
 static void sridy() { // (indirect,S),Y
-    uint16_t eahelp;
-    eahelp = (uint16_t)read6502((uint16_t)regs.pc++ + regs.sp);
-    ea = (uint16_t)read6502(eahelp);
-}*/
+    uint16_t eahelp, eahelp2, startpage;
+    eahelp = regs.sp + (uint16_t)read6502(regs.pc++);
+    eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //zero-page wraparound
+    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
+    startpage = ea & 0xFF00;
+    ea += (uint16_t)regs.yw;
+
+    if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
+        penaltyaddr = 1;
+    }
+}
 
 static void bmv() { // block move
     uint8_t src = regs.pc++;
