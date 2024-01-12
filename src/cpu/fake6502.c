@@ -102,6 +102,8 @@
  *                                                   *
  *****************************************************/
 
+#include "registers.h"
+
 #include <stdio.h>
 #include <stdint.h>
 
@@ -118,18 +120,16 @@
 #define FLAG_ZERO      0x02
 #define FLAG_INTERRUPT 0x04
 #define FLAG_DECIMAL   0x08
-#define FLAG_BREAK     0x10
-#define FLAG_CONSTANT  0x20
+#define FLAG_INDEX_WIDTH 0x10
+#define FLAG_MEMORY_WIDTH  0x20
 #define FLAG_OVERFLOW  0x40
 #define FLAG_SIGN      0x80
 
-#define BASE_STACK     0x100
+#define FLAG_BREAK FLAG_INDEX_WIDTH
 
+// 65816 registers
 
-//6502 CPU registers
-uint16_t pc;
-uint8_t sp, a, x, y, status;
-
+struct regs regs;
 
 //helper variables
 uint32_t instructions = 0; //keep track of total instructions executed
@@ -138,6 +138,9 @@ uint16_t oldpc, ea, reladdr, value, result;
 uint8_t opcode, oldstatus;
 
 uint8_t penaltyop, penaltyaddr;
+uint8_t penaltym = 0;
+uint8_t penaltye = 0;
+uint8_t penaltyx = 0;
 uint8_t waiting = 0;
 
 //externally supplied functions
@@ -152,9 +155,14 @@ extern void vp6502();
 static void (*addrtable[256])();
 static void (*optable[256])();
 
-static uint16_t getvalue() {
-    if (addrtable[opcode] == acc) return((uint16_t)a);
-        else return((uint16_t)read6502(ea));
+static uint16_t getvalue(_Bool use16Bit) {
+    if (addrtable[opcode] == acc) {
+        return use16Bit ? regs.c : (uint16_t)regs.a;
+    } else if (use16Bit) {
+        return ((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
+    } else {
+        return read6502(ea);
+    }
 }
 
 __attribute__((unused)) static uint16_t getvalue16() {
@@ -162,8 +170,15 @@ __attribute__((unused)) static uint16_t getvalue16() {
 }
 
 static void putvalue(uint16_t saveval) {
-    if (addrtable[opcode] == acc) a = (uint8_t)(saveval & 0x00FF);
-        else write6502(ea, (saveval & 0x00FF));
+    if (addrtable[opcode] == acc) {
+        if (memory_16bit()) {
+            regs.c = saveval;
+        } else {
+            regs.a = (uint8_t)(saveval & 0x00FF);
+        }
+    } else {
+        write6502(ea, (saveval & 0x00FF));
+    }
 }
 
 #include "instructions.h"
@@ -171,24 +186,24 @@ static void putvalue(uint16_t saveval) {
 #include "tables.h"
 
 void nmi6502() {
-    push16(pc);
-    push8(status & ~FLAG_BREAK);
+    push16(regs.pc);
+    push8(regs.status & ~FLAG_BREAK);
     setinterrupt();
     cleardecimal();
     vp6502();
-    pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
+    regs.pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
     clockticks6502 += 7; // consumed by CPU to process interrupt
     waiting = 0;
 }
 
 void irq6502() {
-    if (!(status & FLAG_INTERRUPT)) {
-        push16(pc);
-        push8(status & ~FLAG_BREAK);
+    if (!(regs.status & FLAG_INTERRUPT)) {
+        push16(regs.pc);
+        push8(regs.status & ~FLAG_BREAK);
         setinterrupt();
         cleardecimal();
         vp6502();
-        pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+        regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
         clockticks6502 += 7; // consumed by CPU to process interrupt
     }
     waiting = 0;
@@ -205,18 +220,27 @@ void exec6502(uint32_t tickcount) {
     }
 
     clockgoal6502 += tickcount;
-   
+
     while (clockticks6502 < clockgoal6502) {
-        opcode = read6502(pc++);
-        status |= FLAG_CONSTANT;
+        opcode = read6502(regs.pc++);
+
+        if (regs.e) {
+            regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+        }
 
         penaltyop = 0;
         penaltyaddr = 0;
+        penaltym = 0;
+        penaltye = 0;
+        penaltyx = 0;
 
         (*addrtable[opcode])();
         (*optable[opcode])();
         clockticks6502 += ticktable[opcode];
         if (penaltyop && penaltyaddr) clockticks6502++;
+        if (memory_16bit()) clockticks6502 += penaltym;
+        if (index_16bit()) clockticks6502 += penaltyx;
+        if (penaltye && !regs.e) clockticks6502++;
 
         instructions++;
 
@@ -231,16 +255,26 @@ void step6502() {
 		return;
 	}
 
-    opcode = read6502(pc++);
-    status |= FLAG_CONSTANT;
+    opcode = read6502(regs.pc++);
+
+    if (regs.e) {
+        regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+    }
 
     penaltyop = 0;
     penaltyaddr = 0;
+    penaltym = 0;
+    penaltye = 0;
+    penaltyx = 0;
 
     (*addrtable[opcode])();
+
     (*optable[opcode])();
     clockticks6502 += ticktable[opcode];
     if (penaltyop && penaltyaddr) clockticks6502++;
+    if (memory_16bit()) clockticks6502 += penaltym;
+    if (index_16bit()) clockticks6502 += penaltyx;
+    if (penaltye && !regs.e) clockticks6502++;
     clockgoal6502 = clockticks6502;
 
     instructions++;

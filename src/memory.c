@@ -43,7 +43,7 @@ memory_init()
 {
 	// Initialize RAM array
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
-	
+
 	// Randomize all RAM (if option selected)
 	if (randomizeRAM) {
 		time_t t;
@@ -112,10 +112,10 @@ read6502(uint16_t address) {
 	// Report access to uninitialized RAM (if option selected)
 	if (reportUninitializedAccess) {
 		uint8_t pc_bank;
-		
-		if (pc < 0xa000) {
+
+		if (regs.pc < 0xa000) {
 			pc_bank = 0;
-		} else if (pc < 0xc000) {
+		} else if (regs.pc < 0xc000) {
 			pc_bank = memory_get_ram_bank();
 		} else {
 			pc_bank = memory_get_rom_bank();
@@ -123,11 +123,11 @@ read6502(uint16_t address) {
 
 		if (address < 0x9f00) {
 			if (RAM_access_flags[address] == false) {
-				printf("Warning: %02X:%04X accessed uninitialized RAM address 00:%04X\n", pc_bank, pc, address);
+				printf("Warning: %02X:%04X accessed uninitialized RAM address 00:%04X\n", pc_bank, regs.pc, address);
 			}
 		} else if (address >= 0xa000 && address < 0xc000) {
 			if (effective_ram_bank() < num_ram_banks && RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] == false){
-				printf("Warning: %02X:%04X accessed uninitialized RAM address %02X:%04X\n", pc_bank, pc, memory_get_ram_bank(), address);
+				printf("Warning: %02X:%04X accessed uninitialized RAM address %02X:%04X\n", pc_bank, regs.pc, memory_get_ram_bank(), address);
 			}
 		}
 	}
@@ -203,7 +203,7 @@ write6502(uint16_t address, uint8_t value)
 		}
 	}
 	// Write to CPU I/O ports
-	if (address < 2) { 
+	if (address < 2) {
 		cpuio_write(address, value);
 	}
 	// Write to memory

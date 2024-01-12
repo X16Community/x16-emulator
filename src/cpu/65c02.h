@@ -17,7 +17,7 @@
 
 static void ind0() {
     uint16_t eahelp, eahelp2;
-    eahelp = (uint16_t)read6502(pc++);
+    eahelp = (uint16_t)read6502(regs.pc++);
     eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //zero-page wraparound
     ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
 }
@@ -31,15 +31,15 @@ static void ind0() {
 
 static void ainx() { 		// absolute indexed branch
     uint16_t eahelp, eahelp2;
-    eahelp = (uint16_t)read6502(pc) | (uint16_t)((uint16_t)read6502(pc+1) << 8);
-    eahelp = (eahelp + (uint16_t)x) & 0xFFFF;
+    eahelp = (uint16_t)read6502(regs.pc) | (uint16_t)((uint16_t)read6502(regs.pc+1) << 8);
+    eahelp = (eahelp + (uint16_t)regs.x) & 0xFFFF;
 #if 0
     eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //replicate 6502 page-boundary wraparound bug
 #else
     eahelp2 = eahelp + 1; // the 65c02 doesn't have the bug
 #endif
     ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
-    pc += 2;
+    regs.pc += 2;
 }
 
 // *******************************************************************************************
@@ -59,9 +59,9 @@ static void stz() {
 // *******************************************************************************************
 
 static void bra() {
-    oldpc = pc;
-    pc += reladdr;
-    if ((oldpc & 0xFF00) != (pc & 0xFF00)) clockticks6502++; //check if jump crossed a page boundary
+    oldpc = regs.pc;
+    regs.pc += reladdr;
+    if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502++; //check if jump crossed a page boundary
 }
 
 // *******************************************************************************************
@@ -71,46 +71,70 @@ static void bra() {
 // *******************************************************************************************
 
 static void phx() {
-    push8(x);
+    penaltym = 1;
+
+    if (index_16bit()) {
+        push16(regs.xw);
+    } else {
+        push8(regs.x);
+    }
 }
 
 static void plx() {
-    x = pull8();
-   
-    zerocalc(x);
-    signcalc(x);
+    penaltym = 1;
+
+    if (index_16bit()) {
+        regs.xw = pull16();
+    } else {
+        regs.x = pull8();
+    }
+
+    zerocalc(regs.x);
+    signcalc(regs.x);
 }
 
 static void phy() {
-    push8(y);
+    penaltym = 1;
+
+    if (index_16bit()) {
+        push16(regs.yw);
+    } else {
+        push8(regs.y);
+    }
 }
 
 static void ply() {
-    y = pull8();
-  
-    zerocalc(y);
-    signcalc(y);
+    penaltym = 1;
+
+    if (index_16bit()) {
+        regs.yw = pull16();
+    } else {
+        regs.y = pull8();
+    }
+
+    zerocalc(regs.y);
+    signcalc(regs.y);
 }
 
 // *******************************************************************************************
 //
-//								TRB & TSB - Test and Change bits 
+//								TRB & TSB - Test and Change bits
 //
 // *******************************************************************************************
 
 static void tsb() {
-    value = getvalue(); 							// Read memory
-    result = (uint16_t)a & value;  					// calculate A & memory
+    value = getvalue(memory_16bit()); 							// Read memory
+    result = acc_for_mode() & value;                // calculate A & memory
     zerocalc(result); 								// Set Z flag from this.
-    result = value | a; 							// Write back value read, A bits are set.
+    result = value | acc_for_mode(); 				// Write back value read, A bits are set.
     putvalue(result);
 }
 
 static void trb() {
-    value = getvalue(); 							// Read memory
-    result = (uint16_t)a & value;  					// calculate A & memory
+    value = getvalue(memory_16bit()); 							// Read memory
+    result = acc_for_mode() & value;  			// calculate A & memory
     zerocalc(result); 								// Set Z flag from this.
-    result = value & (a ^ 0xFF); 					// Write back value read, A bits are clear.
+    result = value & (memory_16bit() ? regs.c ^ 0xFFFF : regs.a ^ 0xFF); 		    	// Write back value read, A bits are clear.
     putvalue(result);
 }
 
@@ -121,7 +145,7 @@ static void trb() {
 // *******************************************************************************************
 
 static void stp() {
-    stop6502(pc - 1);
+    stop6502(regs.pc - 1);
 }
 
 // *******************************************************************************************
@@ -133,70 +157,3 @@ static void stp() {
 static void wai() {
 	waiting = 1;
 }
-
-// *******************************************************************************************
-//
-//                                     BBR and BBS
-//
-// *******************************************************************************************
-static void bbr(uint16_t bitmask)
-{
-	if ((getvalue() & bitmask) == 0) {
-		oldpc = pc;
-		pc += reladdr;
-		if ((oldpc & 0xFF00) != (pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-		else clockticks6502++;
-	}
-}
-
-static void bbr0() { bbr(0x01); }
-static void bbr1() { bbr(0x02); }
-static void bbr2() { bbr(0x04); }
-static void bbr3() { bbr(0x08); }
-static void bbr4() { bbr(0x10); }
-static void bbr5() { bbr(0x20); }
-static void bbr6() { bbr(0x40); }
-static void bbr7() { bbr(0x80); }
-
-static void bbs(uint16_t bitmask)
-{
-	if ((getvalue() & bitmask) != 0) {
-		oldpc = pc;
-		pc += reladdr;
-		if ((oldpc & 0xFF00) != (pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-		else clockticks6502++;
-	}
-}
-
-static void bbs0() { bbs(0x01); }
-static void bbs1() { bbs(0x02); }
-static void bbs2() { bbs(0x04); }
-static void bbs3() { bbs(0x08); }
-static void bbs4() { bbs(0x10); }
-static void bbs5() { bbs(0x20); }
-static void bbs6() { bbs(0x40); }
-static void bbs7() { bbs(0x80); }
-
-// *******************************************************************************************
-//
-//                                     SMB and RMB
-//
-// *******************************************************************************************
-
-static void smb0() { putvalue(getvalue() | 0x01); }
-static void smb1() { putvalue(getvalue() | 0x02); }
-static void smb2() { putvalue(getvalue() | 0x04); }
-static void smb3() { putvalue(getvalue() | 0x08); }
-static void smb4() { putvalue(getvalue() | 0x10); }
-static void smb5() { putvalue(getvalue() | 0x20); }
-static void smb6() { putvalue(getvalue() | 0x40); }
-static void smb7() { putvalue(getvalue() | 0x80); }
-
-static void rmb0() { putvalue(getvalue() & ~0x01); }
-static void rmb1() { putvalue(getvalue() & ~0x02); }
-static void rmb2() { putvalue(getvalue() & ~0x04); }
-static void rmb3() { putvalue(getvalue() & ~0x08); }
-static void rmb4() { putvalue(getvalue() & ~0x10); }
-static void rmb5() { putvalue(getvalue() & ~0x20); }
-static void rmb6() { putvalue(getvalue() & ~0x40); }
-static void rmb7() { putvalue(getvalue() & ~0x80); }

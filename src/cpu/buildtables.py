@@ -52,6 +52,7 @@ TABLES_HEADER_FNAME = "tables.h"
 MNEMONICS_DISASSEM_HEADER_FNAME = "mnemonics.h"
 OPCODES_6502_FNAME = "6502.opcodes"
 OPCODES_65c02_FNAME = "65c02.opcodes"
+OPCODES_65c816_FNAME = "65c816.opcodes"
 
 
 #####################################
@@ -129,7 +130,7 @@ def generateList(hFileName, header, elements):
 
         for op in range(0, OPCODE_ROW_LEN):
             hFileName.write("\t/* ${0:X}{1:X} */ \"{2}\"{3}".format(row, op, elements[row * OPCODE_ROW_LEN + op], "" if row == OPCODE_ROW_LEN-1 and op == OPCODE_ROW_LEN-1 else ",\n"))
-        
+
         hFileName.write("{}".format("" if row == OPCODE_ROW_LEN-1 else "\n"))
     hFileName.write("};\n")
 
@@ -141,7 +142,10 @@ def generateList(hFileName, header, elements):
 def convertMnemonic(opInfo):
     modeStr = {
         "imp": "",
-        "imm": "#$%02x",
+        "imm8": "#$%02x",
+        "immm": "#$%02x",
+        "immx": "#$%02x",
+        "imm16": "#$%04x",
         "zp": "$%02x",
         "rel": "$%02x",
         "zprel": "$%02x, $%04x",
@@ -155,7 +159,10 @@ def convertMnemonic(opInfo):
         "indx": "($%02x,x)",
         "ind": "($%04x)",
         "ind0": "($%02x)",
-        "acc": "a"
+        "acc": "a",
+        "sr": "$%02x,S",
+        "sridy": "($%02x,S),y",
+        "bmv": "$%02x,$%02x",
     }
     return "{} {}".format(opInfo[ACTN_KEY_STR], modeStr[opInfo[MODE_KEY_STR]])
 
@@ -168,7 +175,7 @@ if __name__ == '__main__':
     # Load 6502 opcodes list
     loadSource(OPCODES_6502_FNAME)
     # Load 65C02 opcodes list
-    loadSource(OPCODES_65c02_FNAME)
+    loadSource(OPCODES_65c816_FNAME)
     # Fill opcodes list with NOP instructions
     fillNop()
 

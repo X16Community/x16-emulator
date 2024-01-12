@@ -120,16 +120,16 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 				if (isIndirect) {
 					uint16_t ptr = real_read6502(pc + 1, debugOn, bank);
 					if (isXrel)
-						ptr += x;
+						ptr += regs.x;
 					*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
 					if (isYrel)
-						*eff_addr += y;
+						*eff_addr += regs.y;
 				} else if (!isImmediate) {
 					*eff_addr = real_read6502(pc + 1, debugOn, bank);
 					if (isXrel)
-						*eff_addr += x;
+						*eff_addr += regs.x;
 					if (isYrel)
-						*eff_addr += y;
+						*eff_addr += regs.y;
 				}
 			}
 		}
@@ -139,19 +139,19 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 			if (isIndirect) {
 				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
-					ptr += x;
+					ptr += regs.x;
 				*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
 				if (isYrel)
-					*eff_addr += y;
+					*eff_addr += regs.y;
 			} else {
 				*eff_addr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
-					*eff_addr += x;
+					*eff_addr += regs.x;
 				if (isYrel)
-					*eff_addr += y;
+					*eff_addr += regs.y;
 			}
 		}
-		if (opcode == 0x00) { 
+		if (opcode == 0x00) {
 			// BRK instruction is 2 bytes long according to WDC datasheet.
 			// CPU skips the second byte when it executes a BRK.
 			length = 2;

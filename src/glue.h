@@ -9,7 +9,9 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-//#define TRACE
+#include "cpu/registers.h"
+
+#define TRACE
 //#define PERFSTAT
 
 #define NUM_MAX_RAM_BANKS 256
@@ -50,8 +52,7 @@ typedef enum {
 	RECORD_GIF_ACTIVE
 } gif_recorder_state_t;
 
-extern uint8_t a, x, y, sp, status;
-extern uint16_t pc;
+extern struct regs regs;
 extern uint8_t *RAM;
 extern uint8_t ROM[];
 extern uint8_t *CART;

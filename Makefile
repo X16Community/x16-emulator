@@ -95,7 +95,7 @@ $(MAKECART_ODIR)/%.o: $(MAKECART_SDIR)/%.c
 	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c $< -MD -MT $@ -MF $(@:%o=%d) -o $@
 
-cpu/tables.h cpu/mnemonics.h: cpu/buildtables.py cpu/6502.opcodes cpu/65c02.opcodes
+cpu/tables.h cpu/mnemonics.h: cpu/buildtables.py cpu/6502.opcodes cpu/65c816.opcodes
 	cd cpu && python buildtables.py
 
 # Empty rules so that renames of header files do not trigger a failure to compile

@@ -165,19 +165,19 @@ static inline bool hitBreakpoint(int pc, struct breakpoint bp) {
 int  DEBUGGetCurrentStatus(void) {
 
 	SDL_Event event;
-	if (currentPC < 0) currentPC = pc;                                      // Initialise current PC displayed.
+	if (currentPC < 0) currentPC = regs.pc;                                      // Initialise current PC displayed.
 
 	if (currentMode == DMODE_STEP) {                                        // Single step before
-		if (currentPC != pc || currentPCBank != getCurrentBank(pc)) {   // Ensure that the PC moved
-			currentPC = pc;                                         // Update current PC
-			currentPCBank = getCurrentBank(pc);                     // Update the bank if we are in upper memory.
+		if (currentPC != regs.pc || currentPCBank != getCurrentBank(regs.pc)) {   // Ensure that the PC moved
+			currentPC = regs.pc;                                         // Update current PC
+			currentPCBank = getCurrentBank(regs.pc);                     // Update the bank if we are in upper memory.
 			currentMode = DMODE_STOP;                               // So now stop, as we've done it.
 		}
 	}
 
-	if (hitBreakpoint(pc, breakPoint) || hitBreakpoint(pc, stepBreakPoint)) {       // Hit a breakpoint.
-		currentPC = pc;                                                         // Update current PC
-		currentPCBank = getCurrentBank(pc);                                     // Update the bank if we are in upper memory.
+	if (hitBreakpoint(regs.pc, breakPoint) || hitBreakpoint(regs.pc, stepBreakPoint)) {       // Hit a breakpoint.
+		currentPC = regs.pc;                                                         // Update current PC
+		currentPCBank = getCurrentBank(regs.pc);                                     // Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;                                               // So now stop, as we've done it.
 		stepBreakPoint.pc = -1;                                                 // Clear step breakpoint.
 		stepBreakPoint.bank = -1;
@@ -185,8 +185,8 @@ int  DEBUGGetCurrentStatus(void) {
 
 	if (SDL_GetKeyboardState(NULL)[DBGSCANKEY_BRK]) {                       // Stop on break pressed.
 		currentMode = DMODE_STOP;
-		currentPC = pc;                                                 // Set the PC to what it is.
-		currentPCBank = getCurrentBank(pc);                             // Update the bank if we are in upper memory.
+		currentPC = regs.pc;                                                 // Set the PC to what it is.
+		currentPCBank = getCurrentBank(regs.pc);                             // Update the bank if we are in upper memory.
 	}
 
 	if (currentPCBank<0 && currentPC >= 0xA000) {
@@ -255,8 +255,8 @@ void DEBUGSetBreakPoint(struct breakpoint newBreakPoint) {
 
 void DEBUGBreakToDebugger(void) {
 	currentMode = DMODE_STOP;
-	currentPC = pc;
-	currentPCBank = getCurrentBank(pc);
+	currentPC = regs.pc;
+	currentPCBank = getCurrentBank(regs.pc);
 }
 
 // *******************************************************************************************
@@ -275,10 +275,10 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
-			opcode = real_read6502(pc, true, currentPCBank);			// What opcode is it ?
+			opcode = real_read6502(regs.pc, true, currentPCBank);			// What opcode is it ?
 			if (opcode == 0x20) { 							// Is it JSR ?
-				stepBreakPoint.pc = pc + 3;					// Then break 3 on.
-				stepBreakPoint.bank = getCurrentBank(pc);
+				stepBreakPoint.pc = regs.pc + 3;					// Then break 3 on.
+				stepBreakPoint.bank = getCurrentBank(regs.pc);
 				currentMode = DMODE_RUN;					// And run.
 				timing_init();
 			} else {
@@ -297,13 +297,13 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_HOME:								// F1 sets the display PC to the actual one.
-			currentPC = pc;
-			currentPCBank= getCurrentBank(pc);
+			currentPC = regs.pc;
+			currentPCBank= getCurrentBank(regs.pc);
 			break;
 
 		case DBGKEY_RESET:								// F2 reset the 6502
 			reset6502();
-			currentPC = pc;
+			currentPC = regs.pc;
 			currentPCBank= -1;
 			break;
 
@@ -470,20 +470,20 @@ static void DEBUGExecCmd() {
 			sscanf(line, "%s %x", reg, &number);
 
 			if(!strcmp(reg, "pc")) {
-				pc= number & 0xFFFF;
+				regs.pc= number & 0xFFFF;
 				waiting = 0;
 			}
 			if(!strcmp(reg, "a")) {
-				a= number & 0x00FF;
+				regs.a= number & 0x00FF;
 			}
 			if(!strcmp(reg, "x")) {
-				x= number & 0x00FF;
+				regs.x= number & 0x00FF;
 			}
 			if(!strcmp(reg, "y")) {
-				y= number & 0x00FF;
+				regs.y= number & 0x00FF;
 			}
 			if(!strcmp(reg, "sp")) {
-				sp= number & 0x00FF;
+				regs.sp= number & 0x00FF;
 			}
 			break;
 
@@ -642,7 +642,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 
 		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
-		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == pc ? col_highlight : col_data);
+		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
 		initialPC = (initialPC + size) & 0xffff;										// Forward to next
 	}
 }
@@ -653,7 +653,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels[] = { "NV-BDIZC","","","A","X","Y","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 
 
 static int DEBUGRenderRegisters(void) {
@@ -662,24 +662,30 @@ static int DEBUGRenderRegisters(void) {
 		DEBUGString(dbgRenderer, DBG_LBLX,n,labels[n], col_label);n++;
 	}
 	yc++;
-	DEBUGNumber(DBG_LBLX, yc, (status >> 7) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+1, yc, (status >> 6) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+3, yc, (status >> 4) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+4, yc, (status >> 3) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+5, yc, (status >> 2) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+6, yc, (status >> 1) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+7, yc, (status >> 0) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+2, yc, (regs.status >> 5) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+8, yc, regs.e, 1, col_data);
 	yc+= 2;
 
-	DEBUGNumber(DBG_DATX, yc++, a, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, x, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, y, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.b, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.c, 4, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.x, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.xw, 4, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.y, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.yw, 4, col_data);
 	yc++;
 
 	DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
 	DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, pc, 4, col_data);
-	DEBUGNumber(DBG_DATX, yc++, sp|0x100, 4, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.sp, 4, col_data);
 	yc++;
 
 	if (breakPoint.bank < 0) {
@@ -704,15 +710,17 @@ static int DEBUGRenderRegisters(void) {
 // *******************************************************************************************
 
 static void DEBUGRenderStack(int bytesCount) {
-	int data= (sp+1) | 0x100;
+	uint16_t sp = regs.sp;
+	sp = (sp & 0xFF00) | ((uint16_t) (((uint8_t) sp & 0xFF) + 1));
+
 	int y= 0;
 	while (y < bytesCount) {
-		DEBUGNumber(DBG_STCK,y,data & 0xFFFF,4, col_label);
-		int byte = real_read6502((data++) & 0xFFFF, false, 0);
+		DEBUGNumber(DBG_STCK,y, sp,4, col_label);
+		int byte = real_read6502(sp, false, 0);
 		DEBUGNumber(DBG_STCK+5,y,byte,2, col_data);
 		DEBUGWrite(dbgRenderer, DBG_STCK+9,y,byte, col_data);
 		y++;
-		data= (data & 0xFF) | 0x100;
+		sp = (sp & 0xFF00) | ((uint16_t) (((uint8_t) sp & 0xFF) + 1));
 	}
 }
 

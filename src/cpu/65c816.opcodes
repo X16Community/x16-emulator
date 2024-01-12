@@ -1,10 +1,10 @@
 ; *******************************************************************************************
 ; *******************************************************************************************
 ;
-;		File:		65c02.opcodes
-;		Date:		3rd September 2019
-;		Purpose:	Descriptor file, extra 65C02 opcodes
-;		Author:		Paul Robson (paul@robson.org.uk)
+;		File:		65C816.opcodes
+;		Date:		10th Januay 2024
+;		Purpose:	Descriptor file, standard 65C816 opcodes
+;		Author:		Paul Robson (paul@robson.org.uk), Fulgen
 ;
 ; *******************************************************************************************
 ; *******************************************************************************************
@@ -18,9 +18,12 @@ ora ind0 5 $12
 sbc ind0 5 $f2
 sta ind0 5 $92
 
+
 bit immm 2 $89
 bit zpx 4 $34
 bit absx 4 $3c
+
+cop imp 7 $02
 
 dec acc 2 $3a
 inc acc 2 $1a
@@ -29,8 +32,14 @@ jmp ainx 6 $7c
 
 bra rel 3 $80
 
+pea imm16 5 $f4
+phb imp 3 $8b
+phd imp 4 $0b
+phk imp 3 $4b
 phx imp 3 $da
 phy imp 3 $5a
+plb imp 4 $ab
+pld imp 5 $2b
 plx imp 4 $fa
 ply imp 4 $7a
 
@@ -44,42 +53,22 @@ trb abso 6 $1c
 tsb zp 5 $04
 tsb abso 6 $0c
 
-bbr0 zprel 5 $0f
-bbr1 zprel 5 $1f
-bbr2 zprel 5 $2f
-bbr3 zprel 5 $3f
-bbr4 zprel 5 $4f
-bbr5 zprel 5 $5f
-bbr6 zprel 5 $6f
-bbr7 zprel 5 $7f
-
-bbs0 zprel 5 $8f
-bbs1 zprel 5 $9f
-bbs2 zprel 5 $af
-bbs3 zprel 5 $bf
-bbs4 zprel 5 $cf
-bbs5 zprel 5 $df
-bbs6 zprel 5 $ef
-bbs7 zprel 5 $ff
-
-rmb0 zp 5 $07
-rmb1 zp 5 $17
-rmb2 zp 5 $27
-rmb3 zp 5 $37
-rmb4 zp 5 $47
-rmb5 zp 5 $57
-rmb6 zp 5 $67
-rmb7 zp 5 $77
-
-smb0 zp 5 $87
-smb1 zp 5 $97
-smb2 zp 5 $a7
-smb3 zp 5 $b7
-smb4 zp 5 $c7
-smb5 zp 5 $d7
-smb6 zp 5 $e7
-smb7 zp 5 $f7
-
 wai imp 3 $cb
 
-dbg imp 1 $DB
+stp imp 1 $DB
+
+mvn bmv 7 $54
+mvp bmv 7 $44
+
+rep imm8 3 $c2
+sep imm8 3 $e2
+
+tcd imp 2 $5b
+tcs imp 2 $1b
+tdc imp 2 $7b
+tsc imp 2 $3b
+txy imp 2 $9b
+tyx imp 2 $bb
+
+xba imp 3 $eb
+xce imp 2 $fb

@@ -4,22 +4,20 @@
 
 */
 
-#define saveaccum(n) a = (uint8_t)((n) & 0x00FF)
-
 
 //flag modifier macros
-#define setcarry() status |= FLAG_CARRY
-#define clearcarry() status &= (~FLAG_CARRY)
-#define setzero() status |= FLAG_ZERO
-#define clearzero() status &= (~FLAG_ZERO)
-#define setinterrupt() status |= FLAG_INTERRUPT
-#define clearinterrupt() status &= (~FLAG_INTERRUPT)
-#define setdecimal() status |= FLAG_DECIMAL
-#define cleardecimal() status &= (~FLAG_DECIMAL)
-#define setoverflow() status |= FLAG_OVERFLOW
-#define clearoverflow() status &= (~FLAG_OVERFLOW)
-#define setsign() status |= FLAG_SIGN
-#define clearsign() status &= (~FLAG_SIGN)
+#define setcarry() regs.status |= FLAG_CARRY
+#define clearcarry() regs.status &= (~FLAG_CARRY)
+#define setzero() regs.status |= FLAG_ZERO
+#define clearzero() regs.status &= (~FLAG_ZERO)
+#define setinterrupt() regs.status |= FLAG_INTERRUPT
+#define clearinterrupt() regs.status &= (~FLAG_INTERRUPT)
+#define setdecimal() regs.status |= FLAG_DECIMAL
+#define cleardecimal() regs.status &= (~FLAG_DECIMAL)
+#define setoverflow() regs.status |= FLAG_OVERFLOW
+#define clearoverflow() regs.status &= (~FLAG_OVERFLOW)
+#define setsign() regs.status |= FLAG_SIGN
+#define clearsign() regs.status &= (~FLAG_SIGN)
 
 
 //flag calculation macros
@@ -43,37 +41,49 @@
         else clearoverflow();\
 }
 
+#define index_16bit() (!(regs.status & FLAG_INDEX_WIDTH))
+#define memory_16bit() (!(regs.status & FLAG_MEMORY_WIDTH))
+#define acc_for_mode() (memory_16bit() ? regs.c : ((uint16_t) regs.a))
+
+
+#define saveaccum(n) (memory_16bit() ? (regs.c = (n)) : (regs.a = (uint8_t)((n) & 0x00FF)))
+
 //a few general functions used by various other functions
 void push16(uint16_t pushval) {
-    write6502(BASE_STACK + sp, (pushval >> 8) & 0xFF);
-    write6502(BASE_STACK + ((sp - 1) & 0xFF), pushval & 0xFF);
-    sp -= 2;
+    write6502(regs.sp, (pushval >> 8) & 0xFF);
+    regs.spl--;
+    write6502(regs.sp, pushval & 0xFF);
+    regs.spl--;
 }
 
 void push8(uint8_t pushval) {
-    write6502(BASE_STACK + sp--, pushval);
+    write6502(regs.sp, pushval);
+    regs.spl--;
 }
 
 uint16_t pull16() {
-    uint16_t temp16;
-    temp16 = read6502(BASE_STACK + ((sp + 1) & 0xFF)) | ((uint16_t)read6502(BASE_STACK + ((sp + 2) & 0xFF)) << 8);
-    sp += 2;
-    return(temp16);
+    regs.spl++;
+    uint16_t temp16 = read6502(regs.sp);
+    regs.spl++;
+    temp16 |= (uint16_t) read6502(regs.sp) << 8;
+    return temp16;
 }
 
 uint8_t pull8() {
-    return (read6502(BASE_STACK + ++sp));
+    regs.spl++;
+    uint8_t value = read6502(regs.sp);
+    return value;
 }
 
 void reset6502() {
-    pc = (uint16_t)read6502(0xFFFC) | ((uint16_t)read6502(0xFFFD) << 8);
-    a = 0;
-    x = 0;
-    y = 0;
-    sp = 0xFD;
-    status |= FLAG_CONSTANT | FLAG_BREAK;
+    regs.pc = (uint16_t)read6502(0xFFFC) | ((uint16_t)read6502(0xFFFD) << 8);
+    regs.c = 0;
+    regs.xw = 0;
+    regs.yw = 0;
+    regs.sp = 0x1FD;
+    regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+    regs.e = 1;
     setinterrupt();
     cleardecimal();
     waiting = 0;
 }
-
