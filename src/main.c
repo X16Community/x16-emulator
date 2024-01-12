@@ -1328,7 +1328,7 @@ handle_ieee_intercept()
 		}
 
 		regs.pc = (RAM[regs.sp + 1] | (RAM[regs.sp + 2] << 8)) + 1;
-		regs.sp += 2;
+		regs.spl += 2;
 	}
 	return handled;
 }
