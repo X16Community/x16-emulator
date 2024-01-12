@@ -218,7 +218,7 @@ void testbench_init()
                 if (ival == -1) {
                     invalid();
                 } else {
-                    regs.sp = (uint8_t)ival;
+                    regs.spl = (uint8_t)ival;
                     ready();
                 }
             }
