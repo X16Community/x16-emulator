@@ -711,7 +711,7 @@ static int DEBUGRenderRegisters(void) {
 
 static void DEBUGRenderStack(int bytesCount) {
 	uint16_t sp = regs.sp;
-	sp = (sp & 0xFF00) | ((uint16_t) (((uint8_t) sp & 0xFF) + 1));
+	increment_wrap_at_page_boundary(&sp);
 
 	int y= 0;
 	while (y < bytesCount) {
@@ -720,7 +720,7 @@ static void DEBUGRenderStack(int bytesCount) {
 		DEBUGNumber(DBG_STCK+5,y,byte,2, col_data);
 		DEBUGWrite(dbgRenderer, DBG_STCK+9,y,byte, col_data);
 		y++;
-		sp = (sp & 0xFF00) | ((uint16_t) (((uint8_t) sp & 0xFF) + 1));
+		increment_wrap_at_page_boundary(&sp);
 	}
 }
 

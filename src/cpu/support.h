@@ -49,28 +49,72 @@
 #define saveaccum(n) (memory_16bit() ? (regs.c = (n)) : (regs.a = (uint8_t)((n) & 0x00FF)))
 
 //a few general functions used by various other functions
+
+uint16_t add_wrap_at_page_boundary(uint16_t value, uint8_t add) {
+    if (regs.e) {
+        return (value & 0xFF00) | ((uint16_t) ((uint8_t) (value & 0x00FF)) + add);
+    } else {
+        return value + add;
+    }
+}
+
+uint16_t subtract_wrap_at_page_boundary(uint16_t value, uint8_t subtract) {
+    if (regs.e) {
+        return (value & 0xFF00) | ((uint16_t) ((uint8_t) (value & 0x00FF)) - subtract);
+    } else {
+        return value - subtract;
+    }
+}
+
+void increment_wrap_at_page_boundary(uint16_t *value) {
+    if (regs.e) {
+        *value = (*value & 0xFF00) | ((uint16_t) ((uint8_t) (*value & 0x00FF)) + 1);
+    } else {
+        (*value)++;
+    }
+}
+
+void decrement_wrap_at_page_boundary(uint16_t *value) {
+    if (regs.e) {
+        *value = (*value & 0xFF00) | ((uint16_t) ((uint8_t) (*value & 0x00FF)) - 1);
+    } else {
+        (*value)--;
+    }
+}
+
+uint16_t direct_page_add(uint16_t offset) {
+    if (regs.e && (regs.dp & 0x00FF) == 0) {
+        return (regs.dp & 0xFF00) | ((uint16_t) ((uint8_t) (regs.dp & 0x00FF)) + (offset % 256));
+    } else {
+        return regs.dp + offset;
+    }
+}
+
+#define incsp() increment_wrap_at_page_boundary(&regs.sp)
+#define decsp() decrement_wrap_at_page_boundary(&regs.sp)
+
 void push16(uint16_t pushval) {
     write6502(regs.sp, (pushval >> 8) & 0xFF);
-    regs.spl--;
+    decsp();
     write6502(regs.sp, pushval & 0xFF);
-    regs.spl--;
+    decsp();
 }
 
 void push8(uint8_t pushval) {
     write6502(regs.sp, pushval);
-    regs.spl--;
+    decsp();
 }
 
 uint16_t pull16() {
-    regs.spl++;
+    incsp();
     uint16_t temp16 = read6502(regs.sp);
-    regs.spl++;
+    incsp();
     temp16 |= (uint16_t) read6502(regs.sp) << 8;
     return temp16;
 }
 
 uint8_t pull8() {
-    regs.spl++;
+    incsp();
     uint8_t value = read6502(regs.sp);
     return value;
 }
@@ -80,6 +124,7 @@ void reset6502() {
     regs.c = 0;
     regs.xw = 0;
     regs.yw = 0;
+    regs.dp = 0;
     regs.sp = 0x1FD;
     regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
     regs.e = 1;

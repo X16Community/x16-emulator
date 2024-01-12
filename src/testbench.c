@@ -218,7 +218,7 @@ void testbench_init()
                 if (ival == -1) {
                     invalid();
                 } else {
-                    regs.spl = (uint8_t)ival;
+                    regs.sp = (regs.sp & 0xFF00) | (uint8_t)ival;
                     ready();
                 }
             }
@@ -235,9 +235,9 @@ void testbench_init()
                     invalid();
                 } else {
                     write6502(regs.sp, (0xfffd -1) >> 8);
-                    regs.sp--;
+                    decrement_wrap_at_page_boundary(&regs.sp);
                     write6502(regs.sp, (0xfffd - 1) & 255);
-                    regs.sp--;
+                    decrement_wrap_at_page_boundary(&regs.sp);
                     regs.pc = (uint16_t)iaddr;
 
                     init_done=true;

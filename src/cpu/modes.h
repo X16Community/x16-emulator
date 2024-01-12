@@ -43,16 +43,26 @@ static void imm16() {
     regs.pc += 2;
 }
 
+static void _zp_with_offset(uint16_t offset) {
+    uint16_t imm_value = (uint16_t) read6502((uint16_t)regs.pc++);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
+
+    ea = direct_page_add(imm_value + offset);
+}
+
 static void zp() { //zero-page
-    ea = (uint16_t)read6502((uint16_t)regs.pc++);
+    _zp_with_offset(0);
 }
 
 static void zpx() { //zero-page,X
-    ea = ((uint16_t)read6502((uint16_t)regs.pc++) + (uint16_t)regs.x) & 0xFF; //zero-page wraparound
+    _zp_with_offset(regs.x);
 }
 
 static void zpy() { //zero-page,Y
-    ea = ((uint16_t)read6502((uint16_t)regs.pc++) + (uint16_t)regs.y) & 0xFF; //zero-page wraparound
+    _zp_with_offset(regs.y);
 }
 
 static void rel() { //relative for branch ops (8-bit immediate value, sign-extended)

@@ -811,7 +811,7 @@ static void xce() {
 
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
-        regs.sph = 0x01;
+        regs.sp = 0x0100 | (regs.sp & 0x00FF);
         regs.xh = 0x00;
         regs.yh = 0x00;
     }

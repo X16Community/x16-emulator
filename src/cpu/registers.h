@@ -39,25 +39,8 @@ struct regs
         uint16_t yw;
     };
 
-    union
-    {
-        struct
-        {
-            uint8_t dpl;
-            uint8_t dph;
-        };
-        uint16_t dp;
-    };
-
-    union
-    {
-        struct
-        {
-            uint8_t spl;
-            uint8_t sph;
-        };
-        uint16_t sp;
-    };
+    uint16_t dp;
+    uint16_t sp;
 
     uint8_t db;
     uint16_t pc;
@@ -66,5 +49,9 @@ struct regs
     uint8_t status;
     uint8_t e;
 };
+
+void increment_wrap_at_page_boundary(uint16_t *value);
+void decrement_wrap_at_page_boundary(uint16_t *value);
+uint16_t direct_page_add(uint16_t offset);
 
 #endif

@@ -1327,8 +1327,10 @@ handle_ieee_intercept()
 			}
 		}
 
-		regs.pc = (RAM[regs.sp + 1] | (RAM[regs.sp + 2] << 8)) + 1;
-		regs.spl += 2;
+		increment_wrap_at_page_boundary(&regs.sp);
+		uint8_t low = read6502(regs.sp);
+		increment_wrap_at_page_boundary(&regs.sp);
+		regs.pc = ((read6502(regs.sp) << 8) | low) + 1;
 	}
 	return handled;
 }

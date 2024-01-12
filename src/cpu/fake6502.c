@@ -141,6 +141,7 @@ uint8_t penaltyop, penaltyaddr;
 uint8_t penaltym = 0;
 uint8_t penaltye = 0;
 uint8_t penaltyx = 0;
+uint8_t penaltyd = 0;
 uint8_t waiting = 0;
 
 //externally supplied functions
@@ -278,6 +279,7 @@ void step6502() {
     if (memory_16bit()) clockticks6502 += penaltym;
     if (index_16bit()) clockticks6502 += penaltyx;
     if (penaltye && !regs.e) clockticks6502++;
+    if (penaltyd) clockticks6502 ++;
     clockgoal6502 = clockticks6502;
 
     instructions++;
