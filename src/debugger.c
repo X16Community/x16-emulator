@@ -653,8 +653,16 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","DB","PB","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 
+static void DEBUGNumberHighByteCondition(int x, int y, int n, _Bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
+	if (condition) {
+		DEBUGNumber(x, y, n >> 8, 2, ifTrue);
+		DEBUGNumber(x + 2, y, n & 0xFF, 2, ifFalse);
+	} else {
+		DEBUGNumber(x, y, n, 4, ifFalse);
+	}
+}
 
 static int DEBUGRenderRegisters(void) {
 	int n = 0,yc = 0;
@@ -664,8 +672,8 @@ static int DEBUGRenderRegisters(void) {
 	yc++;
 	DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
 	DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+2, yc, (regs.status >> 5) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, col_data);
+	DEBUGNumber(DBG_LBLX+2, yc, (regs.status >> 5) & 1, 1, regs.e ? col_vram_other : col_data);
+	DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, regs.e ? col_vram_other : col_data);
 	DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
 	DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
 	DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
@@ -677,16 +685,18 @@ static int DEBUGRenderRegisters(void) {
 	DEBUGNumber(DBG_DATX, yc++, regs.b, 2, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.c, 4, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.x, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.xw, 4, col_data);
+	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.xw, (regs.status >> 4) & 1, col_vram_other, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.y, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.yw, 4, col_data);
+	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.yw, (regs.status >> 4) & 1, col_vram_other, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.db, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.pb, 2, col_data);
 	yc++;
 
 	DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
 	DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.dp, 4, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.sp, 4, col_data);
+	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.sp, regs.e, col_vram_other, col_data);
 	yc++;
 
 	if (breakPoint.bank < 0) {
