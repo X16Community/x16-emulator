@@ -49,7 +49,7 @@ static void ainx() { 		// absolute indexed branch
 // *******************************************************************************************
 
 static void stz() {
-    putvalue(0);
+    putvalue(0, memory_16bit());
 }
 
 // *******************************************************************************************
@@ -127,7 +127,7 @@ static void tsb() {
     result = acc_for_mode() & value;                // calculate A & memory
     zerocalc(result); 								// Set Z flag from this.
     result = value | acc_for_mode(); 				// Write back value read, A bits are set.
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void trb() {
@@ -135,7 +135,7 @@ static void trb() {
     result = acc_for_mode() & value;  			// calculate A & memory
     zerocalc(result); 								// Set Z flag from this.
     result = value & (memory_16bit() ? regs.c ^ 0xFFFF : regs.a ^ 0xFF); 		    	// Write back value read, A bits are clear.
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 // *******************************************************************************************

@@ -75,7 +75,7 @@ static void asl() {
     zerocalc(result);
     signcalc(result);
 
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void bcc() {
@@ -286,7 +286,7 @@ static void dec() {
     zerocalc(result);
     signcalc(result);
 
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void dex() {
@@ -331,7 +331,7 @@ static void inc() {
     zerocalc(result);
     signcalc(result);
 
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void inx() {
@@ -426,7 +426,7 @@ static void lsr() {
     zerocalc(result);
     signcalc(result);
 
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void nop() {
@@ -527,7 +527,7 @@ static void rol() {
     zerocalc(result);
     signcalc(result);
 
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void ror() {
@@ -539,7 +539,7 @@ static void ror() {
     zerocalc(result);
     signcalc(result);
 
-    putvalue(result);
+    putvalue(result, memory_16bit());
 }
 
 static void rti() {
@@ -630,15 +630,15 @@ static void sep() {
 }
 
 static void sta() {
-    putvalue(acc_for_mode());
+    putvalue(acc_for_mode(), memory_16bit());
 }
 
 static void stx() {
-    putvalue(index_16bit() ? regs.xw : regs.x);
+    putvalue(index_16bit() ? regs.xw : regs.x, index_16bit());
 }
 
 static void sty() {
-    putvalue(index_16bit() ? regs.yw : regs.y);
+    putvalue(index_16bit() ? regs.yw : regs.y, index_16bit());
 }
 
 static void tax() {

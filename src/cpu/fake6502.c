@@ -169,13 +169,16 @@ __attribute__((unused)) static uint16_t getvalue16() {
     return((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
 }
 
-static void putvalue(uint16_t saveval) {
+static void putvalue(uint16_t saveval, _Bool use16Bit) {
     if (addrtable[opcode] == acc) {
-        if (memory_16bit()) {
+        if (use16Bit) {
             regs.c = saveval;
         } else {
             regs.a = (uint8_t)(saveval & 0x00FF);
         }
+    } else if (use16Bit) {
+        write6502(ea, (saveval & 0x00FF));
+        write6502(ea + 1, saveval >> 8);
     } else {
         write6502(ea, (saveval & 0x00FF));
     }
