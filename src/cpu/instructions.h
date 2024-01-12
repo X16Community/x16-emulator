@@ -470,7 +470,7 @@ static void phb() {
 }
 
 static void phd() {
-    push8(regs.dp);
+    push16(regs.dp);
 }
 
 static void phk() {
@@ -500,7 +500,7 @@ static void plb() {
 }
 
 static void pld() {
-    regs.dp = pull8();
+    regs.dp = pull16();
 }
 
 static void plp() {

@@ -39,7 +39,15 @@ struct regs
         uint16_t yw;
     };
 
-    uint8_t dp;
+    union
+    {
+        struct
+        {
+            uint8_t dpl;
+            uint8_t dph;
+        };
+        uint16_t dp;
+    };
 
     union
     {
