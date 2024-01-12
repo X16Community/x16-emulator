@@ -561,7 +561,7 @@ static void DEBUGRenderZeroPageRegisters(int y) {
 			DEBUGString(dbgRenderer, DBG_ZP_REG, y, lbl, col_label);
 
 			int reg_addr = 2 + reg * 2;
-			int n = real_read6502(reg_addr+1, true, currentBank)*256+real_read6502(reg_addr, true, currentBank);
+			int n = real_read6502(direct_page_add(reg_addr+1), true, currentBank)*256+real_read6502(direct_page_add(reg_addr), true, currentBank);
 
 			DEBUGNumber(DBG_ZP_REG+5, y, n, 4, col_data);
 
@@ -653,7 +653,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 
 
 static int DEBUGRenderRegisters(void) {
@@ -685,6 +685,7 @@ static int DEBUGRenderRegisters(void) {
 	DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
 	DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.dp, 4, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.sp, 4, col_data);
 	yc++;
 
