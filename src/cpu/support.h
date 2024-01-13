@@ -21,23 +21,32 @@
 
 
 //flag calculation macros
-#define zerocalc(n) {\
-    if ((n) & 0x00FF) clearzero();\
+#define zerocalc(n, use16Bit) {\
+    if (use16Bit) \
+        if ((n) & 0xFFFF) clearzero();\
+            else setzero();\
+    else if ((n) & 0x00FF) clearzero();\
         else setzero();\
 }
 
-#define signcalc(n) {\
-    if ((n) & 0x0080) setsign();\
+#define signcalc(n, use16Bit) {\
+    if (use16Bit) \
+        if ((n) & 0x8000) setsign();\
+            else clearsign();\
+    else if ((n) & 0x0080) setsign();\
         else clearsign();\
 }
 
-#define carrycalc(n) {\
-    if ((n) & 0xFF00) setcarry();\
+#define carrycalc(n, use16Bit) {\
+    if (use16Bit) \
+        if ((n) & 0x10000) setcarry();\
+            else clearcarry();\
+    else if ((n) & 0x0100) setcarry();\
         else clearcarry();\
 }
 
 #define overflowcalc(n, m, o) { /* n = result, m = accumulator, o = memory */ \
-    if (((n) ^ (uint16_t)(m)) & ((n) ^ (o)) & 0x0080) setoverflow();\
+    if (((n) ^ (uint16_t)(m)) & ((n) ^ (o)) & (memory_16bit() ? 0x8000 : 0x0080)) setoverflow();\
         else clearoverflow();\
 }
 

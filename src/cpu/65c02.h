@@ -89,8 +89,8 @@ static void plx() {
         regs.x = pull8();
     }
 
-    zerocalc(regs.x);
-    signcalc(regs.x);
+    zerocalc(regs.x, index_16bit());
+    signcalc(regs.x, index_16bit());
 }
 
 static void phy() {
@@ -112,8 +112,8 @@ static void ply() {
         regs.y = pull8();
     }
 
-    zerocalc(regs.y);
-    signcalc(regs.y);
+    zerocalc(regs.y, index_16bit());
+    signcalc(regs.y, index_16bit());
 }
 
 // *******************************************************************************************
@@ -125,7 +125,7 @@ static void ply() {
 static void tsb() {
     value = getvalue(memory_16bit()); 							// Read memory
     result = acc_for_mode() & value;                // calculate A & memory
-    zerocalc(result); 								// Set Z flag from this.
+    zerocalc(result, memory_16bit()); 								// Set Z flag from this.
     result = value | acc_for_mode(); 				// Write back value read, A bits are set.
     putvalue(result, memory_16bit());
 }
@@ -133,7 +133,7 @@ static void tsb() {
 static void trb() {
     value = getvalue(memory_16bit()); 							// Read memory
     result = acc_for_mode() & value;  			// calculate A & memory
-    zerocalc(result); 								// Set Z flag from this.
+    zerocalc(result, memory_16bit()); 								// Set Z flag from this.
     result = value & (memory_16bit() ? regs.c ^ 0xFFFF : regs.a ^ 0xFF); 		    	// Write back value read, A bits are clear.
     putvalue(result, memory_16bit());
 }

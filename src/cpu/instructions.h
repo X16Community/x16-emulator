@@ -36,8 +36,8 @@ static void adc() {
         }
         result = (tmp & 0x0F) | (tmp2 & 0xF0);
 
-        zerocalc(result);                /* 65C02 change, Decimal Arithmetic sets NZV */
-        signcalc(result);
+        zerocalc(result, memory_16bit());                /* 65C02 change, Decimal Arithmetic sets NZV */
+        signcalc(result, memory_16bit());
 
         clockticks6502++;
     } else {
@@ -45,10 +45,10 @@ static void adc() {
         value = getvalue(memory_16bit());
         result = acc_for_mode() + value + (uint16_t) (regs.status & FLAG_CARRY);
 
-        carrycalc(result);
-        zerocalc(result);
+        carrycalc(result, memory_16bit());
+        zerocalc(result, memory_16bit());
         overflowcalc(result, acc_for_mode(), value);
-        signcalc(result);
+        signcalc(result, memory_16bit());
     #ifndef NES_CPU
     }
     #endif
@@ -61,8 +61,8 @@ static void and() {
     value = getvalue(memory_16bit());
     result = acc_for_mode() & value;
 
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     saveaccum(result);
 }
@@ -71,9 +71,9 @@ static void asl() {
     value = getvalue(memory_16bit());
     result = value << 1;
 
-    carrycalc(result);
-    zerocalc(result);
-    signcalc(result);
+    carrycalc(result, memory_16bit());
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     putvalue(result, memory_16bit());
 }
@@ -109,7 +109,7 @@ static void bit() {
     value = getvalue(memory_16bit());
     result = acc_for_mode() & value;
 
-    zerocalc(result);
+    zerocalc(result, memory_16bit());
     // Xark - BUGFIX: 65C02 BIT #$xx only affects Z  See: http://6502.org/tutorials/65c02opcodes.html#2
     if (opcode != 0x89)
     {
@@ -217,7 +217,7 @@ static void cmp() {
         else clearzero();
     }
 
-    signcalc(result);
+    signcalc(result, memory_16bit());
 }
 
 static void cop() {
@@ -257,7 +257,7 @@ static void cpx() {
         if (regs.x == (uint8_t)(value & 0x00FF)) setzero();
         else clearzero();
     }
-    signcalc(result);
+    signcalc(result, index_16bit());
 }
 
 static void cpy() {
@@ -276,15 +276,15 @@ static void cpy() {
         if (regs.y == (uint8_t)(value & 0x00FF)) setzero();
         else clearzero();
     }
-    signcalc(result);
+    signcalc(result, index_16bit());
 }
 
 static void dec() {
     value = getvalue(memory_16bit());
     result = value - 1;
 
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     putvalue(result, memory_16bit());
 }
@@ -292,24 +292,24 @@ static void dec() {
 static void dex() {
     if (index_16bit()) {
         regs.xw--;
-        zerocalc(regs.xw);
-        signcalc(regs.xw);
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         regs.x--;
-        zerocalc(regs.x);
-        signcalc(regs.x);
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
     }
 }
 
 static void dey() {
     if (index_16bit()) {
         regs.yw--;
-        zerocalc(regs.yw);
-        signcalc(regs.yw);
+        zerocalc(regs.yw, 1);
+        signcalc(regs.yw, 1);
     } else {
         regs.y--;
-        zerocalc(regs.y);
-        signcalc(regs.y);
+        zerocalc(regs.y, 0);
+        signcalc(regs.y, 0);
     }
 }
 
@@ -318,8 +318,8 @@ static void eor() {
     value = getvalue(memory_16bit());
     result = acc_for_mode() ^ value;
 
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     saveaccum(result);
 }
@@ -328,8 +328,8 @@ static void inc() {
     value = getvalue(memory_16bit());
     result = value + 1;
 
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     putvalue(result, memory_16bit());
 }
@@ -337,24 +337,24 @@ static void inc() {
 static void inx() {
     if (index_16bit()) {
         regs.xw++;
-        zerocalc(regs.xw);
-        signcalc(regs.xw);
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         regs.x++;
-        zerocalc(regs.x);
-        signcalc(regs.x);
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
     }
 }
 
 static void iny() {
     if (index_16bit()) {
         regs.yw++;
-        zerocalc(regs.yw);
-        signcalc(regs.yw);
+        zerocalc(regs.yw, 1);
+        signcalc(regs.yw, 1);
     } else {
         regs.y++;
-        zerocalc(regs.y);
-        signcalc(regs.y);
+        zerocalc(regs.y, 0);
+        signcalc(regs.y, 0);
     }
 }
 
@@ -373,17 +373,14 @@ static void lda() {
 
     if (memory_16bit()) {
         regs.c = getvalue(1);
-        zerocalc(regs.c);
-        signcalc(regs.c);
+        zerocalc(regs.c, 1);
+        signcalc(regs.c, 1);
     } else {
         value = getvalue(0);
         regs.a = (uint8_t)(value & 0x00FF);
-        zerocalc(regs.a);
-        signcalc(regs.a);
+        zerocalc(regs.a, 0);
+        signcalc(regs.a, 0);
     }
-
-    zerocalc(regs.a);
-    signcalc(regs.a);
 }
 
 static void ldx() {
@@ -392,13 +389,13 @@ static void ldx() {
 
     if (index_16bit()) {
         regs.xw = getvalue(1);
-        zerocalc(regs.xw);
-        signcalc(regs.xw);
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         value = getvalue(0);
         regs.x = (uint8_t)(value & 0x00FF);
-        zerocalc(regs.x);
-        signcalc(regs.x);
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
     }
 }
 
@@ -408,12 +405,12 @@ static void ldy() {
 
     if (index_16bit()) {
         regs.yw = getvalue(1);
-        zerocalc(regs.yw);
-        signcalc(regs.yw);
+        zerocalc(regs.yw, 1);
+        signcalc(regs.yw, 1);
     } else {
         regs.y = (uint8_t)(getvalue(0) & 0x00FF);
-        zerocalc(regs.y);
-        signcalc(regs.y);
+        zerocalc(regs.y, 0);
+        signcalc(regs.y, 0);
     }
 }
 
@@ -423,8 +420,8 @@ static void lsr() {
 
     if (value & 1) setcarry();
         else clearcarry();
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     putvalue(result, memory_16bit());
 }
@@ -447,8 +444,8 @@ static void ora() {
     value = getvalue(memory_16bit());
     result = acc_for_mode() | value;
 
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     saveaccum(result);
 }
@@ -484,19 +481,19 @@ static void php() {
 static void pla() {
     if (memory_16bit()) {
         regs.c = pull16();
-        zerocalc(regs.c);
-        signcalc(regs.c);
+        zerocalc(regs.c, 1);
+        signcalc(regs.c, 1);
     } else {
         regs.a = pull8();
-        zerocalc(regs.a);
-        signcalc(regs.a);
+        zerocalc(regs.a, 0);
+        signcalc(regs.a, 0);
     }
 }
 
 static void plb() {
     regs.b = pull8();
-    zerocalc(regs.b);
-    signcalc(regs.b);
+    zerocalc(regs.b, 0);
+    signcalc(regs.b, 0);
 }
 
 static void pld() {
@@ -523,9 +520,9 @@ static void rol() {
     value = getvalue(memory_16bit());
     result = (value << 1) | (regs.status & FLAG_CARRY);
 
-    carrycalc(result);
-    zerocalc(result);
-    signcalc(result);
+    carrycalc(result, memory_16bit());
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     putvalue(result, memory_16bit());
 }
@@ -536,8 +533,8 @@ static void ror() {
 
     if (value & 1) setcarry();
         else clearcarry();
-    zerocalc(result);
-    signcalc(result);
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     putvalue(result, memory_16bit());
 }
@@ -580,8 +577,8 @@ static void sbc() {
             clearcarry();
         }
 
-        zerocalc(result);                /* 65C02 change, Decimal Arithmetic sets NZV */
-        signcalc(result);
+        zerocalc(result, memory_16bit());                /* 65C02 change, Decimal Arithmetic sets NZV */
+        signcalc(result, memory_16bit());
 
         clockticks6502++;
     } else {
@@ -595,10 +592,10 @@ static void sbc() {
             result = (uint16_t)regs.a + value + (uint16_t)(regs.status & FLAG_CARRY);
         }
 
-        carrycalc(result);
-        zerocalc(result);
+        carrycalc(result, memory_16bit());
+        zerocalc(result, memory_16bit());
         overflowcalc(result, acc_for_mode(), value);
-        signcalc(result);
+        signcalc(result, memory_16bit());
     #ifndef NES_CPU
     }
     #endif
@@ -644,49 +641,49 @@ static void sty() {
 static void tax() {
     if (index_16bit()) {
         regs.xw = regs.c; // 16 bits transferred, no matter the state of m
-        zerocalc(regs.xw);
-        signcalc(regs.xw);
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         regs.x = (uint8_t)(regs.a & 0x00FF);
-        zerocalc(regs.x);
-        signcalc(regs.x);
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
     }
 }
 
 static void tay() {
     if (index_16bit()) {
         regs.yw = regs.c; // 16 bits transferred, no matter the state of m
-        zerocalc(regs.yw);
-        signcalc(regs.yw);
+        zerocalc(regs.yw, 1);
+        signcalc(regs.yw, 1);
     } else {
         regs.y = (uint8_t)(regs.a & 0x00FF);
-        zerocalc(regs.y);
-        signcalc(regs.y);
+        zerocalc(regs.y, 0);
+        signcalc(regs.y, 0);
     }
 }
 
 static void tcd() {
     regs.dp = regs.c;
-    zerocalc(regs.dp);
-    signcalc(regs.dp);
+    zerocalc(regs.dp, 1);
+    signcalc(regs.dp, 1);
 }
 
 static void tdc() {
     regs.c = regs.dp;
-    zerocalc(regs.c);
-    signcalc(regs.c);
+    zerocalc(regs.c, 1);
+    signcalc(regs.c, 1);
 }
 
 static void tsx() {
     if (index_16bit()) {
         regs.xw = regs.sp; // 16 bits transferred, no matter the state of m
-        zerocalc(regs.xw);
-        signcalc(regs.xw);
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         regs.x = (uint8_t)(regs.sp & 0x00FF);
         regs.xh = 0;
-        zerocalc(regs.x);
-        signcalc(regs.x);
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
     }
 }
 
@@ -694,18 +691,18 @@ static void txa() {
     if (memory_16bit()) {
         if (index_16bit()) {
             regs.c = regs.xw;
-            zerocalc(regs.c);
-            signcalc(regs.c);
+            zerocalc(regs.c, 1);
+            signcalc(regs.c, 1);
         } else {
             regs.a = regs.x;
             regs.b = 0;
-            zerocalc(regs.a);
-            signcalc(regs.a);
+            zerocalc(regs.a, 0);
+            signcalc(regs.a, 0);
         }
     } else {
         regs.a = regs.x;
-        zerocalc(regs.a);
-        signcalc(regs.a);
+        zerocalc(regs.a, 0);
+        signcalc(regs.a, 0);
     }
 }
 
@@ -720,12 +717,12 @@ static void txs() {
 static void txy() {
     if (index_16bit()) {
         regs.yw = regs.xw;
-        zerocalc(regs.yw);
-        signcalc(regs.yw);
+        zerocalc(regs.yw, 1);
+        signcalc(regs.yw, 1);
     } else {
         regs.y = regs.x;
-        zerocalc(regs.y);
-        signcalc(regs.y);
+        zerocalc(regs.y, 0);
+        signcalc(regs.y, 0);
     }
 }
 
@@ -733,30 +730,30 @@ static void tya() {
     if (memory_16bit()) {
         if (index_16bit()) {
             regs.c = regs.yw;
-            zerocalc(regs.c);
-            signcalc(regs.c);
+            zerocalc(regs.c, 1);
+            signcalc(regs.c, 1);
         } else {
             regs.a = regs.y;
             regs.b = 0;
-            zerocalc(regs.a);
-            signcalc(regs.a);
+            zerocalc(regs.a, 0);
+            signcalc(regs.a, 0);
         }
     } else {
         regs.a = regs.y;
-        zerocalc(regs.a);
-        signcalc(regs.a);
+        zerocalc(regs.a, 0);
+        signcalc(regs.a, 0);
     }
 }
 
 static void tyx() {
     if (index_16bit()) {
         regs.xw = regs.yw;
-        zerocalc(regs.xw);
-        signcalc(regs.xw);
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         regs.x = regs.y;
-        zerocalc(regs.x);
-        signcalc(regs.x);
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
     }
 }
 
@@ -766,8 +763,8 @@ static void tcs() {
 
 static void tsc() {
     regs.c = regs.sp;
-    zerocalc(regs.c);
-    signcalc(regs.c);
+    zerocalc(regs.c, 1);
+    signcalc(regs.c, 1);
 }
 
 static void mvn() {
@@ -800,8 +797,8 @@ static void xba() {
     uint8_t tmp = regs.b;
     regs.b = regs.a;
     regs.a = tmp;
-    zerocalc(regs.a);
-    signcalc(regs.a);
+    zerocalc(regs.a, 0);
+    signcalc(regs.a, 0);
 }
 
 static void xce() {
