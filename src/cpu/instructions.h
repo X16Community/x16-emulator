@@ -149,7 +149,7 @@ static void brk() {
     regs.pc++;
 
     if (!regs.e) {
-        push8(regs.pb);
+        push8(regs.k);
     }
 
     push16(regs.pc); //push next instruction address onto stack
@@ -225,7 +225,7 @@ static void cop() {
     regs.pc++;
 
     if (!regs.e) {
-        push8(regs.pb);
+        push8(regs.k);
     }
 
     push16(regs.pc); //push next instruction address onto stack
@@ -471,7 +471,7 @@ static void phd() {
 }
 
 static void phk() {
-    push8(regs.pb);
+    push8(regs.k);
 }
 
 static void php() {
@@ -545,7 +545,7 @@ static void rti() {
     regs.pc = value;
 
     if (!regs.e) {
-        regs.pb = pull8();
+        regs.k = pull8();
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
         regs.xh = 0;
         regs.yh = 0;

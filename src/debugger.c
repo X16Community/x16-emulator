@@ -476,14 +476,41 @@ static void DEBUGExecCmd() {
 			if(!strcmp(reg, "a")) {
 				regs.a= number & 0x00FF;
 			}
+			if(!strcmp(reg, "b")) {
+				regs.b= number & 0x00FF;
+			}
+			if(!strcmp(reg, "c")) {
+				regs.c= number & 0xFFFF;
+			}
+			if(!strcmp(reg, "d")) {
+				regs.dp= number & 0xFFFF;
+			}
+			if(!strcmp(reg, "k")) {
+				regs.k= number & 0x00FF;
+			}
+			if(!strcmp(reg, "dbr")) {
+				regs.db= number & 0x00FF;
+			}
 			if(!strcmp(reg, "x")) {
-				regs.x= number & 0x00FF;
+				if (regs.e) {
+					regs.x= number & 0x00FF;
+				} else {
+					regs.xw= number & 0xFFFF;
+				}
 			}
 			if(!strcmp(reg, "y")) {
-				regs.y= number & 0x00FF;
+				if (regs.e) {
+					regs.y= number & 0x00FF;
+				} else {
+					regs.yw= number & 0xFFFF;
+				}
 			}
 			if(!strcmp(reg, "sp")) {
-				regs.sp= number & 0x00FF;
+				if (regs.e) {
+					regs.sp= 0x100 | (number & 0x00FF);
+				} else {
+					regs.sp= number & 0xFFFF;
+				}
 			}
 			break;
 
@@ -653,7 +680,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","DB","PB","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","DB","K","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 
 static void DEBUGNumberHighByteCondition(int x, int y, int n, _Bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
 	if (condition) {
@@ -689,7 +716,7 @@ static int DEBUGRenderRegisters(void) {
 	DEBUGNumber(DBG_DATX, yc++, regs.y, 2, col_data);
 	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.yw, (regs.status >> 4) & 1, col_vram_other, col_data);
 	DEBUGNumber(DBG_DATX, yc++, regs.db, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.pb, 2, col_data);
+	DEBUGNumber(DBG_DATX, yc++, regs.k, 2, col_data);
 	yc++;
 
 	DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);

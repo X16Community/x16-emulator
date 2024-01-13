@@ -44,7 +44,7 @@ struct regs
 
     uint8_t db;
     uint16_t pc;
-    uint8_t pb;
+    uint8_t k;
 
     uint8_t status;
     uint8_t e;
