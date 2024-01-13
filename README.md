@@ -12,7 +12,7 @@ This is an emulator for the Commander X16 computer system. It only depends on SD
 Features
 --------
 
-* CPU: Full 65C02 instruction set
+* CPU: Partial 65C816 instruction set
 * VERA
 	* Mostly cycle exact emulation
 	* Supports almost all features:
@@ -340,7 +340,12 @@ Debugger
 
 The debugger requires `-debug` to start. Without it, it is disabled.
 
-There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, X, Y, and SP.
+There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, B, C, D, K, DB, X, Y, and SP.
+
+Greyed out numbers in the register display indicate values that are fixed at their given value due to the current processor state. This applies to
+- the high bytes of X and Y if the index flags is set
+- the flags M (memory) and I (index) if emulation mode is active
+- the high byte of SP if emulation mode is active.
 
 The debugger uses its own command line with the following syntax:
 
@@ -350,7 +355,7 @@ The debugger uses its own command line with the following syntax:
 |m %x|Change the data panel to view memory starting from the address %x.|
 |v %x|Display VERA RAM (VRAM) starting from address %x.|
 |b %s %d|Changes the current memory bank for disassembly and data. The %s param can be either 'ram' or 'rom', the %d is the memory bank to display (but see NOTE below!).|
-|r %s %x|Changes the value in the specified register. Valid registers in the %s param are 'pc', 'a', 'x', 'y', and 'sp'. %x is the value to store in that register.|
+|r %s %x|Changes the value in the specified register. Valid registers in the %s param are 'pc', 'a', 'b', 'c', 'd', 'k', 'dbr', 'x', 'y', and 'sp'. %x is the value to store in that register.|
 
 NOTE. To disassemble or dump memory locations in banked RAM or ROM, prepend the bank number to the address; for example, "m 4a300" displays memory contents of BANK 4, starting at address $a300.  This also works for the 'd' command.
 
@@ -359,7 +364,7 @@ The debugger keys are similar to the Microsoft Debugger shortcut keys, and work 
 | Key       | Description                                                                             |
 |-----------|-----------------------------------------------------------------------------------------|
 | F1        | resets the shown code position to the current PC                                        |
-| F2        | resets the 65C02 CPU but not any of the hardware.                                       |
+| F2        | resets the 65C816 CPU but not any of the hardware.                                       |
 | F5        | close debugger window and return to Run mode, the emulator should run as normal.        |
 | F9        | sets the breakpoint to the currently code position.                                     |
 | F10       | steps 'over' routines - if the next instruction is JSR it will break on return.         |
