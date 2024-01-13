@@ -11,7 +11,7 @@
 
 #include "cpu/registers.h"
 
-#define TRACE
+//#define TRACE
 //#define PERFSTAT
 
 #define NUM_MAX_RAM_BANKS 256
