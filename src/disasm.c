@@ -104,10 +104,18 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	//  as well as $6C and $7C
 	int isIndirect = (((opcode & 0x0f) == 0x01) || ((opcode & 0x1f) == 0x12) || opcode == 0x6c || opcode == 0x7c);
 
+	//
+	//      block move (MVN and MVP)
+	int isBlockMove = (opcode & 0x44) == 0x44;
+
 	int length   = 1;
 	strncpy(line,mnemonic,max_line);
 
-	if (isZprel) {
+	if (isBlockMove) {
+		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), real_read6502(pc + 2, debugOn, bank));
+		length = 3;
+	}
+	else if (isZprel) {
 		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), pc + 3 + (int8_t)real_read6502(pc + 2, debugOn, bank));
 		length = 3;
 	} else {
