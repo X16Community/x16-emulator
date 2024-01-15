@@ -191,24 +191,44 @@ static void putvalue(uint16_t saveval, _Bool use16Bit) {
 #include "tables.h"
 
 void nmi6502() {
+    if (!regs.e) {
+        push8(regs.k);
+    }
+
     push16(regs.pc);
-    push8(regs.status & ~FLAG_BREAK);
+    push8(regs.e ? regs.status & ~FLAG_BREAK : regs.status);
     setinterrupt();
     cleardecimal();
     vp6502();
-    regs.pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
+
+    if (regs.e) {
+        regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+    } else {
+        regs.pc = (uint16_t)read6502(0xFFEE) | ((uint16_t)read6502(0xFFEF) << 8);
+    }
+
     clockticks6502 += 7; // consumed by CPU to process interrupt
     waiting = 0;
 }
 
 void irq6502() {
     if (!(regs.status & FLAG_INTERRUPT)) {
+        if (!regs.e) {
+            push8(regs.k);
+        }
+
         push16(regs.pc);
-        push8(regs.status & ~FLAG_BREAK);
+        push8(regs.e ? regs.status & ~FLAG_BREAK : regs.status);
         setinterrupt();
         cleardecimal();
         vp6502();
-        regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+
+        if (regs.e) {
+            regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+        } else {
+            regs.pc = (uint16_t)read6502(0xFFEE) | ((uint16_t)read6502(0xFFEF) << 8);
+        }
+
         clockticks6502 += 7; // consumed by CPU to process interrupt
     }
     waiting = 0;
