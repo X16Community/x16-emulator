@@ -134,7 +134,8 @@ struct regs regs;
 //helper variables
 uint32_t instructions = 0; //keep track of total instructions executed
 uint32_t clockticks6502 = 0, clockgoal6502 = 0;
-uint16_t oldpc, ea, reladdr, value, result;
+uint16_t oldpc, ea, reladdr, value;
+uint32_t result;
 uint8_t opcode, oldstatus;
 
 uint8_t penaltyop, penaltyaddr;

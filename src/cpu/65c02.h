@@ -84,12 +84,14 @@ static void plx() {
 
     if (index_16bit()) {
         regs.xw = pull16();
+        zerocalc(regs.xw, 1);
+        signcalc(regs.xw, 1);
     } else {
         regs.x = pull8();
     }
 
-    zerocalc(regs.x, index_16bit());
-    signcalc(regs.x, index_16bit());
+    zerocalc(regs.x, 0);
+    signcalc(regs.x, 0);
 }
 
 static void phy() {
@@ -107,12 +109,14 @@ static void ply() {
 
     if (index_16bit()) {
         regs.yw = pull16();
+        zerocalc(regs.yw, 1);
+        signcalc(regs.yw, 1);
     } else {
         regs.y = pull8();
-    }
 
-    zerocalc(regs.y, index_16bit());
-    signcalc(regs.y, index_16bit());
+        zerocalc(regs.x, 0);
+        signcalc(regs.x, 0);
+    }
 }
 
 // *******************************************************************************************
