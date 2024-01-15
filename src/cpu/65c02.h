@@ -16,10 +16,9 @@
 // *******************************************************************************************
 
 static void ind0() {
-    uint16_t eahelp, eahelp2;
+    uint16_t eahelp;
     eahelp = (uint16_t)read6502(regs.pc++);
-    eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //zero-page wraparound
-    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
+    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
 }
 
 
@@ -32,7 +31,7 @@ static void ind0() {
 static void ainx() { 		// absolute indexed branch
     uint16_t eahelp, eahelp2;
     eahelp = (uint16_t)read6502(regs.pc) | (uint16_t)((uint16_t)read6502(regs.pc+1) << 8);
-    eahelp = (eahelp + (uint16_t)regs.x) & 0xFFFF;
+    eahelp = (eahelp + regs.xw) & 0xFFFF;
 #if 0
     eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //replicate 6502 page-boundary wraparound bug
 #else

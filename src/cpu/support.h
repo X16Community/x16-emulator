@@ -93,7 +93,7 @@ void decrement_wrap_at_page_boundary(uint16_t *value) {
 
 uint16_t direct_page_add(uint16_t offset) {
     if (regs.e && (regs.dp & 0x00FF) == 0) {
-        return (regs.dp & 0xFF00) | ((uint16_t) ((uint8_t) (regs.dp & 0x00FF)) + (offset % 256));
+        return (regs.dp & 0xFF00) | ((uint16_t) ((uint8_t) (regs.dp & 0x00FF)) + (offset & 0xFF));
     } else {
         return regs.dp + offset;
     }

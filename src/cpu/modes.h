@@ -58,11 +58,11 @@ static void zp() { //zero-page
 }
 
 static void zpx() { //zero-page,X
-    _zp_with_offset(regs.x);
+    _zp_with_offset(regs.xw);
 }
 
 static void zpy() { //zero-page,Y
-    _zp_with_offset(regs.y);
+    _zp_with_offset(regs.yw);
 }
 
 static void rel() { //relative for branch ops (8-bit immediate value, sign-extended)
@@ -79,7 +79,7 @@ static void absx() { //absolute,X
     uint16_t startpage;
     ea = ((uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8));
     startpage = ea & 0xFF00;
-    ea += (uint16_t)regs.x;
+    ea += regs.xw;
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
@@ -92,7 +92,7 @@ static void absy() { //absolute,Y
     uint16_t startpage;
     ea = ((uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8));
     startpage = ea & 0xFF00;
-    ea += (uint16_t)regs.y;
+    ea += regs.yw;
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
@@ -115,17 +115,16 @@ static void ind() { //indirect
 
 static void indx() { // (indirect,X)
     uint16_t eahelp;
-    eahelp = (uint16_t)(((uint16_t)read6502(regs.pc++) + (uint16_t)regs.x) & 0xFF); //zero-page wraparound for table pointer
-    ea = (uint16_t)read6502(eahelp & 0x00FF) | ((uint16_t)read6502((eahelp+1) & 0x00FF) << 8);
+    eahelp = (uint16_t)read6502(regs.pc++) + regs.xw;
+    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
 }
 
 static void indy() { // (indirect),Y
-    uint16_t eahelp, eahelp2, startpage;
+    uint16_t eahelp, startpage;
     eahelp = (uint16_t)read6502(regs.pc++);
-    eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //zero-page wraparound
-    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
+    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
     startpage = ea & 0xFF00;
-    ea += (uint16_t)regs.y;
+    ea += regs.yw;
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
@@ -146,10 +145,9 @@ static void sr() { // absolute,S
 }
 
 static void sridy() { // (indirect,S),Y
-    uint16_t eahelp, eahelp2, startpage;
+    uint16_t eahelp, startpage;
     eahelp = regs.sp + (uint16_t)read6502(regs.pc++);
-    eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //zero-page wraparound
-    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
+    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
     startpage = ea & 0xFF00;
     ea += (uint16_t)regs.yw;
 
