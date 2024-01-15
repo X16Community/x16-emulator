@@ -475,7 +475,7 @@ static void phk() {
 }
 
 static void php() {
-    push8(regs.status | FLAG_BREAK);
+    push8(regs.e ? regs.status | FLAG_BREAK : regs.status);
 }
 
 static void pla() {
