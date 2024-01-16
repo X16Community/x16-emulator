@@ -47,14 +47,14 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -114,14 +114,14 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -172,13 +172,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -224,13 +224,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -285,13 +285,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -346,13 +346,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -396,13 +396,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
