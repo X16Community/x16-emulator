@@ -585,7 +585,7 @@ static void sbc() {
     #endif
 
         if (memory_16bit()) {
-            value = getvalue(1);
+            value = getvalue(1) ^ 0xFFFF;
             result = regs.c + value + (regs.status & FLAG_CARRY);
         } else {
             value = getvalue(0) ^ 0x00FF;
