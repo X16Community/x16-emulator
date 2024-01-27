@@ -20,7 +20,7 @@
 
 int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool debugOn, uint8_t bank, int32_t *eff_addr) {
 	uint8_t opcode = real_read6502(pc, debugOn, bank);
-	char const *mnemonic = mnemonics[opcode];
+	const char *mnemonic = mnemonics[opcode];
 
 	*eff_addr = -1;
 
@@ -110,7 +110,21 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	int isBlockMove = opcode == 0x44 || opcode == 0x54;
 
 	int length   = 1;
-	strncpy(line,mnemonic,max_line);
+
+	char *where = strstr(mnemonic, "%%0%hhux");
+	if (where) {
+		int isImmediateIndex = (opcode == 0xa0) || (opcode == 0xa2) || (opcode == 0xc0) || (opcode == 0xe0);
+		int len = snprintf(line, max_line, mnemonic, (regs.status & (isImmediateIndex ? FLAG_INDEX_WIDTH : FLAG_MEMORY_WIDTH)) ? 2 : 4);
+		if (len == -1) {
+			return 0;
+		}
+
+		mnemonic = malloc(len + 1);
+		memcpy((char *) mnemonic, line, len + 1);
+	}
+	else {
+		strncpy(line,mnemonic,max_line);
+	}
 
 	if (isBlockMove) {
 		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), real_read6502(pc + 2, debugOn, bank));
@@ -166,5 +180,10 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 			length = 2;
 		}
 	}
+
+	if (where) {
+		free((char *) mnemonic);
+	}
+	
 	return length;
 }

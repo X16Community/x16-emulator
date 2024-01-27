@@ -143,8 +143,8 @@ def convertMnemonic(opInfo):
     modeStr = {
         "imp": "",
         "imm8": "#$%02x",
-        "immm": "#$%02x",
-        "immx": "#$%02x",
+        "immm": "#$%%0%hhux",
+        "immx": "#$%%0%hhux",
         "imm16": "#$%04x",
         "zp": "$%02x",
         "rel": "$%02x",
