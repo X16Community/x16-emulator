@@ -6,7 +6,7 @@ static void (*addrtable[256])() = {
 /* 1 */     rel, indy, ind0,sridy,   zp,  zpx,  zpx,  imp,  imp, absy,  acc,  imp, abso, absx, absx,  imp, /* 1 */
 /* 2 */    abso, indx,  imp,   sr,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 2 */
 /* 3 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,  imp,  imp, absy,  acc,  imp, absx, absx, absx,  imp, /* 3 */
-/* 4 */     imp, indx,  imp,   sr,  bmv,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 4 */
+/* 4 */     imp, indx, imm8,   sr,  bmv,   zp,   zp,  imp,  imp, immm,  acc,  imp, abso, abso, abso,  imp, /* 4 */
 /* 5 */     rel, indy, ind0,sridy,  bmv,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp, /* 5 */
 /* 6 */     imp, indx,  imp,   sr,   zp,   zp,   zp,  imp,  imp, immm,  acc,  imp,  ind, abso, abso,  imp, /* 6 */
 /* 7 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,  imp,  imp, absy,  imp,  imp, ainx, absx, absx,  imp, /* 7 */
@@ -26,7 +26,7 @@ static void (*optable[256])() = {
 /* 1 */      bpl,  ora,  ora,  ora,  trb,  ora,  asl,  nop,  clc,  ora,  inc,  tcs,  trb,  ora,  asl,  nop, /* 1 */
 /* 2 */      jsr,  and,  nop,  and,  bit,  and,  rol,  nop,  plp,  and,  rol,  pld,  bit,  and,  rol,  nop, /* 2 */
 /* 3 */      bmi,  and,  and,  and,  bit,  and,  rol,  nop,  sec,  and,  dec,  tsc,  bit,  and,  rol,  nop, /* 3 */
-/* 4 */      rti,  eor,  nop,  eor,  mvp,  eor,  lsr,  nop,  pha,  eor,  lsr,  phk,  jmp,  eor,  lsr,  nop, /* 4 */
+/* 4 */      rti,  eor,  wdm,  eor,  mvp,  eor,  lsr,  nop,  pha,  eor,  lsr,  phk,  jmp,  eor,  lsr,  nop, /* 4 */
 /* 5 */      bvc,  eor,  eor,  eor,  mvn,  eor,  lsr,  nop,  cli,  eor,  phy,  tcd,  nop,  eor,  lsr,  nop, /* 5 */
 /* 6 */      rts,  adc,  nop,  adc,  stz,  adc,  ror,  nop,  pla,  adc,  ror,  nop,  jmp,  adc,  ror,  nop, /* 6 */
 /* 7 */      bvs,  adc,  adc,  adc,  stz,  adc,  ror,  nop,  sei,  adc,  ply,  tdc,  jmp,  adc,  ror,  nop, /* 7 */

@@ -793,6 +793,9 @@ static void mvp() {
     }
 }
 
+static void wdm() {
+}
+
 static void xba() {
     uint8_t tmp = regs.b;
     regs.b = regs.a;
