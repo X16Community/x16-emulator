@@ -106,7 +106,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 
 	//
 	//      block move (MVN and MVP)
-	int isBlockMove = (opcode & 0x44) == 0x44;
+	int isBlockMove = opcode == 0x44 || opcode == 0x54;
 
 	int length   = 1;
 	strncpy(line,mnemonic,max_line);
