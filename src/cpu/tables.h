@@ -17,7 +17,7 @@ static void (*addrtable[256])() = {
 /* C */    immx, indx, imm8,   sr,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* C */
 /* D */     rel, indy, ind0,sridy,  imp,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp, /* D */
 /* E */    immx, indx, imm8,   sr,   zp,   zp,   zp,  imp,  imp, immm,  imp,  imp, abso, abso, abso,  imp, /* E */
-/* F */     rel, indy, ind0,sridy,imm16,  zpx,  zpx,  imp,  imp, absy,  imp,  imp,  imp, absx, absx,  imp  /* F */
+/* F */     rel, indy, ind0,sridy,imm16,  zpx,  zpx,  imp,  imp, absy,  imp,  imp, ainx, absx, absx,  imp  /* F */
 };
 
 static void (*optable[256])() = {
@@ -37,7 +37,7 @@ static void (*optable[256])() = {
 /* C */      cpy,  cmp,  rep,  cmp,  cpy,  cmp,  dec,  nop,  iny,  cmp,  dex,  wai,  cpy,  cmp,  dec,  nop, /* C */
 /* D */      bne,  cmp,  cmp,  cmp,  nop,  cmp,  dec,  nop,  cld,  cmp,  phx,  stp,  nop,  cmp,  dec,  nop, /* D */
 /* E */      cpx,  sbc,  sep,  sbc,  cpx,  sbc,  inc,  nop,  inx,  sbc,  nop,  xba,  cpx,  sbc,  inc,  nop, /* E */
-/* F */      beq,  sbc,  sbc,  sbc,  pea,  sbc,  inc,  nop,  sed,  sbc,  plx,  xce,  nop,  sbc,  inc,  nop  /* F */
+/* F */      beq,  sbc,  sbc,  sbc,  pea,  sbc,  inc,  nop,  sed,  sbc,  plx,  xce,  jsr,  sbc,  inc,  nop  /* F */
 };
 
 static const uint32_t ticktable[256] = {
@@ -57,5 +57,5 @@ static const uint32_t ticktable[256] = {
 /* C */       2,    6,    3,    4,    3,    3,    5,    2,    2,    2,    2,    3,    4,    4,    6,    2, /* C */
 /* D */       2,    5,    5,    7,    2,    4,    6,    2,    2,    4,    3,    1,    2,    4,    7,    2, /* D */
 /* E */       2,    6,    3,    4,    3,    3,    5,    2,    2,    2,    2,    3,    4,    4,    6,    2, /* E */
-/* F */       2,    5,    5,    7,    5,    4,    6,    2,    2,    4,    4,    2,    2,    4,    7,    2  /* F */
+/* F */       2,    5,    5,    7,    5,    4,    6,    2,    2,    4,    4,    2,    8,    4,    7,    2  /* F */
 };

@@ -284,7 +284,7 @@ static const char *mnemonics[256] = {
 	/* $F9 */ "sbc $%04x,y",
 	/* $FA */ "plx ",
 	/* $FB */ "xce ",
-	/* $FC */ "nop ",
+	/* $FC */ "jsr ($%04x,x)",
 	/* $FD */ "sbc $%04x,x",
 	/* $FE */ "inc $%04x,x",
 	/* $FF */ "nop "};

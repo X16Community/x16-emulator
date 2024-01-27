@@ -46,6 +46,7 @@ dec acc 2 $3a
 inc acc 2 $1a
 
 jmp ainx 6 $7c
+jsr ainx 8 $fc
 
 bra rel 3 $80
 

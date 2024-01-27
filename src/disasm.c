@@ -81,6 +81,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		case 0xe1: // sbc (zp,x)
 		case 0xf5: // sbc zp,x
 		case 0xf6: // inc zp,x
+		case 0xfc: // jsr (abs,x)
 		case 0xfd: // sbc abs,x
 		case 0xfe: // inc abs,x
 			isXrel = 1;
@@ -101,8 +102,8 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	//
 	//      indirect
 	//  $x1 and ($x2 where x is odd)
-	//  as well as $6C and $7C
-	int isIndirect = (((opcode & 0x0f) == 0x01) || ((opcode & 0x1f) == 0x12) || opcode == 0x6c || opcode == 0x7c);
+	//  as well as $6C, $7C and $FC
+	int isIndirect = (((opcode & 0x0f) == 0x01) || ((opcode & 0x1f) == 0x12) || opcode == 0x6c || opcode == 0x7c || opcode == 0xfc);
 
 	//
 	//      block move (MVN and MVP)
