@@ -128,16 +128,16 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 				if (isIndirect) {
 					uint16_t ptr = real_read6502(pc + 1, debugOn, bank);
 					if (isXrel)
-						ptr += regs.x;
+						ptr += regs.xw;
 					*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
 					if (isYrel)
-						*eff_addr += regs.y;
+						*eff_addr += regs.yw;
 				} else if (!isImmediate) {
 					*eff_addr = real_read6502(pc + 1, debugOn, bank);
 					if (isXrel)
-						*eff_addr += regs.x;
+						*eff_addr += regs.xw;
 					if (isYrel)
-						*eff_addr += regs.y;
+						*eff_addr += regs.yw;
 				}
 			}
 		}
@@ -147,16 +147,16 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 			if (isIndirect) {
 				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
-					ptr += regs.x;
+					ptr += regs.xw;
 				*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
 				if (isYrel)
-					*eff_addr += regs.y;
+					*eff_addr += regs.yw;
 			} else {
 				*eff_addr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
-					*eff_addr += regs.x;
+					*eff_addr += regs.xw;
 				if (isYrel)
-					*eff_addr += regs.y;
+					*eff_addr += regs.yw;
 			}
 		}
 		if (opcode == 0x00 || opcode == 0x02) {
