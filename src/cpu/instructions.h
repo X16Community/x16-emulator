@@ -328,6 +328,11 @@ static void iny() {
     }
 }
 
+static void jml() {
+    regs.pc = ea;
+    regs.k = eal;
+}
+
 static void jmp() {
     regs.pc = ea;
 }
@@ -335,6 +340,13 @@ static void jmp() {
 static void jsr() {
     push16(regs.pc - 1);
     regs.pc = ea;
+}
+
+static void jsl() {
+    push8(regs.k);
+    push16(regs.pc - 1);
+    regs.pc = ea;
+    regs.k = eal;
 }
 
 static void lda() {
@@ -520,6 +532,12 @@ static void rti() {
         regs.xh = 0;
         regs.yh = 0;
     }
+}
+
+static void rtl() {
+    value = pull16();
+    regs.pc = value + 1;
+    regs.k = pull8();
 }
 
 static void rts() {

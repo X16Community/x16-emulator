@@ -44,6 +44,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		case 0x15: // ora zp,x
 		case 0x16: // asl zp,x
 		case 0x1d: // ora abs,x
+		case 0x1f: // ora long,x
 		case 0x1e: // asl abs,x
 		case 0x21: // and (zp,x)
 		case 0x34: // bit zp,x
@@ -55,6 +56,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		case 0x55: // eor zp,x
 		case 0x56: // lsr zp,x
 		case 0x5d: // eor abs,x
+		case 0x5f: // eor long,x
 		case 0x5e: // lsr abs,x
 		case 0x61: // adc (zp,x)
 		case 0x74: // stz zp,x
@@ -62,21 +64,25 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		case 0x76: // ror zp,x
 		case 0x7c: // jmp (abs,x)
 		case 0x7d: // adc abs,x
+		case 0x7f: // adc long,x
 		case 0x7e: // ror abs,x
 		case 0x81: // sta (zp,x)
 		case 0x94: // sty zp,x
 		case 0x95: // sta zp,x
 		case 0x9d: // sta abs,x
+		case 0x9f: // sta long,x
 		case 0x9e: // stz abs,x
 		case 0xa1: // lda (zp,x)
 		case 0xb4: // ldy zp,x
 		case 0xb5: // lda zp,x
 		case 0xbc: // ldy abs,x
 		case 0xbd: // lda abs,x
+		case 0xbf: // lda long,x
 		case 0xc1: // cmp (zp,x)
 		case 0xd5: // cmp zp,x
 		case 0xd6: // dec zp,x
 		case 0xdd: // cmp abs,x
+		case 0xdf: // cmp long,x
 		case 0xde: // dec abs,x
 		case 0xe1: // sbc (zp,x)
 		case 0xf5: // sbc zp,x
@@ -84,6 +90,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		case 0xfc: // jsr (abs,x)
 		case 0xfd: // sbc abs,x
 		case 0xfe: // inc abs,x
+		case 0xff: // sbc long,x
 			isXrel = 1;
 			;;
 		default:
@@ -96,12 +103,12 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 
 	//
 	//      Y relative opcodes (including indirect/indexed)
-	//	$x1 and $x9 (for odd values of x), as well as $96 and $B6
-	int isYrel = (((opcode & 0x17) == 0x11) || opcode == 0x96 || opcode == 0xb6);
+	//	$x1, $x7 and $x9 (for odd values of x), as well as $96 and $B6
+	int isYrel = (((opcode & 0x17) == 0x11) || ((opcode & 0x17) == 0x17) || opcode == 0x96 || opcode == 0xb6);
 
 	//
 	//      indirect
-	//  $x1 and ($x2 where x is odd)
+	//  $x1 and $xf ($x2 where x is odd)
 	//  as well as $6C, $7C and $FC
 	int isIndirect = (((opcode & 0x0f) == 0x01) || ((opcode & 0x1f) == 0x12) || opcode == 0x6c || opcode == 0x7c || opcode == 0xfc);
 
@@ -159,6 +166,24 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		if (strstr(line, "%04x")) {
 			length = 3;
 			snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank) | real_read6502(pc + 2, debugOn, bank) << 8);
+			if (isIndirect) {
+				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
+				if (isXrel)
+					ptr += regs.xw;
+				*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
+				if (isYrel)
+					*eff_addr += regs.yw;
+			} else {
+				*eff_addr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
+				if (isXrel)
+					*eff_addr += regs.xw;
+				if (isYrel)
+					*eff_addr += regs.yw;
+			}
+		}
+		if (strstr(line, "%06x")) {
+			length = 4;
+			snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank) | real_read6502(pc + 2, debugOn, bank) << 8 | real_read6502(pc + 3, debugOn, bank) << 16);
 			if (isIndirect) {
 				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)

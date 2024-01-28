@@ -124,6 +124,7 @@ struct regs regs;
 uint32_t instructions = 0; //keep track of total instructions executed
 uint32_t clockticks6502 = 0, clockgoal6502 = 0;
 uint16_t oldpc, ea, reladdr, value;
+uint8_t eal;
 uint32_t result;
 uint8_t opcode, oldstatus;
 

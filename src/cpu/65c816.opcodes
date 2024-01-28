@@ -36,6 +36,42 @@ ora sridy 7 $13
 sbc sridy 7 $f3
 sta sridy 7 $93
 
+adc absl 5 $6f
+and absl 5 $2f
+cmp absl 5 $cf
+eor absl 5 $4f
+lda absl 5 $af
+ora absl 5 $0f
+sbc absl 5 $ef
+sta absl 5 $8f
+
+adc abslx 5 $7f
+and abslx 5 $3f
+cmp abslx 5 $df
+eor abslx 5 $5f
+lda abslx 5 $bf
+ora abslx 5 $1f
+sbc abslx 5 $ff
+sta abslx 5 $9f
+
+adc indl0 6 $67
+and indl0 6 $27
+cmp indl0 6 $c7
+eor indl0 6 $47
+lda indl0 6 $a7
+ora indl0 6 $07
+sbc indl0 6 $e7
+sta indl0 6 $87
+
+adc indly 6 $77
+and indly 6 $37
+cmp indly 6 $d7
+eor indly 6 $57
+lda indly 6 $b7
+ora indly 6 $17
+sbc indly 6 $f7
+sta indly 6 $97
+
 bit immm 2 $89
 bit zpx 4 $34
 bit absx 4 $3c
@@ -46,7 +82,11 @@ dec acc 2 $3a
 inc acc 2 $1a
 
 jmp ainx 6 $7c
+jml absl 4 $5c
+jml aindl 6 $dc
+
 jsr ainx 8 $fc
+jsl absl 8 $22
 
 bra rel 3 $80
 
@@ -60,6 +100,8 @@ plb imp 4 $ab
 pld imp 5 $2b
 plx imp 4 $fa
 ply imp 4 $7a
+
+rtl imp 6 $6b
 
 stz zp 3 $64
 stz zpx 4 $74

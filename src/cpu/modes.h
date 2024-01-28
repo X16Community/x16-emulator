@@ -113,6 +113,12 @@ static void ind() { //indirect
     regs.pc += 2;
 }
 
+static void ind0() { // (zp)
+    uint16_t eahelp;
+    eahelp = (uint16_t)read6502(regs.pc++);
+    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
+}
+
 static void indx() { // (indirect,X)
     uint16_t eahelp;
     eahelp = (uint16_t)read6502(regs.pc++) + regs.xw;
@@ -159,4 +165,29 @@ static void sridy() { // (indirect,S),Y
 static void bmv() { // block move
     uint8_t src = regs.pc++;
     ea = (src << 8) | regs.pc++;
+}
+
+static void absl() { // absolute long
+    abso();
+    eal = read6502(regs.pc++);
+}
+
+static void abslx() { // absolute long, X
+    absx();
+    eal = read6502(regs.pc++);
+}
+
+static void aindl() { // [addr]
+    ind();
+    eal = read6502(regs.pc++);
+}
+
+static void indl0() { // [dp]
+    ind0();
+    eal = read6502(regs.pc++);
+}
+
+static void indly() { // [dp],Y
+    indy();
+    eal = read6502(regs.pc++);
 }
