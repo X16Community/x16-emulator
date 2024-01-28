@@ -251,7 +251,7 @@ void exec6502(uint32_t tickcount) {
         (*addrtable[opcode])();
         (*optable[opcode])();
         clockticks6502 += ticktable[opcode];
-        if (penaltyop && penaltyaddr) clockticks6502++;
+        if (!regs.e && penaltyop && penaltyaddr) clockticks6502++;
         if (memory_16bit()) clockticks6502 += penaltym;
         if (index_16bit()) clockticks6502 += penaltyx;
         if (penaltye && !regs.e) clockticks6502++;

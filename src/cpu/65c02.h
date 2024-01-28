@@ -60,7 +60,7 @@ static void stz() {
 static void bra() {
     oldpc = regs.pc;
     regs.pc += reladdr;
-    if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502++; //check if jump crossed a page boundary
+    if (regs.e && (oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502++; //check if jump crossed a page boundary
 }
 
 // *******************************************************************************************

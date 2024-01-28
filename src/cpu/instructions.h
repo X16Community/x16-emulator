@@ -78,31 +78,26 @@ static void asl() {
     putvalue(result, memory_16bit());
 }
 
-static void bcc() {
-    if ((regs.status & FLAG_CARRY) == 0) {
+static void _do_branch(int condition) {
+    if (condition) {
         oldpc = regs.pc;
         regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
+        clockticks6502++;
+        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) //check if jump crossed a page boundary            
+            penaltye = 1;
     }
+}
+
+static void bcc() {
+    _do_branch((regs.status & FLAG_CARRY) == 0);
 }
 
 static void bcs() {
-    if ((regs.status & FLAG_CARRY) == FLAG_CARRY) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_CARRY) == FLAG_CARRY);
 }
 
 static void beq() {
-    if ((regs.status & FLAG_ZERO) == FLAG_ZERO) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_ZERO) == FLAG_ZERO);
 }
 
 static void bit() {
@@ -118,30 +113,15 @@ static void bit() {
 }
 
 static void bmi() {
-    if ((regs.status & FLAG_SIGN) == FLAG_SIGN) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_SIGN) == FLAG_SIGN);
 }
 
 static void bne() {
-    if ((regs.status & FLAG_ZERO) == 0) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_ZERO) == 0);
 }
 
 static void bpl() {
-    if ((regs.status & FLAG_SIGN) == 0) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_SIGN) == 0);
 }
 
 static void brk() {
@@ -166,21 +146,11 @@ static void brk() {
 }
 
 static void bvc() {
-    if ((regs.status & FLAG_OVERFLOW) == 0) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_OVERFLOW) == 0);
 }
 
 static void bvs() {
-    if ((regs.status & FLAG_OVERFLOW) == FLAG_OVERFLOW) {
-        oldpc = regs.pc;
-        regs.pc += reladdr;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) clockticks6502 += 2; //check if jump crossed a page boundary
-            else clockticks6502++;
-    }
+    _do_branch((regs.status & FLAG_OVERFLOW) == FLAG_OVERFLOW);
 }
 
 static void clc() {
