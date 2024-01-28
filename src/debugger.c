@@ -276,8 +276,8 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
 			opcode = real_read6502(regs.pc, true, currentPCBank);			// What opcode is it ?
-			if (opcode == 0x20) { 							// Is it JSR ?
-				stepBreakPoint.pc = regs.pc + 3;					// Then break 3 on.
+			if (opcode == 0x20 || opcode == 0xFC || opcode == 0x22) { 		// Is it JSR or JSL ?
+				stepBreakPoint.pc = regs.pc + 3 + (opcode == 0x22);			// Then break 3 / 4 on.
 				stepBreakPoint.bank = getCurrentBank(regs.pc);
 				currentMode = DMODE_RUN;					// And run.
 				timing_init();
