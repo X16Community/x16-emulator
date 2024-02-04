@@ -51,7 +51,7 @@ typedef enum {
 } gif_recorder_state_t;
 
 extern uint8_t a, x, y, sp, status;
-extern uint16_t pc;
+extern uint16_t pc, opcode_addr;
 extern uint8_t *RAM;
 extern uint8_t ROM[];
 extern uint8_t *CART;

@@ -134,7 +134,7 @@ uint8_t sp, a, x, y, status;
 //helper variables
 uint32_t instructions = 0; //keep track of total instructions executed
 uint32_t clockticks6502 = 0, clockgoal6502 = 0;
-uint16_t oldpc, ea, reladdr, value, result;
+uint16_t opcode_addr, oldpc, ea, reladdr, value, result;
 uint8_t opcode, oldstatus;
 
 uint8_t penaltyop, penaltyaddr;
@@ -230,6 +230,8 @@ void step6502() {
 		clockgoal6502 = clockticks6502;
 		return;
 	}
+
+    opcode_addr = pc;
 
     opcode = read6502(pc++);
     status |= FLAG_CONSTANT;
