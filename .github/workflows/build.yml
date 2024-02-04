@@ -11,7 +11,7 @@ jobs:
           python-version: '3.9'
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make fonts-dejavu
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: Install md-to-pdf (npm)
@@ -385,7 +385,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
-      - uses: mymindstorm/setup-emsdk@v12
+      - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
