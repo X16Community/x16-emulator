@@ -189,3 +189,5 @@ tsx imp  2 $ba
 txa imp  2 $8a
 txs imp  2 $9a
 tya imp  2 $98
+
+nop imp  2 $ea
