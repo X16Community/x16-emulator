@@ -117,12 +117,20 @@ static void ind0() { // (zp)
     uint16_t eahelp;
     eahelp = (uint16_t)read6502(regs.pc++);
     ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
 }
 
 static void indx() { // (indirect,X)
     uint16_t eahelp;
     eahelp = (uint16_t)read6502(regs.pc++) + regs.xw;
     ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
 }
 
 static void indy() { // (indirect),Y
@@ -131,6 +139,10 @@ static void indy() { // (indirect),Y
     ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
     startpage = ea & 0xFF00;
     ea += regs.yw;
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
