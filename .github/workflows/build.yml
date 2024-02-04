@@ -24,7 +24,7 @@ jobs:
         run: |
           export PATH=$(pwd)/node_modules/.bin:$PATH
           cat header_footer.md README.md RELEASES.md | md-to-pdf --config-file .gh/config.js --stylesheet .gh/markdown.css > "artifacts/README.pdf"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: readme-pdf
           path: artifacts/*
@@ -88,7 +88,7 @@ jobs:
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_win64
           path: emu_binaries/*
@@ -155,7 +155,7 @@ jobs:
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_win32
           path: emu_binaries/*
@@ -204,7 +204,7 @@ jobs:
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_linux-x86_64
           path: emu_binaries/*
@@ -264,7 +264,7 @@ jobs:
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_linux-aarch64
           path: emu_binaries/*
@@ -324,7 +324,7 @@ jobs:
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_linux-armhf
           path: emu_binaries/*
@@ -375,7 +375,7 @@ jobs:
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_macos
           path: emu_binaries/*
@@ -415,7 +415,7 @@ jobs:
           mkdir emu_binaries/webassembly
           cp webassembly/styles.css webassembly/main.js webassembly/jszip.min.js emu_binaries/webassembly/
           file emu_binaries/*
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_wasm
           path: emu_binaries/*
