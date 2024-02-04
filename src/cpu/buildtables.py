@@ -41,7 +41,7 @@ TABLE_MAP = "/*{0:8}|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  
 #####################################
 ######### OPCODE CONSTANTS ##########
 EMPTY_NOP_ACTN = "nop"
-EMPTY_NOP_CYCLS = "2"
+EMPTY_NOP_CYCLS = "1"
 EMPTY_NOP_MOD = "imp"
 OPCODE_ROW_LEN = 16
 TOTAL_NUMBER_OPCODES = 2 ** 8
