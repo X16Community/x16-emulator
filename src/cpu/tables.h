@@ -15,7 +15,7 @@ static void (*addrtable[256])() = {
 /* A */    immx, indx, immx,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* A */
 /* B */     rel, indy, ind0,sridy,  zpx,  zpx,  zpy,indly,  imp, absy,  imp,  imp, absx, absx, absy,abslx, /* B */
 /* C */    immx, indx, imm8,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* C */
-/* D */     rel, indy, ind0,sridy,  imp,  zpx,  zpx,indly,  imp, absy,  imp,  imp,aindl, absx, absx,abslx, /* D */
+/* D */     rel, indy, ind0,sridy, ind0,  zpx,  zpx,indly,  imp, absy,  imp,  imp,aindl, absx, absx,abslx, /* D */
 /* E */    immx, indx, imm8,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* E */
 /* F */     rel, indy, ind0,sridy,imm16,  zpx,  zpx,indly,  imp, absy,  imp,  imp, ainx, absx, absx,abslx  /* F */
 };
@@ -35,7 +35,7 @@ static void (*optable[256])() = {
 /* A */      ldy,  lda,  ldx,  lda,  ldy,  lda,  ldx,  lda,  tay,  lda,  tax,  plb,  ldy,  lda,  ldx,  lda, /* A */
 /* B */      bcs,  lda,  lda,  lda,  ldy,  lda,  ldx,  lda,  clv,  lda,  tsx,  tyx,  ldy,  lda,  ldx,  lda, /* B */
 /* C */      cpy,  cmp,  rep,  cmp,  cpy,  cmp,  dec,  cmp,  iny,  cmp,  dex,  wai,  cpy,  cmp,  dec,  cmp, /* C */
-/* D */      bne,  cmp,  cmp,  cmp,  nop,  cmp,  dec,  cmp,  cld,  cmp,  phx,  stp,  jml,  cmp,  dec,  cmp, /* D */
+/* D */      bne,  cmp,  cmp,  cmp,  pei,  cmp,  dec,  cmp,  cld,  cmp,  phx,  stp,  jml,  cmp,  dec,  cmp, /* D */
 /* E */      cpx,  sbc,  sep,  sbc,  cpx,  sbc,  inc,  sbc,  inx,  sbc,  nop,  xba,  cpx,  sbc,  inc,  sbc, /* E */
 /* F */      beq,  sbc,  sbc,  sbc,  pea,  sbc,  inc,  sbc,  sed,  sbc,  plx,  xce,  jsr,  sbc,  inc,  sbc  /* F */
 };
@@ -55,7 +55,7 @@ static const uint32_t ticktable[256] = {
 /* A */       2,    6,    2,    4,    3,    3,    3,    6,    2,    2,    2,    4,    4,    4,    4,    5, /* A */
 /* B */       2,    5,    5,    7,    4,    4,    4,    6,    2,    4,    2,    2,    4,    4,    4,    5, /* B */
 /* C */       2,    6,    3,    4,    3,    3,    5,    6,    2,    2,    2,    3,    4,    4,    6,    5, /* C */
-/* D */       2,    5,    5,    7,    2,    4,    6,    6,    2,    4,    3,    1,    6,    4,    7,    5, /* D */
+/* D */       2,    5,    5,    7,    6,    4,    6,    6,    2,    4,    3,    1,    6,    4,    7,    5, /* D */
 /* E */       2,    6,    3,    4,    3,    3,    5,    6,    2,    2,    2,    3,    4,    4,    6,    5, /* E */
 /* F */       2,    5,    5,    7,    5,    4,    6,    6,    2,    4,    4,    2,    8,    4,    7,    5  /* F */
 };

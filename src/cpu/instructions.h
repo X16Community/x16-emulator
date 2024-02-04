@@ -436,6 +436,10 @@ static void pea() {
     push16(getvalue(1));
 }
 
+static void pei() {
+    push16(ea);
+}
+
 static void pha() {
     if (memory_16bit()) {
         push16(regs.c);

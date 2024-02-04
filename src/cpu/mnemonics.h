@@ -240,7 +240,7 @@ static const char *mnemonics[256] = {
 	/* $D1 */ "cmp ($%02x),y",
 	/* $D2 */ "cmp ($%02x)",
 	/* $D3 */ "cmp ($%02x,S),y",
-	/* $D4 */ "nop ",
+	/* $D4 */ "pei ($%02x)",
 	/* $D5 */ "cmp $%02x,x",
 	/* $D6 */ "dec $%02x,x",
 	/* $D7 */ "cmp [$%02x],y",
