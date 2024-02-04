@@ -608,7 +608,7 @@ static void sep() {
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
     }
-    if (ea & FLAG_INDEX_WIDTH) {
+    if (regs.status & FLAG_INDEX_WIDTH) {
         regs.xh = 0;
         regs.yh = 0;
     }
