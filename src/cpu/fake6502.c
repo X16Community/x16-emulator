@@ -60,7 +60,7 @@
  *****************************************************
  * Useful functions in this emulator:                *
  *                                                   *
- * void reset6502()                                  *
+ * void reset6502(bool c816)                         *
  *   - Call this once before you begin execution.    *
  *                                                   *
  * void exec6502(uint32_t tickcount)                 *
