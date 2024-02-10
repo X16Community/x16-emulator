@@ -50,8 +50,8 @@
         else clearoverflow();\
 }
 
-#define index_16bit() (!(regs.status & FLAG_INDEX_WIDTH))
-#define memory_16bit() (!(regs.status & FLAG_MEMORY_WIDTH))
+#define index_16bit() (regs.is65c816 && !(regs.status & FLAG_INDEX_WIDTH))
+#define memory_16bit() (regs.is65c816 && !(regs.status & FLAG_MEMORY_WIDTH))
 #define acc_for_mode() (memory_16bit() ? regs.c : ((uint16_t) regs.a))
 
 
@@ -128,15 +128,21 @@ uint8_t pull8() {
     return value;
 }
 
-void reset6502() {
+void reset6502(bool c816) {
     regs.pc = (uint16_t)read6502(0xFFFC) | ((uint16_t)read6502(0xFFFD) << 8);
     regs.c = 0;
     regs.xw = 0;
     regs.yw = 0;
     regs.dp = 0;
     regs.sp = 0x1FD;
-    regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
     regs.e = 1;
+    if (c816) {
+        regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+        regs.is65c816 = true;
+    } else {
+        regs.status |= FLAG_CONSTANT;
+        regs.is65c816 = false;
+    }
     setinterrupt();
     cleardecimal();
     waiting = 0;

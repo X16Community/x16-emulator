@@ -19,13 +19,6 @@
  * engine in C. It was written as part of a Nintendo *
  * Entertainment System emulator I've been writing.  *
  *                                                   *
- * A couple important things to know about are two   *
- * defines in the code. One is "UNDOCUMENTED" which, *
- * when defined, allows Fake6502 to compile with     *
- * full support for the more predictable             *
- * undocumented instructions of the 6502. If it is   *
- * undefined, undocumented opcodes just act as NOPs. *
- *                                                   *
  * The other define is "NES_CPU", which causes the   *
  * code to compile without support for binary-coded  *
  * decimal (BCD) support for the ADC and SBC         *
@@ -106,17 +99,15 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 //6502 defines
-#define UNDOCUMENTED //when this is defined, undocumented opcodes are handled.
-                     //otherwise, they're simply treated as NOPs.
-
 //#define NES_CPU      //when this is defined, the binary-coded decimal (BCD)
                      //status flag is not honored by ADC and SBC. the 2A03
                      //CPU in the Nintendo Entertainment System does not
                      //support BCD operation.
 
-// 65816 registers
+// 6502 / 65816 registers
 
 struct regs regs;
 
@@ -144,25 +135,26 @@ extern void vp6502();
 #include "support.h"
 #include "modes.h"
 
-static void (*addrtable[256])();
-static void (*optable[256])();
+static void (*addrtable_c02[256])();
+static void (*addrtable_c816[256])();
+static void (*optable_c02[256])();
+static void (*optable_c816[256])();
 
-static uint16_t getvalue(_Bool use16Bit) {
-    if (addrtable[opcode] == acc) {
+static uint16_t getvalue(bool use16Bit) {
+    if ((regs.is65c816 ? addrtable_c816[opcode] : addrtable_c02[opcode]) == acc) {
         return use16Bit ? regs.c : (uint16_t)regs.a;
     } else if (use16Bit) {
         return ((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
-    } else {
-        return read6502(ea);
     }
+    return read6502(ea);
 }
 
 __attribute__((unused)) static uint16_t getvalue16() {
     return((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
 }
 
-static void putvalue(uint16_t saveval, _Bool use16Bit) {
-    if (addrtable[opcode] == acc) {
+static void putvalue(uint16_t saveval, bool use16Bit) {
+    if ((regs.is65c816 ? addrtable_c816[opcode] : addrtable_c02[opcode]) == acc) {
         if (use16Bit) {
             regs.c = saveval;
         } else {
@@ -234,6 +226,8 @@ void exec6502(uint32_t tickcount) {
 		return;
     }
 
+    opcode_addr = regs.pc;
+
     clockgoal6502 += tickcount;
 
     while (clockticks6502 < clockgoal6502) {
@@ -249,9 +243,16 @@ void exec6502(uint32_t tickcount) {
         penaltye = 0;
         penaltyx = 0;
 
-        (*addrtable[opcode])();
-        (*optable[opcode])();
-        clockticks6502 += ticktable[opcode];
+        if (regs.is65c816) {
+            (*addrtable_c816[opcode])();
+            (*optable_c816[opcode])();
+            clockticks6502 += ticktable_c816[opcode];
+        } else {
+            (*addrtable_c02[opcode])();
+            (*optable_c02[opcode])();
+            clockticks6502 += ticktable_c02[opcode];
+        }
+        
         if (!regs.e && penaltyop && penaltyaddr) clockticks6502++;
         if (memory_16bit()) clockticks6502 += penaltym;
         if (index_16bit()) clockticks6502 += penaltyx;
@@ -284,10 +285,16 @@ void step6502() {
     penaltye = 0;
     penaltyx = 0;
 
-    (*addrtable[opcode])();
+    if (regs.is65c816) {
+        (*addrtable_c816[opcode])();
+        (*optable_c816[opcode])();
+        clockticks6502 += ticktable_c816[opcode];
+    } else {
+        (*addrtable_c02[opcode])();
+        (*optable_c02[opcode])();
+        clockticks6502 += ticktable_c02[opcode];
+    }
 
-    (*optable[opcode])();
-    clockticks6502 += ticktable[opcode];
     if (penaltyop && penaltyaddr) clockticks6502++;
     if (memory_16bit()) clockticks6502 += penaltym;
     if (index_16bit()) clockticks6502 += penaltyx;

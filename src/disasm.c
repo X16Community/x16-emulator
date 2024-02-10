@@ -20,7 +20,7 @@
 
 int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool debugOn, uint8_t bank, int32_t *eff_addr) {
 	uint8_t opcode = real_read6502(pc, debugOn, bank);
-	const char *mnemonic = mnemonics[opcode];
+	const char *mnemonic = regs.is65c816 ? mnemonics_c816[opcode] : mnemonics_c02[opcode];
 
 	*eff_addr = -1;
 

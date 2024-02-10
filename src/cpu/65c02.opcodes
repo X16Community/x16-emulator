@@ -88,14 +88,14 @@ nop imp 8 $5c
 nop imp 4 $dc
 nop imp 4 $fc
 
-nop imm 2 $02
-nop imm 2 $22
-nop imm 2 $42
-nop imm 3 $44
-nop imm 4 $54
-nop imm 2 $62
-nop imm 2 $82
-nop imm 2 $c2
-nop imm 4 $d4
-nop imm 2 $e2
-nop imm 4 $f4
+nop immm 2 $02
+nop immm 2 $22
+nop immm 2 $42
+nop immm 3 $44
+nop immm 4 $54
+nop immm 2 $62
+nop immm 2 $82
+nop immm 2 $c2
+nop immm 4 $d4
+nop immm 2 $e2
+nop immm 4 $f4

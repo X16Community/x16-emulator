@@ -304,7 +304,7 @@ machine_reset()
 	}
 	video_reset();
 	mouse_state_init();
-	reset6502();
+	reset6502(regs.is65c816);
 }
 
 void
@@ -976,6 +976,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			ym2151_irq_support = true;
+		} else if (!strcmp(argv[0], "-c816")){
+			argc--;
+			argv++;
+			regs.is65c816 = true;
 		} else {
 			usage();
 		}

@@ -149,14 +149,13 @@ static void indy() { // (indirect),Y
     }
 }
 
-/*static void zprel() { // zero-page, relative for branch ops (8-bit immediatel value, sign-extended)
+static void zprel() { // zero-page, relative for branch ops (8-bit immediatel value, sign-extended)
 	ea = (uint16_t)read6502(regs.pc);
 	reladdr = (uint16_t)read6502(regs.pc+1);
 	if (reladdr & 0x80) reladdr |= 0xFF00;
 
 	regs.pc += 2;
 }
-*/
 
 static void sr() { // absolute,S
     ea = regs.sp + (uint16_t)read6502(regs.pc++);
