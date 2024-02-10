@@ -480,6 +480,9 @@ usage()
 	printf("-enable-ym2151-irq\n");
 	printf("\tConnect the YM2151 IRQ source to the emulated CPU. This option increases\n");
 	printf("\tCPU usage as audio render is triggered for every CPU instruction.\n");
+	printf("-c816\n");
+	printf("\tRun the emulator with an emulated 65C816 instead of the default 65C02\n");
+	printf("\tThis option is experimental.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
