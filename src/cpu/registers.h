@@ -3,6 +3,7 @@
 #define _REGISTERS_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define FLAG_CARRY     0x01
 #define FLAG_ZERO      0x02
@@ -13,7 +14,9 @@
 #define FLAG_OVERFLOW  0x40
 #define FLAG_SIGN      0x80
 
+// For 65C02
 #define FLAG_BREAK FLAG_INDEX_WIDTH
+#define FLAG_CONSTANT FLAG_MEMORY_WIDTH
 
 //6502 CPU registers
 
@@ -59,6 +62,8 @@ struct regs
 
     uint8_t status;
     uint8_t e;
+
+    bool is65c816;
 };
 
 void increment_wrap_at_page_boundary(uint16_t *value);

@@ -5,13 +5,13 @@ jobs:
   README:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make fonts-dejavu
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: Install md-to-pdf (npm)
@@ -24,7 +24,7 @@ jobs:
         run: |
           export PATH=$(pwd)/node_modules/.bin:$PATH
           cat header_footer.md README.md RELEASES.md | md-to-pdf --config-file .gh/config.js --stylesheet .gh/markdown.css > "artifacts/README.pdf"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: readme-pdf
           path: artifacts/*
@@ -35,26 +35,26 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
           install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,16 +79,16 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        uses: actions/download-artifact@v3
-        with:
-          name: readme-pdf
-          path: emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_win64
           path: emu_binaries/*
@@ -99,14 +99,14 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
           install: make git mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2
           path-type: inherit
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Add /mingw32/bin to path
@@ -114,14 +114,14 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -146,16 +146,16 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        uses: actions/download-artifact@v3
-        with:
-          name: readme-pdf
-          path: emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_win32
           path: emu_binaries/*
@@ -163,8 +163,8 @@ jobs:
     needs: [README]  
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install Dependencies
@@ -172,13 +172,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -197,15 +197,14 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        uses: actions/download-artifact@v3
-        with:
-          name: readme-pdf
-          path: emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_linux-x86_64
           path: emu_binaries/*
@@ -213,8 +212,8 @@ jobs:
     needs: [README]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install Dependencies
@@ -224,13 +223,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -258,15 +257,14 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        uses: actions/download-artifact@v3
-        with:
-          name: readme-pdf
-          path: emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_linux-aarch64
           path: emu_binaries/*
@@ -274,8 +272,8 @@ jobs:
     needs: [README]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install Dependencies
@@ -285,13 +283,13 @@ jobs:
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -319,15 +317,14 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        uses: actions/download-artifact@v3
-        with:
-          name: readme-pdf
-          path: emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_linux-armhf
           path: emu_binaries/*
@@ -336,23 +333,23 @@ jobs:
     # this is currently macos-11, Big Sur
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: | 
           brew install make git sdl2 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -371,38 +368,37 @@ jobs:
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
       - name: Fetch README.pdf
-        uses: actions/download-artifact@v3
-        with:
-          name: readme-pdf
-          path: emu_binaries
+        run: gh run download -n "readme-pdf" --dir emu_binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_macos
           path: emu_binaries/*
   build-wasm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
-      - uses: mymindstorm/setup-emsdk@v12
-      - uses: actions/setup-python@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
-          gh run download -R Fulgen301/x16-rom -n "ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
-          gh run download -R Fulgen301/x16-rom -n "Release ROM Image" --dir latest_rom
+          gh run download -R X16Community/x16-rom -n "Release ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy ROM symbols
@@ -419,7 +415,7 @@ jobs:
           mkdir emu_binaries/webassembly
           cp webassembly/styles.css webassembly/main.js webassembly/jszip.min.js emu_binaries/webassembly/
           file emu_binaries/*
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: x16emu_wasm
           path: emu_binaries/*

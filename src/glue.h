@@ -53,6 +53,7 @@ typedef enum {
 } gif_recorder_state_t;
 
 extern struct regs regs;
+extern uint16_t opcode_addr;
 extern uint8_t *RAM;
 extern uint8_t ROM[];
 extern uint8_t *CART;

@@ -302,7 +302,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_RESET:								// F2 reset the 6502
-			reset6502();
+			reset6502(regs.is65c816);
 			currentPC = regs.pc;
 			currentPCBank= -1;
 			break;
@@ -680,7 +680,8 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","DB","K","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","XW","Y","YW","DB","K","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 
 static void DEBUGNumberHighByteCondition(int x, int y, int n, _Bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
 	if (condition) {
@@ -693,38 +694,67 @@ static void DEBUGNumberHighByteCondition(int x, int y, int n, _Bool condition, S
 
 static int DEBUGRenderRegisters(void) {
 	int n = 0,yc = 0;
-	while (labels[n] != NULL) {									// Labels
-		DEBUGString(dbgRenderer, DBG_LBLX,n,labels[n], col_label);n++;
+	if (regs.is65c816) {
+		while (labels_c816[n] != NULL) {								// Labels
+			DEBUGString(dbgRenderer, DBG_LBLX,n,labels_c816[n], col_label);n++;
+		}
+		yc++;
+		DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+2, yc, (regs.status >> 5) & 1, 1, regs.e ? col_vram_other : col_data);
+		DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, regs.e ? col_vram_other : col_data);
+		DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
+		if (regs.is65c816) {
+			DEBUGNumber(DBG_LBLX+8, yc, regs.e, 1, col_data);
+		}
+		yc+= 2;
+
+		DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.b, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.c, 4, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.x, 2, col_data);
+		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.xw, (regs.status >> 4) & 1, col_vram_other, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.y, 2, col_data);
+		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.yw, (regs.status >> 4) & 1, col_vram_other, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.db, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.k, 2, col_data);
+		yc++;
+
+		DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.dp, 4, col_data);
+		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.sp, regs.e, col_vram_other, col_data);
+		yc++;
+	} else {
+		while (labels_c02[n] != NULL) {									// Labels
+			DEBUGString(dbgRenderer, DBG_LBLX,n,labels_c02[n], col_label);n++;
+		}
+		yc++;
+		DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
+		yc+= 2;
+
+		DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.x, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.y, 2, col_data);
+		yc++;
+
+		DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.sp|0x100, 4, col_data);
+		yc++;
+
 	}
-	yc++;
-	DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+2, yc, (regs.status >> 5) & 1, 1, regs.e ? col_vram_other : col_data);
-	DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, regs.e ? col_vram_other : col_data);
-	DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+8, yc, regs.e, 1, col_data);
-	yc+= 2;
-
-	DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.b, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.c, 4, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.x, 2, col_data);
-	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.xw, (regs.status >> 4) & 1, col_vram_other, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.y, 2, col_data);
-	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.yw, (regs.status >> 4) & 1, col_vram_other, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.db, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.k, 2, col_data);
-	yc++;
-
-	DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
-	DEBUGNumber(DBG_DATX, yc++, regs.dp, 4, col_data);
-	DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.sp, regs.e, col_vram_other, col_data);
-	yc++;
 
 	if (breakPoint.bank < 0) {
 		DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);

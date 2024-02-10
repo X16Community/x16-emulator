@@ -23,6 +23,7 @@
 #include <SDL.h>
 #include <errno.h>
 #include <time.h>
+#include <limits.h>
 #include "memory.h"
 #include "ieee.h"
 #include "glue.h"
