@@ -123,7 +123,7 @@ struct regs regs;
 //helper variables
 uint32_t instructions = 0; //keep track of total instructions executed
 uint32_t clockticks6502 = 0, clockgoal6502 = 0;
-uint16_t oldpc, ea, reladdr, value;
+uint16_t opcode_addr, oldpc, ea, reladdr, value;
 uint8_t eal;
 uint32_t result;
 uint8_t opcode, oldstatus;
@@ -269,6 +269,8 @@ void step6502() {
 		clockgoal6502 = clockticks6502;
 		return;
 	}
+
+    opcode_addr = regs.pc;
 
     opcode = read6502(regs.pc++);
 

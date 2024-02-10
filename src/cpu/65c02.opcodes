@@ -83,3 +83,19 @@ smb7 zp 5 $f7
 wai imp 3 $cb
 
 dbg imp 1 $DB
+
+nop imp 8 $5c
+nop imp 4 $dc
+nop imp 4 $fc
+
+nop imm 2 $02
+nop imm 2 $22
+nop imm 2 $42
+nop imm 3 $44
+nop imm 4 $54
+nop imm 2 $62
+nop imm 2 $82
+nop imm 2 $c2
+nop imm 4 $d4
+nop imm 2 $e2
+nop imm 4 $f4

@@ -35,7 +35,7 @@ static void (*optable[256])() = {
 /* A */      ldy,  lda,  ldx,  lda,  ldy,  lda,  ldx,  lda,  tay,  lda,  tax,  plb,  ldy,  lda,  ldx,  lda, /* A */
 /* B */      bcs,  lda,  lda,  lda,  ldy,  lda,  ldx,  lda,  clv,  lda,  tsx,  tyx,  ldy,  lda,  ldx,  lda, /* B */
 /* C */      cpy,  cmp,  rep,  cmp,  cpy,  cmp,  dec,  cmp,  iny,  cmp,  dex,  wai,  cpy,  cmp,  dec,  cmp, /* C */
-/* D */      bne,  cmp,  cmp,  cmp,  pei,  cmp,  dec,  cmp,  cld,  cmp,  phx,  stp,  jml,  cmp,  dec,  cmp, /* D */
+/* D */      bne,  cmp,  cmp,  cmp,  pei,  cmp,  dec,  cmp,  cld,  cmp,  phx,  dbg,  jml,  cmp,  dec,  cmp, /* D */
 /* E */      cpx,  sbc,  sep,  sbc,  cpx,  sbc,  inc,  sbc,  inx,  sbc,  nop,  xba,  cpx,  sbc,  inc,  sbc, /* E */
 /* F */      beq,  sbc,  sbc,  sbc,  pea,  sbc,  inc,  sbc,  sed,  sbc,  plx,  xce,  jsr,  sbc,  inc,  sbc  /* F */
 };
@@ -48,9 +48,9 @@ static const uint32_t ticktable[256] = {
 /* 3 */       2,    5,    5,    7,    4,    4,    6,    6,    2,    4,    2,    2,    4,    4,    7,    5, /* 3 */
 /* 4 */       6,    6,    2,    4,    7,    3,    5,    6,    3,    2,    2,    3,    3,    4,    6,    5, /* 4 */
 /* 5 */       2,    5,    5,    7,    7,    4,    6,    6,    2,    4,    3,    2,    4,    4,    7,    5, /* 5 */
-/* 6 */       6,    6,    2,    4,    3,    3,    5,    6,    4,    2,    2,    6,    5,    4,    6,    5, /* 6 */
+/* 6 */       6,    6,    1,    4,    3,    3,    5,    6,    4,    2,    2,    6,    5,    4,    6,    5, /* 6 */
 /* 7 */       2,    5,    5,    7,    4,    4,    6,    6,    2,    4,    4,    2,    6,    4,    7,    5, /* 7 */
-/* 8 */       3,    6,    2,    4,    3,    3,    3,    6,    2,    2,    2,    3,    4,    4,    4,    5, /* 8 */
+/* 8 */       3,    6,    1,    4,    3,    3,    3,    6,    2,    2,    2,    3,    4,    4,    4,    5, /* 8 */
 /* 9 */       2,    6,    5,    7,    4,    4,    4,    6,    2,    5,    2,    2,    4,    5,    5,    5, /* 9 */
 /* A */       2,    6,    2,    4,    3,    3,    3,    6,    2,    2,    2,    4,    4,    4,    4,    5, /* A */
 /* B */       2,    5,    5,    7,    4,    4,    4,    6,    2,    4,    2,    2,    4,    4,    4,    5, /* B */

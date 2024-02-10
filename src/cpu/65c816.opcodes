@@ -116,7 +116,7 @@ tsb abso 6 $0c
 
 wai imp 3 $cb
 
-stp imp 1 $DB
+dbg imp 1 $DB
 
 mvn bmv 7 $54
 mvp bmv 7 $44
