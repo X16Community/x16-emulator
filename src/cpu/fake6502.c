@@ -184,9 +184,9 @@ void nmi6502() {
     vp6502();
 
     if (regs.e) {
-        regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
+        regs.pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
     } else {
-        regs.pc = (uint16_t)read6502(0xFFEE) | ((uint16_t)read6502(0xFFEF) << 8);
+        regs.pc = (uint16_t)read6502(0xFFEA) | ((uint16_t)read6502(0xFFEB) << 8);
     }
 
     clockticks6502 += 7; // consumed by CPU to process interrupt
