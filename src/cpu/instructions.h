@@ -530,11 +530,10 @@ static void rti() {
     value = pull16();
     regs.pc = value;
 
-    if (!regs.e) {
-        regs.k = pull8();
+    if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
-        regs.xh = 0;
-        regs.yh = 0;
+    } else {
+        regs.k = pull8();
     }
 }
 
