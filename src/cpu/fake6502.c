@@ -19,16 +19,6 @@
  * engine in C. It was written as part of a Nintendo *
  * Entertainment System emulator I've been writing.  *
  *                                                   *
- * The other define is "NES_CPU", which causes the   *
- * code to compile without support for binary-coded  *
- * decimal (BCD) support for the ADC and SBC         *
- * opcodes. The Ricoh 2A03 CPU in the NES does not   *
- * support BCD, but is otherwise identical to the    *
- * standard MOS 6502. (Note that this define is      *
- * enabled in this file if you haven't changed it    *
- * yourself. If you're not emulating a NES, you      *
- * should comment it out.)                           *
- *                                                   *
  * If you do discover an error in timing accuracy,   *
  * or operation in general please e-mail me at the   *
  * address above so that I can fix it. Thank you!    *
@@ -100,12 +90,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-//6502 defines
-//#define NES_CPU      //when this is defined, the binary-coded decimal (BCD)
-                     //status flag is not honored by ADC and SBC. the 2A03
-                     //CPU in the Nintendo Entertainment System does not
-                     //support BCD operation.
 
 // 6502 / 65816 registers
 

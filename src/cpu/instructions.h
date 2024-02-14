@@ -7,8 +7,7 @@
 //          65C02 changes.
 //
 //          BRK                 now clears D
-//          ADC/SBC             set N and Z in decimal mode. They also set V, but this is
-//                              essentially meaningless so this has not been implemented.
+//          ADC/SBC             set N and Z in decimal mode. They also set V
 //
 //
 //
@@ -16,32 +15,60 @@
 //
 static void adc() {
     penaltyop = 1;
-    #ifndef NES_CPU
     if (regs.status & FLAG_DECIMAL) {
         uint16_t tmp, tmp2;
-        value = getvalue(0);
-        tmp = ((uint16_t)regs.a & 0x0F) + (value & 0x0F) + (uint16_t)(regs.status & FLAG_CARRY);
-        tmp2 = ((uint16_t)regs.a & 0xF0) + (value & 0xF0);
-        if (tmp > 0x09) {
-            tmp2 += 0x10;
-            tmp += 0x06;
-        }
-        if (tmp2 > 0x90) {
-            tmp2 += 0x60;
-        }
-        if (tmp2 & 0xFF00) {
-            setcarry();
+        if (memory_16bit()) {
+            uint16_t tmp3;
+            uint32_t tmp4;
+            value = getvalue(1);
+            tmp = (regs.c & 0x000f) + (value & 0x000f) + (uint16_t)(regs.status & FLAG_CARRY);
+            tmp2 = (regs.c & 0x00f0) + (value & 0x00f0);
+            tmp3 = (regs.c & 0x0f00) + (value & 0x0f00);
+            tmp4 = ((uint32_t)regs.c & 0xf000) + (value & 0xf000);
+            if (tmp > 0x0009) {
+                tmp2 += 0x0010;
+                tmp += 0x0006;
+            }
+            if (tmp2 > 0x0090) {
+                tmp3 += 0x0100;
+                tmp2 += 0x0060;
+            }
+            if (tmp3 > 0x0900) {
+                tmp4 += 0x1000;
+                tmp3 += 0x0600;
+            }
+            if (tmp4 > 0x9000) {
+                tmp4 += 0x6000;
+            }
+            if (tmp4 & 0xffff0000) {
+                setcarry();
+            } else {
+                clearcarry();
+            }
+            result = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmp4 & 0xF000);
         } else {
-            clearcarry();
+            value = getvalue(0);
+            tmp = ((uint16_t)regs.a & 0x0F) + (value & 0x0F) + (uint16_t)(regs.status & FLAG_CARRY);
+            tmp2 = ((uint16_t)regs.a & 0xF0) + (value & 0xF0);
+            if (tmp > 0x09) {
+                tmp2 += 0x10;
+                tmp += 0x06;
+            }
+            if (tmp2 > 0x90) {
+                tmp2 += 0x60;
+            }
+            if (tmp2 & 0xFF00) {
+                setcarry();
+            } else {
+                clearcarry();
+            }
+            result = (tmp & 0x0F) | (tmp2 & 0xF0);
         }
-        result = (tmp & 0x0F) | (tmp2 & 0xF0);
-
         zerocalc(result, memory_16bit());                /* 65C02 change, Decimal Arithmetic sets NZV */
+        overflowcalc(result, acc_for_mode(), value);
         signcalc(result, memory_16bit());
-
-        clockticks6502++;
+        clockticks6502 += (uint32_t)(!regs.is65c816);
     } else {
-    #endif
         value = getvalue(memory_16bit());
         result = acc_for_mode() + value + (uint16_t) (regs.status & FLAG_CARRY);
 
@@ -49,9 +76,7 @@ static void adc() {
         zerocalc(result, memory_16bit());
         overflowcalc(result, acc_for_mode(), value);
         signcalc(result, memory_16bit());
-    #ifndef NES_CPU
     }
-    #endif
 
     saveaccum(result);
 }
@@ -551,30 +576,63 @@ static void rts() {
 static void sbc() {
     penaltyop = 1;
 
-    #ifndef NES_CPU
     if (regs.status & FLAG_DECIMAL) {
-        value = getvalue(0);
-        result = (uint16_t)regs.a - (value & 0x0f) + (regs.status & FLAG_CARRY) - 1;
-        if ((result & 0x0f) > (regs.a & 0x0f)) {
-            result -= 6;
-        }
-        result -= (value & 0xf0);
-        if ((result & 0xfff0) > ((uint16_t)regs.a & 0xf0)) {
-            result -= 0x60;
-        }
-        if (result <= (uint16_t)regs.a) {
-            setcarry();
+        if (memory_16bit()) {
+            uint16_t tmp, tmp2, tmp3, tmp4;
+            value = getvalue(1);
+            tmp = (regs.c & 0x000f) - (value & 0x000f) + (regs.status & FLAG_CARRY) - 1;
+            tmp2 = (regs.c & 0x00f0) - (value & 0x00f0);
+            tmp3 = (regs.c & 0x0f00) - (value & 0x0f00);
+            tmp4 = (regs.c & 0xf000) - (value & 0xf000);
+            
+            if (tmp & 0xfff0) {
+                tmp2 -= 0x0010;
+                tmp -= 0x0006;
+            }
+
+            if (tmp2 & 0xff00) {
+                tmp3 -= 0x0100;
+                tmp2 -= 0x0060;
+            }
+
+            if (tmp3 & 0xf000) {
+                tmp4 -= 0x1000;
+                tmp3 -= 0x0600;
+            }
+
+            if (tmp4 >= 0xa000) {
+                tmp4 -= 0x6000;
+            }
+
+            result = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmp4 & 0xF000);
+
+            if (result <= regs.c) {
+                setcarry();
+            } else {
+                clearcarry();
+            }
         } else {
-            clearcarry();
+            value = getvalue(0);
+            result = (uint16_t)regs.a - (value & 0x0f) + (regs.status & FLAG_CARRY) - 1;
+            if ((result & 0x0f) > (regs.a & 0x0f)) {
+                result -= 6;
+            }
+            result -= (value & 0xf0);
+            if ((result & 0xfff0) > ((uint16_t)regs.a & 0xf0)) {
+                result -= 0x60;
+            }
+            if (result <= (uint16_t)regs.a) {
+                setcarry();
+            } else {
+                clearcarry();
+            }
         }
 
         zerocalc(result, memory_16bit());                /* 65C02 change, Decimal Arithmetic sets NZV */
+        overflowcalc(result, acc_for_mode(), value);
         signcalc(result, memory_16bit());
-
-        clockticks6502++;
+        clockticks6502 += (uint32_t)(!regs.is65c816);
     } else {
-    #endif
-
         if (memory_16bit()) {
             value = getvalue(1) ^ 0xFFFF;
             result = regs.c + value + (regs.status & FLAG_CARRY);
@@ -587,9 +645,7 @@ static void sbc() {
         zerocalc(result, memory_16bit());
         overflowcalc(result, acc_for_mode(), value);
         signcalc(result, memory_16bit());
-    #ifndef NES_CPU
     }
-    #endif
 
     saveaccum(result);
 }
