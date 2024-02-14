@@ -139,9 +139,15 @@ void reset6502(bool c816) {
     if (c816) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
         regs.is65c816 = true;
+        ticktable = ticktable_c816;
+        optable = optable_c816;
+        addrtable = addrtable_c816;
     } else {
         regs.status |= FLAG_CONSTANT;
         regs.is65c816 = false;
+        ticktable = ticktable_c02;
+        optable = optable_c02;
+        addrtable = addrtable_c02;
     }
     setinterrupt();
     cleardecimal();

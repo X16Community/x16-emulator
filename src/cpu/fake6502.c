@@ -132,16 +132,23 @@ extern void write6502(uint16_t address, uint8_t value);
 extern void stop6502(uint16_t address);
 extern void vp6502();
 
-#include "support.h"
-#include "modes.h"
-
 static void (*addrtable_c02[256])();
 static void (*addrtable_c816[256])();
 static void (*optable_c02[256])();
 static void (*optable_c816[256])();
 
+static const uint32_t ticktable_c02[256];
+static const uint32_t ticktable_c816[256];
+
+static void (**addrtable)();
+static void (**optable)();
+static const uint32_t *ticktable;
+
+#include "support.h"
+#include "modes.h"
+
 static uint16_t getvalue(bool use16Bit) {
-    if ((regs.is65c816 ? addrtable_c816[opcode] : addrtable_c02[opcode]) == acc) {
+    if (addrtable[opcode] == acc) {
         return use16Bit ? regs.c : (uint16_t)regs.a;
     } else if (use16Bit) {
         return ((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
@@ -154,7 +161,7 @@ __attribute__((unused)) static uint16_t getvalue16() {
 }
 
 static void putvalue(uint16_t saveval, bool use16Bit) {
-    if ((regs.is65c816 ? addrtable_c816[opcode] : addrtable_c02[opcode]) == acc) {
+    if (addrtable[opcode] == acc) {
         if (use16Bit) {
             regs.c = saveval;
         } else {
@@ -243,15 +250,9 @@ void exec6502(uint32_t tickcount) {
         penaltye = 0;
         penaltyx = 0;
 
-        if (regs.is65c816) {
-            (*addrtable_c816[opcode])();
-            (*optable_c816[opcode])();
-            clockticks6502 += ticktable_c816[opcode];
-        } else {
-            (*addrtable_c02[opcode])();
-            (*optable_c02[opcode])();
-            clockticks6502 += ticktable_c02[opcode];
-        }
+        (*addrtable[opcode])();
+        (*optable[opcode])();
+        clockticks6502 += ticktable[opcode];
         
         if (!regs.e && penaltyop && penaltyaddr) clockticks6502++;
         if (memory_16bit()) clockticks6502 += penaltym;
@@ -285,15 +286,9 @@ void step6502() {
     penaltye = 0;
     penaltyx = 0;
 
-    if (regs.is65c816) {
-        (*addrtable_c816[opcode])();
-        (*optable_c816[opcode])();
-        clockticks6502 += ticktable_c816[opcode];
-    } else {
-        (*addrtable_c02[opcode])();
-        (*optable_c02[opcode])();
-        clockticks6502 += ticktable_c02[opcode];
-    }
+    (*addrtable[opcode])();
+    (*optable[opcode])();
+    clockticks6502 += ticktable[opcode];
 
     if (penaltyop && penaltyaddr) clockticks6502++;
     if (memory_16bit()) clockticks6502 += penaltym;
