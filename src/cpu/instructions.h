@@ -46,6 +46,7 @@ static void adc() {
                 clearcarry();
             }
             result = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmp4 & 0xF000);
+            overflowcalc16p(result, acc_for_mode(), value);
         } else {
             value = getvalue(0);
             tmp = ((uint16_t)regs.a & 0x0F) + (value & 0x0F) + (uint16_t)(regs.status & FLAG_CARRY);
@@ -63,20 +64,25 @@ static void adc() {
                 clearcarry();
             }
             result = (tmp & 0x0F) | (tmp2 & 0xF0);
+            overflowcalc8p(result, acc_for_mode(), value);
         }
-        zerocalc(result, memory_16bit());                /* 65C02 change, Decimal Arithmetic sets NZV */
-        overflowcalc(result, acc_for_mode(), value);
-        signcalc(result, memory_16bit());
         clockticks6502 += (uint32_t)(!regs.is65c816);
     } else {
-        value = getvalue(memory_16bit());
-        result = acc_for_mode() + value + (uint16_t) (regs.status & FLAG_CARRY);
-
-        carrycalc(result, memory_16bit());
-        zerocalc(result, memory_16bit());
-        overflowcalc(result, acc_for_mode(), value);
-        signcalc(result, memory_16bit());
+        if (memory_16bit()) {
+            value = getvalue(1);
+            result = regs.c + value + (uint16_t) (regs.status & FLAG_CARRY);
+            overflowcalc16p(result, regs.c, value);
+            carrycalc(result, 1);
+        } else {
+            value = getvalue(0);
+            result = (uint16_t)regs.a + value + (uint16_t) (regs.status & FLAG_CARRY);
+            overflowcalc8p(result, (uint16_t)regs.a, value);
+            carrycalc(result, 0);
+        }
     }
+
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     saveaccum(result);
 }
@@ -611,6 +617,7 @@ static void sbc() {
             } else {
                 clearcarry();
             }
+            overflowcalc16m(result, regs.c, value);
         } else {
             value = getvalue(0);
             result = (uint16_t)regs.a - (value & 0x0f) + (regs.status & FLAG_CARRY) - 1;
@@ -626,26 +633,26 @@ static void sbc() {
             } else {
                 clearcarry();
             }
+            overflowcalc8m(result, (uint16_t)regs.a, value);
         }
 
-        zerocalc(result, memory_16bit());                /* 65C02 change, Decimal Arithmetic sets NZV */
-        overflowcalc(result, acc_for_mode(), value);
-        signcalc(result, memory_16bit());
         clockticks6502 += (uint32_t)(!regs.is65c816);
     } else {
         if (memory_16bit()) {
             value = getvalue(1) ^ 0xFFFF;
             result = regs.c + value + (regs.status & FLAG_CARRY);
+            overflowcalc16m(result, regs.c, value);
         } else {
             value = getvalue(0) ^ 0x00FF;
             result = (uint16_t)regs.a + value + (uint16_t)(regs.status & FLAG_CARRY);
+            overflowcalc8m(result, (uint16_t)regs.a, value);
         }
 
         carrycalc(result, memory_16bit());
-        zerocalc(result, memory_16bit());
-        overflowcalc(result, acc_for_mode(), value);
-        signcalc(result, memory_16bit());
     }
+
+    zerocalc(result, memory_16bit());
+    signcalc(result, memory_16bit());
 
     saveaccum(result);
 }
