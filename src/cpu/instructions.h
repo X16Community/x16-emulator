@@ -17,14 +17,15 @@ static void adc() {
     penaltyop = 1;
     if (regs.status & FLAG_DECIMAL) {
         uint16_t tmp, tmp2;
+        uint32_t tmpov;
         if (memory_16bit()) {
             uint16_t tmp3;
             uint32_t tmp4;
             value = getvalue(1);
-            tmp = (regs.c & 0x000f) + (value & 0x000f) + (uint16_t)(regs.status & FLAG_CARRY);
-            tmp2 = (regs.c & 0x00f0) + (value & 0x00f0);
-            tmp3 = (regs.c & 0x0f00) + (value & 0x0f00);
-            tmp4 = ((uint32_t)regs.c & 0xf000) + (value & 0xf000);
+            tmp = (regs.c & 0x000F) + (value & 0x000F) + (uint16_t)(regs.status & FLAG_CARRY);
+            tmp2 = (regs.c & 0x00F0) + (value & 0x00F0);
+            tmp3 = (regs.c & 0x0F00) + (value & 0x0F00);
+            tmp4 = ((uint32_t)regs.c & 0xF000) + (value & 0xF000);
             if (tmp > 0x0009) {
                 tmp2 += 0x0010;
                 tmp += 0x0006;
@@ -37,16 +38,18 @@ static void adc() {
                 tmp4 += 0x1000;
                 tmp3 += 0x0600;
             }
+            tmpov = tmp4;
             if (tmp4 > 0x9000) {
                 tmp4 += 0x6000;
             }
-            if (tmp4 & 0xffff0000) {
+            if (tmp4 & 0xFFFF0000) {
                 setcarry();
             } else {
                 clearcarry();
             }
             result = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmp4 & 0xF000);
-            overflowcalc16p(result, acc_for_mode(), value);
+            uint16_t ovresult = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmpov & 0xF000);
+            overflowcalc16(ovresult, regs.c, value);
         } else {
             value = getvalue(0);
             tmp = ((uint16_t)regs.a & 0x0F) + (value & 0x0F) + (uint16_t)(regs.status & FLAG_CARRY);
@@ -55,6 +58,7 @@ static void adc() {
                 tmp2 += 0x10;
                 tmp += 0x06;
             }
+            tmpov = tmp2;
             if (tmp2 > 0x90) {
                 tmp2 += 0x60;
             }
@@ -64,19 +68,20 @@ static void adc() {
                 clearcarry();
             }
             result = (tmp & 0x0F) | (tmp2 & 0xF0);
-            overflowcalc8p(result, acc_for_mode(), value);
+            uint8_t ovresult = (tmp & 0x0F) | (tmpov & 0xF0);
+            overflowcalc8((uint16_t)ovresult, (uint16_t)regs.a, value);
         }
         clockticks6502 += (uint32_t)(!regs.is65c816);
     } else {
         if (memory_16bit()) {
             value = getvalue(1);
             result = regs.c + value + (uint16_t) (regs.status & FLAG_CARRY);
-            overflowcalc16p(result, regs.c, value);
+            overflowcalc16(result, regs.c, value);
             carrycalc(result, 1);
         } else {
             value = getvalue(0);
             result = (uint16_t)regs.a + value + (uint16_t) (regs.status & FLAG_CARRY);
-            overflowcalc8p(result, (uint16_t)regs.a, value);
+            overflowcalc8(result, (uint16_t)regs.a, value);
             carrycalc(result, 0);
         }
     }
@@ -583,57 +588,72 @@ static void sbc() {
     penaltyop = 1;
 
     if (regs.status & FLAG_DECIMAL) {
+        uint16_t tmp, tmp2;
+        uint32_t tmpc;
         if (memory_16bit()) {
-            uint16_t tmp, tmp2, tmp3, tmp4;
+            uint16_t tmp3;
+            uint32_t tmp4;
             value = getvalue(1);
-            tmp = (regs.c & 0x000f) - (value & 0x000f) + (regs.status & FLAG_CARRY) - 1;
-            tmp2 = (regs.c & 0x00f0) - (value & 0x00f0);
-            tmp3 = (regs.c & 0x0f00) - (value & 0x0f00);
-            tmp4 = (regs.c & 0xf000) - (value & 0xf000);
-            
-            if (tmp & 0xfff0) {
+            tmp = (regs.c & 0x000F) - (value & 0x000F) + (regs.status & FLAG_CARRY) - 1;
+            tmp2 = (regs.c & 0x00F0) - (value & 0x00F0);
+            tmp3 = (regs.c & 0x0F00) - (value & 0x0F00);
+            tmp4 = (regs.c & 0xF000) - (value & 0xF000);
+
+            if (tmp & 0xFFF0) {
                 tmp2 -= 0x0010;
                 tmp -= 0x0006;
             }
 
-            if (tmp2 & 0xff00) {
+            if (tmp2 & 0xFF00) {
                 tmp3 -= 0x0100;
                 tmp2 -= 0x0060;
             }
 
-            if (tmp3 & 0xf000) {
+            if (tmp3 & 0xF000) {
                 tmp4 -= 0x1000;
                 tmp3 -= 0x0600;
             }
 
-            if (tmp4 >= 0xa000) {
+            tmpc = tmp4;
+            if (tmp4 >= 0x0000A000) {
                 tmp4 -= 0x6000;
             }
 
             result = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmp4 & 0xF000);
+            uint16_t c_result = (tmp & 0x000F) | (tmp2 & 0x00F0) | (tmp3 & 0x0F00) | (tmpc & 0xF000);
 
-            if (result <= regs.c) {
+            if (c_result <= regs.c) {
                 setcarry();
             } else {
                 clearcarry();
             }
-            overflowcalc16m(result, regs.c, value);
+            uint16_t ovresult = regs.c + (value ^ 0xFFFF) + (regs.status & FLAG_CARRY);
+            overflowcalc16(ovresult, regs.c, value ^ 0xFFFF);
         } else {
             value = getvalue(0);
-            result = (uint16_t)regs.a - (value & 0x0f) + (regs.status & FLAG_CARRY) - 1;
-            if ((result & 0x0f) > (regs.a & 0x0f)) {
-                result -= 6;
+            tmp = ((uint16_t)regs.a & 0x0F) - (value & 0x0F) + (regs.status & FLAG_CARRY) - 1;
+            tmp2 = ((uint16_t)regs.a & 0xF0) - (value & 0xF0);
+
+            if (tmp & 0xFFF0) {
+                tmp2 -= 0x10;
+                tmp -= 0x06;
             }
-            result -= (value & 0xf0);
-            if ((result & 0xfff0) > ((uint16_t)regs.a & 0xf0)) {
-                result -= 0x60;
+
+            tmpc = tmp2;
+            if (tmp2 & 0xFF00) {
+                tmp2 -= 0x60;
             }
-            if (result <= (uint16_t)regs.a) {
+
+            result = (tmp & 0x0F) | (tmp2 & 0xF0);
+            uint16_t c_result = (tmp & 0x0F) | (tmpc & 0xF0);
+
+            if (c_result <= (uint16_t)regs.a) {
                 setcarry();
             } else {
                 clearcarry();
             }
-            overflowcalc8m(result, (uint16_t)regs.a, value);
+            uint8_t ovresult = regs.a + (value ^ 0xFF) + (regs.status & FLAG_CARRY);
+            overflowcalc8((uint16_t)ovresult, (uint16_t)regs.a, value ^ 0xFF);
         }
 
         clockticks6502 += (uint32_t)(!regs.is65c816);
@@ -641,11 +661,11 @@ static void sbc() {
         if (memory_16bit()) {
             value = getvalue(1) ^ 0xFFFF;
             result = regs.c + value + (regs.status & FLAG_CARRY);
-            overflowcalc16m(result, regs.c, value);
+            overflowcalc16(result, regs.c, value);
         } else {
             value = getvalue(0) ^ 0x00FF;
             result = (uint16_t)regs.a + value + (uint16_t)(regs.status & FLAG_CARRY);
-            overflowcalc8m(result, (uint16_t)regs.a, value);
+            overflowcalc8(result, (uint16_t)regs.a, value);
         }
 
         carrycalc(result, memory_16bit());

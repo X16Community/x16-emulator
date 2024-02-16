@@ -45,23 +45,13 @@
         else clearcarry();\
 }
 
-#define overflowcalc8p(n, m, o) { /* n = result, m = accumulator, o = memory */ \
-    if (((n) < (m)) ? (!(((n) ^ (o)) & 0x80)) : ((n) ^ (m)) & ((n) ^ (o)) & 0x80) setoverflow();\
+#define overflowcalc8(n, m, o) { /* n = result, m = accumulator, o = memory */ \
+    if (((n) ^ (m)) & ((n) ^ (o)) & 0x80) setoverflow();\
         else clearoverflow();\
 }
 
-#define overflowcalc16p(n, m, o) { /* n = result, m = accumulator, o = memory */ \
-    if (((n) < (m)) ? (!(((n) ^ (o)) & 0x8000)) : ((n) ^ (m)) & ((n) ^ (o)) & 0x8000) setoverflow();\
-        else clearoverflow();\
-}
-
-#define overflowcalc8m(n, m, o) { /* n = result, m = accumulator, o = memory */ \
-    if (((n) > (m)) ? (!(((n) ^ (o)) & 0x80)) : ((n) ^ (m)) & ((n) ^ (o)) & 0x80) setoverflow();\
-        else clearoverflow();\
-}
-
-#define overflowcalc16m(n, m, o) { /* n = result, m = accumulator, o = memory */ \
-    if (((n) > (m)) ? (!(((n) ^ (o)) & 0x8000)) : ((n) ^ (m)) & ((n) ^ (o)) & 0x8000) setoverflow();\
+#define overflowcalc16(n, m, o) { /* n = result, m = accumulator, o = memory */ \
+    if (((n) ^ (m)) & ((n) ^ (o)) & 0x8000) setoverflow();\
         else clearoverflow();\
 }
 
