@@ -146,7 +146,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		length = 3;
 	}
 	else if (isRel16) {
-		snprintf(line, max_line, mnemonic, (pc + 3 + ((int16_t)real_read6502(pc + 1, debugOn, bank) | ((int16_t)real_read6502(pc + 2, debugOn, bank) << 8))) & 0xffff);
+		snprintf(line, max_line, mnemonic, (pc + 3 + (int16_t)(real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8))) & 0xffff);
 		length = 3;
 	} else {
 		if (strstr(line, "%02x")) {
