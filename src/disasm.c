@@ -36,6 +36,10 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	//
 	int isZprel  = (opcode & 0x0F) == 0x0F;
 	//
+	//		PER is a rel16 opcode
+	//
+	int isRel16 = (opcode == 0x62);
+	//
 	//      X relative opcodes (including indirect/indexed)
 	//
 	int isXrel = 0;
@@ -140,6 +144,10 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	else if (isZprel) {
 		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), pc + 3 + (int8_t)real_read6502(pc + 2, debugOn, bank));
 		length = 3;
+	}
+	else if (isRel16) {
+		snprintf(line, max_line, mnemonic, (pc + 3 + ((int16_t)real_read6502(pc + 1, debugOn, bank) | ((int16_t)real_read6502(pc + 2, debugOn, bank) << 8))) & 0xffff);
+		length = 3;
 	} else {
 		if (strstr(line, "%02x")) {
 			length = 2;
@@ -209,6 +217,6 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	if (where) {
 		free((char *) mnemonic);
 	}
-	
+
 	return length;
 }

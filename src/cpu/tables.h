@@ -28,7 +28,7 @@ static void (*addrtable_c816[256])() = {
 /* 3 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,indly,  imp, absy,  acc,  imp, absx, absx, absx,abslx, /* 3 */
 /* 4 */     imp, indx, imm8,   sr,  bmv,   zp,   zp,indl0,  imp, immm,  acc,  imp, abso, abso, abso, absl, /* 4 */
 /* 5 */     rel, indy, ind0,sridy,  bmv,  zpx,  zpx,indly,  imp, absy,  imp,  imp, absl, absx, absx,abslx, /* 5 */
-/* 6 */     imp, indx,  imp,   sr,   zp,   zp,   zp,indl0,  imp, immm,  acc,  imp,  ind, abso, abso, absl, /* 6 */
+/* 6 */     imp, indx,rel16,   sr,   zp,   zp,   zp,indl0,  imp, immm,  acc,  imp,  ind, abso, abso, absl, /* 6 */
 /* 7 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,indly,  imp, absy,  imp,  imp, ainx, absx, absx,abslx, /* 7 */
 /* 8 */     rel, indx,  imp,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* 8 */
 /* 9 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpy,indly,  imp, absy,  imp,  imp, abso, absx, absx,abslx, /* 9 */
@@ -68,7 +68,7 @@ static void (*optable_c816[256])() = {
 /* 3 */      bmi,  and,  and,  and,  bit,  and,  rol,  and,  sec,  and,  dec,  tsc,  bit,  and,  rol,  and, /* 3 */
 /* 4 */      rti,  eor,  wdm,  eor,  mvp,  eor,  lsr,  eor,  pha,  eor,  lsr,  phk,  jmp,  eor,  lsr,  eor, /* 4 */
 /* 5 */      bvc,  eor,  eor,  eor,  mvn,  eor,  lsr,  eor,  cli,  eor,  phy,  tcd,  jml,  eor,  lsr,  eor, /* 5 */
-/* 6 */      rts,  adc,  nop,  adc,  stz,  adc,  ror,  adc,  pla,  adc,  ror,  rtl,  jmp,  adc,  ror,  adc, /* 6 */
+/* 6 */      rts,  adc,  per,  adc,  stz,  adc,  ror,  adc,  pla,  adc,  ror,  rtl,  jmp,  adc,  ror,  adc, /* 6 */
 /* 7 */      bvs,  adc,  adc,  adc,  stz,  adc,  ror,  adc,  sei,  adc,  ply,  tdc,  jmp,  adc,  ror,  adc, /* 7 */
 /* 8 */      bra,  sta,  nop,  sta,  sty,  sta,  stx,  sta,  dey,  bit,  txa,  phb,  sty,  sta,  stx,  sta, /* 8 */
 /* 9 */      bcc,  sta,  sta,  sta,  sty,  sta,  stx,  sta,  tya,  sta,  txs,  txy,  stz,  sta,  stz,  sta, /* 9 */
@@ -108,7 +108,7 @@ static const uint32_t ticktable_c816[256] = {
 /* 3 */       2,    5,    5,    7,    4,    4,    6,    6,    2,    4,    2,    2,    4,    4,    7,    5, /* 3 */
 /* 4 */       6,    6,    2,    4,    7,    3,    5,    6,    3,    2,    2,    3,    3,    4,    6,    5, /* 4 */
 /* 5 */       2,    5,    5,    7,    7,    4,    6,    6,    2,    4,    3,    2,    4,    4,    7,    5, /* 5 */
-/* 6 */       6,    6,    1,    4,    3,    3,    5,    6,    4,    2,    2,    6,    5,    4,    6,    5, /* 6 */
+/* 6 */       6,    6,    6,    4,    3,    3,    5,    6,    4,    2,    2,    6,    5,    4,    6,    5, /* 6 */
 /* 7 */       2,    5,    5,    7,    4,    4,    6,    6,    2,    4,    4,    2,    6,    4,    7,    5, /* 7 */
 /* 8 */       3,    6,    1,    4,    3,    3,    3,    6,    2,    2,    2,    3,    4,    4,    4,    5, /* 8 */
 /* 9 */       2,    6,    5,    7,    4,    4,    4,    6,    2,    5,    2,    2,    4,    5,    5,    5, /* 9 */

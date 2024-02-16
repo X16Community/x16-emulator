@@ -92,6 +92,7 @@ bra rel 3 $80
 
 pea imm16 5 $f4
 pei ind0 6 $d4
+per rel16 6 $62
 phb imp 3 $8b
 phd imp 4 $0b
 phk imp 3 $4b

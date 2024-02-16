@@ -476,6 +476,10 @@ static void pei() {
     push16(ea);
 }
 
+static void per() {
+    push16(regs.pc + reladdr);
+}
+
 static void pha() {
     if (memory_16bit()) {
         push16(regs.c);
