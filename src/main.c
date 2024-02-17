@@ -334,10 +334,15 @@ machine_toggle_warp()
 static bool
 is_kernal()
 {
-	return read6502(0xfff6) == 'M' && // only for KERNAL
+	// only for KERNAL
+	return (read6502(0xfff6) == 'M' &&
 			read6502(0xfff7) == 'I' &&
 			read6502(0xfff8) == 'S' &&
-			read6502(0xfff9) == 'T';
+			read6502(0xfff9) == 'T')
+		|| (read6502(0xc008) == 'M' &&
+			read6502(0xc009) == 'I' &&
+			read6502(0xc00a) == 'S' &&
+			read6502(0xc00b) == 'T');
 }
 
 static void
