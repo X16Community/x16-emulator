@@ -164,21 +164,7 @@ static void brk() {
     penaltye = 1;
     regs.pc++;
 
-    if (!regs.e) {
-        push8(regs.k);
-    }
-
-    push16(regs.pc); //push next instruction address onto stack
-    push8(regs.status | (regs.e ? FLAG_BREAK : 0)); //push CPU status to stack
-    setinterrupt(); //set interrupt flag
-    cleardecimal();       // clear decimal flag (65C02 change)
-    vp6502();
-
-    if (regs.e) {
-        regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
-    } else {
-        regs.pc = (uint16_t)read6502(0xFFE6) | ((uint16_t)read6502(0xFFE7) << 8);
-    }
+    interrupt6502(INT_BRK);
 }
 
 static void bvc() {
@@ -230,21 +216,7 @@ static void cop() {
     penaltye = 1;
     regs.pc++;
 
-    if (!regs.e) {
-        push8(regs.k);
-    }
-
-    push16(regs.pc); //push next instruction address onto stack
-    push8(regs.status | FLAG_BREAK); //push CPU status to stack
-    setinterrupt(); //set interrupt flag
-    cleardecimal();       // clear decimal flag (65C02 change)
-    vp6502();
-
-    if (regs.e) {
-        regs.pc = (uint16_t)read6502(0xFFF4) | ((uint16_t)read6502(0xFFF5) << 8);
-    } else {
-        regs.pc = (uint16_t)read6502(0xFFE4) | ((uint16_t)read6502(0xFFE5) << 8);
-    }
+    interrupt6502(INT_COP);
 }
 
 static void cpx() {

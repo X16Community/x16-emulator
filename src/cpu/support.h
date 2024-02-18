@@ -158,3 +158,36 @@ void reset6502(bool c816) {
     cleardecimal();
     waiting = 0;
 }
+
+enum InterruptType {
+    INT_COP = 0x4,
+    INT_BRK = 0x6,
+    INT_NMI = 0xA,
+    INT_IRQ = 0xE
+};
+
+void interrupt6502(enum InterruptType vector) {
+    if (!regs.e) {
+        push8(regs.k);
+    }
+
+    regs.k = 0; // also in emulated mode
+
+    push16(regs.pc);
+
+    if (regs.e) {
+        push8(vector == INT_BRK ? regs.status | FLAG_BREAK : regs.status & ~FLAG_BREAK);
+        vector = INT_IRQ;
+    } else {
+        push8(regs.status);
+    }
+
+    setinterrupt();
+    cleardecimal();
+    vp6502();
+
+    uint16_t vector_address = (regs.e ? 0xFFF0 : 0xFFE0) + (uint8_t) vector;
+    regs.pc = (uint16_t) read6502(vector_address) | ((uint16_t) read6502(vector_address + 1) << 8);
+
+    clockticks6502 += 7; // consumed by CPU to process interrupt
+}
