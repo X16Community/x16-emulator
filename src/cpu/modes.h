@@ -58,11 +58,11 @@ static void zp() { //zero-page
 }
 
 static void zpx() { //zero-page,X
-    _zp_with_offset(regs.xw);
+    _zp_with_offset(regs.x);
 }
 
 static void zpy() { //zero-page,Y
-    _zp_with_offset(regs.yw);
+    _zp_with_offset(regs.y);
 }
 
 static void rel() { //relative for branch ops (8-bit immediate value, sign-extended)
@@ -84,7 +84,7 @@ static void absx() { //absolute,X
     uint16_t startpage;
     ea = ((uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8));
     startpage = ea & 0xFF00;
-    ea += regs.xw;
+    ea += regs.x;
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
@@ -97,7 +97,7 @@ static void absy() { //absolute,Y
     uint16_t startpage;
     ea = ((uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8));
     startpage = ea & 0xFF00;
-    ea += regs.yw;
+    ea += regs.y;
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
@@ -130,7 +130,7 @@ static void ind0() { // (zp)
 
 static void indx() { // (indirect,X)
     uint16_t eahelp;
-    eahelp = (uint16_t)read6502(regs.pc++) + regs.xw;
+    eahelp = (uint16_t)read6502(regs.pc++) + regs.x;
     ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
 
     if (regs.dp & 0x00FF) {
@@ -143,7 +143,7 @@ static void indy() { // (indirect),Y
     eahelp = (uint16_t)read6502(regs.pc++);
     ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
     startpage = ea & 0xFF00;
-    ea += regs.yw;
+    ea += regs.y;
 
     if (regs.dp & 0x00FF) {
         penaltyd = 1;
@@ -171,7 +171,7 @@ static void sridy() { // (indirect,S),Y
     eahelp = regs.sp + (uint16_t)read6502(regs.pc++);
     ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
     startpage = ea & 0xFF00;
-    ea += (uint16_t)regs.yw;
+    ea += (uint16_t)regs.y;
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;

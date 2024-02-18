@@ -173,7 +173,7 @@ void testbench_init()
                 if (ival == -1) {
                     invalid();
                 } else {
-                    regs.x = (uint8_t)ival;
+                    regs.xl = (uint8_t)ival;
                     ready();
                 }
             }
@@ -188,7 +188,7 @@ void testbench_init()
                 if (ival == -1) {
                     invalid();
                 } else {
-                    regs.y = (uint8_t)ival;
+                    regs.yl = (uint8_t)ival;
                     ready();
                 }
             }
@@ -266,12 +266,12 @@ void testbench_init()
         }
 
         else if(strncmp(line, "RQX", 3) == 0) {             //Request X register value
-            printf("%lx\n", (long)regs.x);
+            printf("%lx\n", (long)regs.xl);
             fflush(stdout);
         }
 
         else if(strncmp(line, "RQY", 3) == 0) {             //Request Y register value
-            printf("%lx\n", (long)regs.y);
+            printf("%lx\n", (long)regs.yl);
             fflush(stdout);
         }
 
