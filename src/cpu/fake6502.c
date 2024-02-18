@@ -168,6 +168,8 @@ void nmi6502() {
         push8(regs.k);
     }
 
+    regs.k = 0; // also in emulated mode
+
     push16(regs.pc);
     push8(regs.e ? regs.status & ~FLAG_BREAK : regs.status);
     setinterrupt();
@@ -189,6 +191,8 @@ void irq6502() {
         if (!regs.e) {
             push8(regs.k);
         }
+
+        regs.k = 0; // also in emulated mode
 
         push16(regs.pc);
         push8(regs.e ? regs.status & ~FLAG_BREAK : regs.status);
