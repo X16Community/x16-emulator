@@ -82,10 +82,10 @@ static void plx() {
         signcalc(regs.x, 1);
     } else {
         regs.xl = pull8();
-    }
 
-    zerocalc(regs.xl, 0);
-    signcalc(regs.xl, 0);
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
+    }
 }
 
 static void phy() {
