@@ -1237,8 +1237,8 @@ handle_ieee_intercept()
 			} else if (s == -3) {
 				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
-				regs.xl = count & 0xff;
-				regs.yl = count >> 8;
+				regs.x = count & 0xff;
+				regs.y = count >> 8;
 				regs.status &= 0xfe; // clear C -> supported
 			}
 			break;
@@ -1251,8 +1251,8 @@ handle_ieee_intercept()
 			} else if (s == -3) {
 				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
-				regs.xl = count & 0xff;
-				regs.yl = count >> 8;
+				regs.x = count & 0xff;
+				regs.y = count >> 8;
 				regs.status &= 0xfe; // clear C -> supported
 			}
 			break;
