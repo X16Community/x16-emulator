@@ -680,7 +680,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","XL","X","YL","Y","DB","K","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","Y","DB","K","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
 
 static void DEBUGNumberHighByteCondition(int x, int y, int n, _Bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
@@ -715,9 +715,7 @@ static int DEBUGRenderRegisters(void) {
 		DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
 		DEBUGNumber(DBG_DATX, yc++, regs.b, 2, col_data);
 		DEBUGNumber(DBG_DATX, yc++, regs.c, 4, col_data);
-		DEBUGNumber(DBG_DATX, yc++, regs.xl, 2, col_data);
 		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.x, (regs.status >> 4) & 1, col_vram_other, col_data);
-		DEBUGNumber(DBG_DATX, yc++, regs.yl, 2, col_data);
 		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.y, (regs.status >> 4) & 1, col_vram_other, col_data);
 		DEBUGNumber(DBG_DATX, yc++, regs.db, 2, col_data);
 		DEBUGNumber(DBG_DATX, yc++, regs.k, 2, col_data);
