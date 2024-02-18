@@ -20,38 +20,31 @@
 
 //6502 CPU registers
 
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define LOW_HIGH_UNION(name, low, high) \
+    union { \
+        struct { \
+            uint8_t low; \
+            uint8_t high; \
+        }; \
+        uint16_t name; \
+    }
+#else
+#define LOW_HIGH_UNION(name, low, high) \
+    union { \
+        struct { \
+            uint8_t high; \
+            uint8_t low; \
+        }; \
+        uint16_t name; \
+    }
+#endif
+
 struct regs
 {
-    union
-    {
-        struct
-        {
-            uint8_t a;
-            uint8_t b;
-        };
-
-        uint16_t c;
-    };
-
-    union
-    {
-        struct
-        {
-            uint8_t xl;
-            uint8_t xh;
-        };
-        uint16_t x;
-    };
-
-    union
-    {
-        struct
-        {
-            uint8_t yl;
-            uint8_t yh;
-        };
-        uint16_t y;
-    };
+    LOW_HIGH_UNION(c, a, b);
+    LOW_HIGH_UNION(x, xl, xh);
+    LOW_HIGH_UNION(y, yl, yh);
 
     uint16_t dp;
     uint16_t sp;
@@ -65,6 +58,8 @@ struct regs
 
     bool is65c816;
 };
+
+#undef LOW_HIGH_UNION
 
 void increment_wrap_at_page_boundary(uint16_t *value);
 void decrement_wrap_at_page_boundary(uint16_t *value);
