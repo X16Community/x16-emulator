@@ -164,49 +164,13 @@ static void putvalue(uint16_t saveval, bool use16Bit) {
 #include "tables.h"
 
 void nmi6502() {
-    if (!regs.e) {
-        push8(regs.k);
-    }
-
-    regs.k = 0; // also in emulated mode
-
-    push16(regs.pc);
-    push8(regs.e ? regs.status & ~FLAG_BREAK : regs.status);
-    setinterrupt();
-    cleardecimal();
-    vp6502();
-
-    if (regs.e) {
-        regs.pc = (uint16_t)read6502(0xFFFA) | ((uint16_t)read6502(0xFFFB) << 8);
-    } else {
-        regs.pc = (uint16_t)read6502(0xFFEA) | ((uint16_t)read6502(0xFFEB) << 8);
-    }
-
-    clockticks6502 += 7; // consumed by CPU to process interrupt
+    interrupt6502(INT_NMI);
     waiting = 0;
 }
 
 void irq6502() {
     if (!(regs.status & FLAG_INTERRUPT)) {
-        if (!regs.e) {
-            push8(regs.k);
-        }
-
-        regs.k = 0; // also in emulated mode
-
-        push16(regs.pc);
-        push8(regs.e ? regs.status & ~FLAG_BREAK : regs.status);
-        setinterrupt();
-        cleardecimal();
-        vp6502();
-
-        if (regs.e) {
-            regs.pc = (uint16_t)read6502(0xFFFE) | ((uint16_t)read6502(0xFFFF) << 8);
-        } else {
-            regs.pc = (uint16_t)read6502(0xFFEE) | ((uint16_t)read6502(0xFFEF) << 8);
-        }
-
-        clockticks6502 += 7; // consumed by CPU to process interrupt
+        interrupt6502(INT_IRQ);
     }
     waiting = 0;
 }
