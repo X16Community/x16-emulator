@@ -66,7 +66,7 @@
 
 uint16_t add_wrap_at_page_boundary(uint16_t value, uint8_t add) {
     if (regs.e) {
-        return (value & 0xFF00) | ((uint16_t) ((uint8_t) (value & 0x00FF)) + add);
+        return (value & 0xFF00) | ((uint16_t) (((uint8_t) (value & 0x00FF)) + add) & 0x00FF);
     } else {
         return value + add;
     }
@@ -74,7 +74,7 @@ uint16_t add_wrap_at_page_boundary(uint16_t value, uint8_t add) {
 
 uint16_t subtract_wrap_at_page_boundary(uint16_t value, uint8_t subtract) {
     if (regs.e) {
-        return (value & 0xFF00) | ((uint16_t) ((uint8_t) (value & 0x00FF)) - subtract);
+        return (value & 0xFF00) | ((uint16_t) (((uint8_t) (value & 0x00FF)) - subtract) & 0x00FF);
     } else {
         return value - subtract;
     }
@@ -82,7 +82,7 @@ uint16_t subtract_wrap_at_page_boundary(uint16_t value, uint8_t subtract) {
 
 void increment_wrap_at_page_boundary(uint16_t *value) {
     if (regs.e) {
-        *value = (*value & 0xFF00) | ((uint16_t) ((uint8_t) (*value & 0x00FF)) + 1);
+        *value = (*value & 0xFF00) | ((uint16_t) (((uint8_t) (*value & 0x00FF)) + 1) & 0x00FF);
     } else {
         (*value)++;
     }
@@ -90,7 +90,7 @@ void increment_wrap_at_page_boundary(uint16_t *value) {
 
 void decrement_wrap_at_page_boundary(uint16_t *value) {
     if (regs.e) {
-        *value = (*value & 0xFF00) | ((uint16_t) ((uint8_t) (*value & 0x00FF)) - 1);
+        *value = (*value & 0xFF00) | ((uint16_t) (((uint8_t) (*value & 0x00FF)) - 1) & 0x00FF);
     } else {
         (*value)--;
     }
