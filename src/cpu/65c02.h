@@ -25,7 +25,7 @@
 static void ainx() { 		// absolute indexed branch
     uint16_t eahelp, eahelp2;
     eahelp = (uint16_t)read6502(regs.pc) | (uint16_t)((uint16_t)read6502(regs.pc+1) << 8);
-    eahelp = (eahelp + regs.xw) & 0xFFFF;
+    eahelp = (eahelp + regs.x) & 0xFFFF;
 #if 0
     eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //replicate 6502 page-boundary wraparound bug
 #else
@@ -67,9 +67,9 @@ static void phx() {
     penaltym = 1;
 
     if (index_16bit()) {
-        push16(regs.xw);
+        push16(regs.x);
     } else {
-        push8(regs.x);
+        push8(regs.xl);
     }
 }
 
@@ -77,24 +77,24 @@ static void plx() {
     penaltym = 1;
 
     if (index_16bit()) {
-        regs.xw = pull16();
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
+        regs.x = pull16();
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
     } else {
-        regs.x = pull8();
+        regs.xl = pull8();
     }
 
-    zerocalc(regs.x, 0);
-    signcalc(regs.x, 0);
+    zerocalc(regs.xl, 0);
+    signcalc(regs.xl, 0);
 }
 
 static void phy() {
     penaltym = 1;
 
     if (index_16bit()) {
-        push16(regs.yw);
+        push16(regs.y);
     } else {
-        push8(regs.y);
+        push8(regs.yl);
     }
 }
 
@@ -102,14 +102,14 @@ static void ply() {
     penaltym = 1;
 
     if (index_16bit()) {
-        regs.yw = pull16();
-        zerocalc(regs.yw, 1);
-        signcalc(regs.yw, 1);
+        regs.y = pull16();
+        zerocalc(regs.y, 1);
+        signcalc(regs.y, 1);
     } else {
-        regs.y = pull8();
+        regs.yl = pull8();
 
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 

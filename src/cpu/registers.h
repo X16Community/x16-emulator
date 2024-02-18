@@ -37,20 +37,20 @@ struct regs
     {
         struct
         {
-            uint8_t x;
+            uint8_t xl;
             uint8_t xh;
         };
-        uint16_t xw;
+        uint16_t x;
     };
 
     union
     {
         struct
         {
-            uint8_t y;
+            uint8_t yl;
             uint8_t yh;
         };
-        uint16_t yw;
+        uint16_t y;
     };
 
     uint16_t dp;

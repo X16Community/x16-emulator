@@ -136,8 +136,8 @@ uint8_t pull8() {
 void reset6502(bool c816) {
     regs.pc = (uint16_t)read6502(0xFFFC) | ((uint16_t)read6502(0xFFFD) << 8);
     regs.c = 0;
-    regs.xw = 0;
-    regs.yw = 0;
+    regs.x = 0;
+    regs.y = 0;
     regs.dp = 0;
     regs.sp = 0x1FD;
     regs.e = 1;

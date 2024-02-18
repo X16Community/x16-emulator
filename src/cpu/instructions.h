@@ -223,16 +223,16 @@ static void cpx() {
     value = getvalue(index_16bit());
 
     if (index_16bit()) {
-        result = regs.xw - value;
-        if(regs.xw >= value) setcarry();
+        result = regs.x - value;
+        if(regs.x >= value) setcarry();
         else clearcarry();
-        if (regs.xw == value) setzero();
+        if (regs.x == value) setzero();
         else clearzero();
     } else {
-        result = (uint16_t)regs.x - value;
-        if (regs.x >= (uint8_t)(value & 0x00FF)) setcarry();
+        result = (uint16_t)regs.xl - value;
+        if (regs.xl >= (uint8_t)(value & 0x00FF)) setcarry();
         else clearcarry();
-        if (regs.x == (uint8_t)(value & 0x00FF)) setzero();
+        if (regs.xl == (uint8_t)(value & 0x00FF)) setzero();
         else clearzero();
     }
     signcalc(result, index_16bit());
@@ -242,16 +242,16 @@ static void cpy() {
     value = getvalue(index_16bit());
 
     if (index_16bit()) {
-        result = regs.yw - value;
-        if(regs.yw >= value) setcarry();
+        result = regs.y - value;
+        if(regs.y >= value) setcarry();
         else clearcarry();
-        if (regs.yw == value) setzero();
+        if (regs.y == value) setzero();
         else clearzero();
     } else {
-        result = (uint16_t)regs.y - value;
-        if (regs.y >= (uint8_t)(value & 0x00FF)) setcarry();
+        result = (uint16_t)regs.yl - value;
+        if (regs.yl >= (uint8_t)(value & 0x00FF)) setcarry();
         else clearcarry();
-        if (regs.y == (uint8_t)(value & 0x00FF)) setzero();
+        if (regs.yl == (uint8_t)(value & 0x00FF)) setzero();
         else clearzero();
     }
     signcalc(result, index_16bit());
@@ -269,25 +269,25 @@ static void dec() {
 
 static void dex() {
     if (index_16bit()) {
-        regs.xw--;
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
-    } else {
         regs.x--;
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
+    } else {
+        regs.xl--;
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 
 static void dey() {
     if (index_16bit()) {
-        regs.yw--;
-        zerocalc(regs.yw, 1);
-        signcalc(regs.yw, 1);
-    } else {
         regs.y--;
-        zerocalc(regs.y, 0);
-        signcalc(regs.y, 0);
+        zerocalc(regs.y, 1);
+        signcalc(regs.y, 1);
+    } else {
+        regs.yl--;
+        zerocalc(regs.yl, 0);
+        signcalc(regs.yl, 0);
     }
 }
 
@@ -314,25 +314,25 @@ static void inc() {
 
 static void inx() {
     if (index_16bit()) {
-        regs.xw++;
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
-    } else {
         regs.x++;
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
+    } else {
+        regs.xl++;
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 
 static void iny() {
     if (index_16bit()) {
-        regs.yw++;
-        zerocalc(regs.yw, 1);
-        signcalc(regs.yw, 1);
-    } else {
         regs.y++;
-        zerocalc(regs.y, 0);
-        signcalc(regs.y, 0);
+        zerocalc(regs.y, 1);
+        signcalc(regs.y, 1);
+    } else {
+        regs.yl++;
+        zerocalc(regs.yl, 0);
+        signcalc(regs.yl, 0);
     }
 }
 
@@ -378,14 +378,14 @@ static void ldx() {
     penaltyx = 1;
 
     if (index_16bit()) {
-        regs.xw = getvalue(1);
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
+        regs.x = getvalue(1);
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
     } else {
         value = getvalue(0);
-        regs.x = (uint8_t)(value & 0x00FF);
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        regs.xl = (uint8_t)(value & 0x00FF);
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 
@@ -394,13 +394,13 @@ static void ldy() {
     penaltyx = 1;
 
     if (index_16bit()) {
-        regs.yw = getvalue(1);
-        zerocalc(regs.yw, 1);
-        signcalc(regs.yw, 1);
+        regs.y = getvalue(1);
+        zerocalc(regs.y, 1);
+        signcalc(regs.y, 1);
     } else {
-        regs.y = (uint8_t)(getvalue(0) & 0x00FF);
-        zerocalc(regs.y, 0);
-        signcalc(regs.y, 0);
+        regs.yl = (uint8_t)(getvalue(0) & 0x00FF);
+        zerocalc(regs.yl, 0);
+        signcalc(regs.yl, 0);
     }
 }
 
@@ -681,34 +681,34 @@ static void sta() {
 }
 
 static void stx() {
-    putvalue(index_16bit() ? regs.xw : regs.x, index_16bit());
+    putvalue(index_16bit() ? regs.x : regs.xl, index_16bit());
 }
 
 static void sty() {
-    putvalue(index_16bit() ? regs.yw : regs.y, index_16bit());
+    putvalue(index_16bit() ? regs.y : regs.yl, index_16bit());
 }
 
 static void tax() {
     if (index_16bit()) {
-        regs.xw = regs.c; // 16 bits transferred, no matter the state of m
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
+        regs.x = regs.c; // 16 bits transferred, no matter the state of m
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
     } else {
-        regs.x = (uint8_t)(regs.a & 0x00FF);
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        regs.xl = (uint8_t)(regs.a & 0x00FF);
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 
 static void tay() {
     if (index_16bit()) {
-        regs.yw = regs.c; // 16 bits transferred, no matter the state of m
-        zerocalc(regs.yw, 1);
-        signcalc(regs.yw, 1);
+        regs.y = regs.c; // 16 bits transferred, no matter the state of m
+        zerocalc(regs.y, 1);
+        signcalc(regs.y, 1);
     } else {
-        regs.y = (uint8_t)(regs.a & 0x00FF);
-        zerocalc(regs.y, 0);
-        signcalc(regs.y, 0);
+        regs.yl = (uint8_t)(regs.a & 0x00FF);
+        zerocalc(regs.yl, 0);
+        signcalc(regs.yl, 0);
     }
 }
 
@@ -726,31 +726,31 @@ static void tdc() {
 
 static void tsx() {
     if (index_16bit()) {
-        regs.xw = regs.sp; // 16 bits transferred, no matter the state of m
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
+        regs.x = regs.sp; // 16 bits transferred, no matter the state of m
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
     } else {
-        regs.x = (uint8_t)(regs.sp & 0x00FF);
+        regs.xl = (uint8_t)(regs.sp & 0x00FF);
         regs.xh = 0;
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 
 static void txa() {
     if (memory_16bit()) {
         if (index_16bit()) {
-            regs.c = regs.xw;
+            regs.c = regs.x;
             zerocalc(regs.c, 1);
             signcalc(regs.c, 1);
         } else {
-            regs.a = regs.x;
+            regs.a = regs.xl;
             regs.b = 0;
             zerocalc(regs.a, 0);
             signcalc(regs.a, 0);
         }
     } else {
-        regs.a = regs.x;
+        regs.a = regs.xl;
         zerocalc(regs.a, 0);
         signcalc(regs.a, 0);
     }
@@ -758,38 +758,38 @@ static void txa() {
 
 static void txs() {
     if (regs.e) {
-        regs.sp = 0x100 | regs.x;
+        regs.sp = 0x100 | regs.xl;
     } else {
-        regs.sp = regs.xw;
+        regs.sp = regs.x;
     }
 }
 
 static void txy() {
     if (index_16bit()) {
-        regs.yw = regs.xw;
-        zerocalc(regs.yw, 1);
-        signcalc(regs.yw, 1);
-    } else {
         regs.y = regs.x;
-        zerocalc(regs.y, 0);
-        signcalc(regs.y, 0);
+        zerocalc(regs.y, 1);
+        signcalc(regs.y, 1);
+    } else {
+        regs.yl = regs.xl;
+        zerocalc(regs.yl, 0);
+        signcalc(regs.yl, 0);
     }
 }
 
 static void tya() {
     if (memory_16bit()) {
         if (index_16bit()) {
-            regs.c = regs.yw;
+            regs.c = regs.y;
             zerocalc(regs.c, 1);
             signcalc(regs.c, 1);
         } else {
-            regs.a = regs.y;
+            regs.a = regs.yl;
             regs.b = 0;
             zerocalc(regs.a, 0);
             signcalc(regs.a, 0);
         }
     } else {
-        regs.a = regs.y;
+        regs.a = regs.yl;
         zerocalc(regs.a, 0);
         signcalc(regs.a, 0);
     }
@@ -797,13 +797,13 @@ static void tya() {
 
 static void tyx() {
     if (index_16bit()) {
-        regs.xw = regs.yw;
-        zerocalc(regs.xw, 1);
-        signcalc(regs.xw, 1);
-    } else {
         regs.x = regs.y;
-        zerocalc(regs.x, 0);
-        signcalc(regs.x, 0);
+        zerocalc(regs.x, 1);
+        signcalc(regs.x, 1);
+    } else {
+        regs.xl = regs.yl;
+        zerocalc(regs.xl, 0);
+        signcalc(regs.xl, 0);
     }
 }
 
@@ -820,9 +820,9 @@ static void tsc() {
 static void mvn() {
     if (regs.c != 0xFFFF) {
         if (index_16bit()) {
-            write6502(regs.yw++, read6502(regs.xw++));
-        } else {
             write6502(regs.y++, read6502(regs.x++));
+        } else {
+            write6502(regs.yl++, read6502(regs.xl++));
         }
 
         regs.c--;
@@ -833,9 +833,9 @@ static void mvn() {
 static void mvp() {
     if (regs.c != 0xFFFF) {
         if (index_16bit()) {
-            write6502(regs.yw--, read6502(regs.xw--));
-        } else {
             write6502(regs.y--, read6502(regs.x--));
+        } else {
+            write6502(regs.yl--, read6502(regs.xl--));
         }
 
         regs.c--;

@@ -269,8 +269,8 @@ machine_dump(const char* reason)
 
 	if (dump_cpu) {
 		SDL_RWwrite(f, &regs.a, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &regs.x, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &regs.y, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.xl, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.yl, sizeof(uint8_t), 1);
 		SDL_RWwrite(f, &regs.sp, sizeof(uint8_t), 1);
 		SDL_RWwrite(f, &regs.status, sizeof(uint8_t), 1);
 		SDL_RWwrite(f, &regs.pc, sizeof(uint16_t), 1);
@@ -1231,28 +1231,28 @@ handle_ieee_intercept()
 	switch(regs.pc) {
 		case 0xFEB1: {
 			uint16_t count = regs.a;
-			s=MCIOUT(regs.y << 8 | regs.x, &count, regs.status & 0x01);
+			s=MCIOUT(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
 			if (s == -2) {
 				handled = false;
 			} else if (s == -3) {
 				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
-				regs.x = count & 0xff;
-				regs.y = count >> 8;
+				regs.xl = count & 0xff;
+				regs.yl = count >> 8;
 				regs.status &= 0xfe; // clear C -> supported
 			}
 			break;
 		}
 		case 0xFF44: {
 			uint16_t count = regs.a;
-			s=MACPTR(regs.y << 8 | regs.x, &count, regs.status & 0x01);
+			s=MACPTR(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
 			if (s == -2) {
 				handled = false;
 			} else if (s == -3) {
 				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
-				regs.x = count & 0xff;
-				regs.y = count >> 8;
+				regs.xl = count & 0xff;
+				regs.yl = count >> 8;
 				regs.status &= 0xfe; // clear C -> supported
 			}
 			break;
@@ -1442,7 +1442,7 @@ emulator_loop(void *param)
 				printf(" ");
 			}
 
-			printf("a=$%04x x=$%04x y=$%04x s=$%04x p=", regs.c, regs.xw, regs.yw, regs.sp);
+			printf("a=$%04x x=$%04x y=$%04x s=$%04x p=", regs.c, regs.x, regs.y, regs.sp);
 			for (int i = 7; i >= 0; i--) {
 				printf("%c", (regs.status & (1 << i)) ? "czidxmvn"[i] : '-');
 			}
