@@ -173,7 +173,7 @@ void testbench_init()
                 if (ival == -1) {
                     invalid();
                 } else {
-                    regs.xl = (uint8_t)ival;
+                    regs.x = (uint8_t)ival;
                     ready();
                 }
             }
@@ -188,7 +188,7 @@ void testbench_init()
                 if (ival == -1) {
                     invalid();
                 } else {
-                    regs.yl = (uint8_t)ival;
+                    regs.y = (uint8_t)ival;
                     ready();
                 }
             }
