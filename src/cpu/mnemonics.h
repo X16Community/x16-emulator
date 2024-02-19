@@ -2,7 +2,7 @@
 
 static const char *mnemonics_c02[256] = {
 	// $0X
-	/* $00 */ "brk ",
+	/* $00 */ "brk #$%02x",
 	/* $01 */ "ora ($%02x,x)",
 	/* $02 */ "nop #$%%0%hhux",
 	/* $03 */ "nop ",
@@ -291,9 +291,9 @@ static const char *mnemonics_c02[256] = {
 
 static const char *mnemonics_c816[256] = {
 	// $0X
-	/* $00 */ "brk ",
+	/* $00 */ "brk #$%02x",
 	/* $01 */ "ora ($%02x,x)",
-	/* $02 */ "cop ",
+	/* $02 */ "cop #$%02x",
 	/* $03 */ "ora $%02x,S",
 	/* $04 */ "tsb $%02x",
 	/* $05 */ "ora $%02x",
