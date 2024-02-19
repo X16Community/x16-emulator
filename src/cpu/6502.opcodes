@@ -42,7 +42,7 @@ bpl rel  2 $10
 bvc rel  2 $50
 bvs rel  2 $70
 
-brk imp  7 $00
+brk imp8 7 $00
 
 bit abso 4 $2c
 bit zp   3 $24

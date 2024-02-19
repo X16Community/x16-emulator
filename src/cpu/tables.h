@@ -2,7 +2,7 @@
 
 static void (*addrtable_c02[256])() = {
 /*        |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
-/* 0 */     imp, indx, immm,  imp,   zp,   zp,   zp,   zp,  imp, immm,  acc,  imp, abso, abso, abso,zprel, /* 0 */
+/* 0 */    imp8, indx, immm,  imp,   zp,   zp,   zp,   zp,  imp, immm,  acc,  imp, abso, abso, abso,zprel, /* 0 */
 /* 1 */     rel, indy, ind0,  imp,   zp,  zpx,  zpx,   zp,  imp, absy,  acc,  imp, abso, absx, absx,zprel, /* 1 */
 /* 2 */    abso, indx, immm,  imp,   zp,   zp,   zp,   zp,  imp, immm,  acc,  imp, abso, abso, abso,zprel, /* 2 */
 /* 3 */     rel, indy, ind0,  imp,  zpx,  zpx,  zpx,   zp,  imp, absy,  acc,  imp, absx, absx, absx,zprel, /* 3 */
@@ -22,7 +22,7 @@ static void (*addrtable_c02[256])() = {
 
 static void (*addrtable_c816[256])() = {
 /*        |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */
-/* 0 */     imp, indx,  imp,   sr,   zp,   zp,   zp,indl0,  imp, immm,  acc,  imp, abso, abso, abso, absl, /* 0 */
+/* 0 */    imp8, indx, imp8,   sr,   zp,   zp,   zp,indl0,  imp, immm,  acc,  imp, abso, abso, abso, absl, /* 0 */
 /* 1 */     rel, indy, ind0,sridy,   zp,  zpx,  zpx,indly,  imp, absy,  acc,  imp, abso, absx, absx,abslx, /* 1 */
 /* 2 */    abso, indx, absl,   sr,   zp,   zp,   zp,indl0,  imp, immm,  acc,  imp, abso, abso, abso, absl, /* 2 */
 /* 3 */     rel, indy, ind0,sridy,  zpx,  zpx,  zpx,indly,  imp, absy,  acc,  imp, absx, absx, absx,abslx, /* 3 */

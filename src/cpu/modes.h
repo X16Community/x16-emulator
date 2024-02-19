@@ -15,6 +15,9 @@
 static void imp() { //implied
 }
 
+static void imp8() { // brk / cop
+}
+
 static void acc() { //accumulator
 }
 

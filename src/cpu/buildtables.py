@@ -146,6 +146,7 @@ def generateList(hFileName, header, elements):
 def convertMnemonic(opInfo):
     modeStr = {
         "imp": "",
+        "imp8": "#$%02x",
         "imm8": "#$%02x",
         "immm": "#$%%0%hhux",
         "immx": "#$%%0%hhux",
