@@ -76,6 +76,8 @@ bit immm 2 $89
 bit zpx 4 $34
 bit absx 4 $3c
 
+brl rel16 3 $82
+
 cop imp8 7 $02
 
 dec acc 2 $3a

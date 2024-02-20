@@ -36,9 +36,9 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	//
 	int isZprel  = (opcode & 0x0F) == 0x0F;
 	//
-	//		PER is a rel16 opcode
+	//		PER and BRL are rel16 opcodes
 	//
-	int isRel16 = (opcode == 0x62);
+	int isRel16 = (opcode == 0x62) || (opcode == 0x82);
 	//
 	//      X relative opcodes (including indirect/indexed)
 	//

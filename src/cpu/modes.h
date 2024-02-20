@@ -73,7 +73,7 @@ static void rel() { //relative for branch ops (8-bit immediate value, sign-exten
     if (reladdr & 0x80) reladdr |= 0xFF00;
 }
 
-static void rel16() { //relative for PER (16-bit immediate value)
+static void rel16() { //relative for PER and BRL (16-bit immediate value)
     reladdr = (uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8);
     regs.pc += 2;
 }

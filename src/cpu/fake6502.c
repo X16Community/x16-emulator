@@ -106,6 +106,7 @@ uint8_t opcode, oldstatus;
 uint8_t penaltyop, penaltyaddr;
 uint8_t penaltym = 0;
 uint8_t penaltye = 0;
+uint8_t penaltyn = 0;
 uint8_t penaltyx = 0;
 uint8_t penaltyd = 0;
 uint8_t waiting = 0;
@@ -200,16 +201,18 @@ void exec6502(uint32_t tickcount) {
         penaltyaddr = 0;
         penaltym = 0;
         penaltye = 0;
+        penaltyn = 0;
         penaltyx = 0;
 
         (*addrtable[opcode])();
         (*optable[opcode])();
         clockticks6502 += ticktable[opcode];
-        
+
         if (!regs.e && penaltyop && penaltyaddr) clockticks6502++;
         if (memory_16bit()) clockticks6502 += penaltym;
         if (index_16bit()) clockticks6502 += penaltyx;
-        if (penaltye && !regs.e) clockticks6502++;
+        if (penaltyn && !regs.e) clockticks6502++;
+        if (penaltye && regs.e) clockticks6502++;
 
         instructions++;
 
@@ -236,6 +239,7 @@ void step6502() {
     penaltyaddr = 0;
     penaltym = 0;
     penaltye = 0;
+    penaltyn = 0;
     penaltyx = 0;
 
     (*addrtable[opcode])();
@@ -245,7 +249,8 @@ void step6502() {
     if (penaltyop && penaltyaddr) clockticks6502++;
     if (memory_16bit()) clockticks6502 += penaltym;
     if (index_16bit()) clockticks6502 += penaltyx;
-    if (penaltye && !regs.e) clockticks6502++;
+    if (penaltyn && !regs.e) clockticks6502++;
+    if (penaltye && regs.e) clockticks6502++;
     if (penaltyd) clockticks6502 ++;
     clockgoal6502 = clockticks6502;
 

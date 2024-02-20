@@ -119,7 +119,7 @@ static void _do_branch(int condition) {
         oldpc = regs.pc;
         regs.pc += reladdr;
         clockticks6502++;
-        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) //check if jump crossed a page boundary            
+        if ((oldpc & 0xFF00) != (regs.pc & 0xFF00)) //check if jump crossed a page boundary
             penaltye = 1;
     }
 }
@@ -161,10 +161,14 @@ static void bpl() {
 }
 
 static void brk() {
-    penaltye = 1;
+    penaltyn = 1;
     regs.pc++;
 
     interrupt6502(INT_BRK);
+}
+
+static void brl() {
+    _do_branch(true);
 }
 
 static void bvc() {
@@ -213,7 +217,7 @@ static void cmp() {
 }
 
 static void cop() {
-    penaltye = 1;
+    penaltyn = 1;
     regs.pc++;
 
     interrupt6502(INT_COP);
