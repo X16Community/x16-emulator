@@ -103,6 +103,8 @@ uint8_t eal;
 uint32_t result;
 uint8_t opcode, oldstatus;
 
+bool warn_rockwell = true;
+
 uint8_t penaltyop, penaltyaddr;
 uint8_t penaltym = 0;
 uint8_t penaltye = 0;
@@ -116,6 +118,8 @@ extern uint8_t read6502(uint16_t address);
 extern void write6502(uint16_t address, uint8_t value);
 extern void stop6502(uint16_t address);
 extern void vp6502();
+extern uint8_t memory_get_ram_bank();
+extern uint8_t memory_get_rom_bank();
 
 static void (*addrtable_c02[256])();
 static void (*addrtable_c816[256])();
@@ -131,6 +135,27 @@ static const uint32_t *ticktable;
 
 #include "support.h"
 #include "modes.h"
+
+void rockwell_warning(char *instruction) {
+    uint8_t pc_bank;
+
+    if (opcode_addr < 0xa000) {
+        pc_bank = 0;
+    } else if (opcode_addr < 0xc000) {
+        pc_bank = memory_get_ram_bank();
+    } else {
+        pc_bank = memory_get_rom_bank();
+    }
+
+    printf("Warning: encountered Rockwell instruction %s at $%02x:%04x.\n", instruction, pc_bank, opcode_addr);
+    printf("\tFuture Commander X16 hardware may ship with a 65C816 CPU,\n");
+    printf("\twhich does not support these instructions.\n");
+    printf("\tThis will be the only warning given for Rockwell\n");
+    printf("\tinstructions until the emulator is relaunched.\n");
+    printf("\tPass -rockwell to the command line to suppress this warning.\n\n");
+
+    warn_rockwell = false;
+}
 
 static uint16_t getvalue(bool use16Bit) {
     if (addrtable[opcode] == acc) {

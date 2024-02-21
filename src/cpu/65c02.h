@@ -162,6 +162,7 @@ static void wai() {
 // *******************************************************************************************
 static void bbr(uint16_t bitmask)
 {
+    if (warn_rockwell) rockwell_warning("BBR");
 	if ((getvalue(0) & bitmask) == 0) {
 		oldpc = regs.pc;
 		regs.pc += reladdr;
@@ -181,6 +182,7 @@ static void bbr7() { bbr(0x80); }
 
 static void bbs(uint16_t bitmask)
 {
+    if (warn_rockwell) rockwell_warning("BBS");
 	if ((getvalue(0) & bitmask) != 0) {
 		oldpc = regs.pc;
 		regs.pc += reladdr;
@@ -204,20 +206,20 @@ static void bbs7() { bbs(0x80); }
 //
 // *******************************************************************************************
 
-static void smb0() { putvalue(getvalue(0) | 0x01, 0); }
-static void smb1() { putvalue(getvalue(0) | 0x02, 0); }
-static void smb2() { putvalue(getvalue(0) | 0x04, 0); }
-static void smb3() { putvalue(getvalue(0) | 0x08, 0); }
-static void smb4() { putvalue(getvalue(0) | 0x10, 0); }
-static void smb5() { putvalue(getvalue(0) | 0x20, 0); }
-static void smb6() { putvalue(getvalue(0) | 0x40, 0); }
-static void smb7() { putvalue(getvalue(0) | 0x80, 0); }
+static void smb0() { if (warn_rockwell) rockwell_warning("SMB0"); putvalue(getvalue(0) | 0x01, 0); }
+static void smb1() { if (warn_rockwell) rockwell_warning("SMB1"); putvalue(getvalue(0) | 0x02, 0); }
+static void smb2() { if (warn_rockwell) rockwell_warning("SMB2"); putvalue(getvalue(0) | 0x04, 0); }
+static void smb3() { if (warn_rockwell) rockwell_warning("SMB3"); putvalue(getvalue(0) | 0x08, 0); }
+static void smb4() { if (warn_rockwell) rockwell_warning("SMB4"); putvalue(getvalue(0) | 0x10, 0); }
+static void smb5() { if (warn_rockwell) rockwell_warning("SMB5"); putvalue(getvalue(0) | 0x20, 0); }
+static void smb6() { if (warn_rockwell) rockwell_warning("SMB6"); putvalue(getvalue(0) | 0x40, 0); }
+static void smb7() { if (warn_rockwell) rockwell_warning("SMB7"); putvalue(getvalue(0) | 0x80, 0); }
 
-static void rmb0() { putvalue(getvalue(0) & ~0x01, 0); }
-static void rmb1() { putvalue(getvalue(0) & ~0x02, 0); }
-static void rmb2() { putvalue(getvalue(0) & ~0x04, 0); }
-static void rmb3() { putvalue(getvalue(0) & ~0x08, 0); }
-static void rmb4() { putvalue(getvalue(0) & ~0x10, 0); }
-static void rmb5() { putvalue(getvalue(0) & ~0x20, 0); }
-static void rmb6() { putvalue(getvalue(0) & ~0x40, 0); }
-static void rmb7() { putvalue(getvalue(0) & ~0x80, 0); }
+static void rmb0() { if (warn_rockwell) rockwell_warning("RMB0"); putvalue(getvalue(0) & ~0x01, 0); }
+static void rmb1() { if (warn_rockwell) rockwell_warning("RMB1"); putvalue(getvalue(0) & ~0x02, 0); }
+static void rmb2() { if (warn_rockwell) rockwell_warning("RMB2"); putvalue(getvalue(0) & ~0x04, 0); }
+static void rmb3() { if (warn_rockwell) rockwell_warning("RMB3"); putvalue(getvalue(0) & ~0x08, 0); }
+static void rmb4() { if (warn_rockwell) rockwell_warning("RMB4"); putvalue(getvalue(0) & ~0x10, 0); }
+static void rmb5() { if (warn_rockwell) rockwell_warning("RMB5"); putvalue(getvalue(0) & ~0x20, 0); }
+static void rmb6() { if (warn_rockwell) rockwell_warning("RMB6"); putvalue(getvalue(0) & ~0x40, 0); }
+static void rmb7() { if (warn_rockwell) rockwell_warning("RMB7"); putvalue(getvalue(0) & ~0x80, 0); }

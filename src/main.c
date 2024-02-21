@@ -485,9 +485,13 @@ usage()
 	printf("-enable-ym2151-irq\n");
 	printf("\tConnect the YM2151 IRQ source to the emulated CPU. This option increases\n");
 	printf("\tCPU usage as audio render is triggered for every CPU instruction.\n");
+	printf("-c02\n");
+	printf("\tRun the emulator under an emulated 65C02 (default)\n");
 	printf("-c816\n");
-	printf("\tRun the emulator with an emulated 65C816 instead of the default 65C02\n");
+	printf("\tRun the emulator under an emulated 65C816\n");
 	printf("\tThis option is experimental.\n");
+	printf("-rockwell\n");
+	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -988,6 +992,14 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			regs.is65c816 = true;
+		} else if (!strcmp(argv[0], "-c02")){
+			argc--;
+			argv++;
+			regs.is65c816 = false;
+		} else if (!strcmp(argv[0], "-rockwell")){
+			argc--;
+			argv++;
+			warn_rockwell = false;
 		} else {
 			usage();
 		}

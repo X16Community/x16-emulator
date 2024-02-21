@@ -14,5 +14,6 @@ extern void irq6502();
 extern void nmi6502();
 extern uint32_t clockticks6502;
 extern uint8_t waiting;
+extern bool warn_rockwell;
 
 #endif
