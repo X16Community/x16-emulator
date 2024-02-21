@@ -136,7 +136,7 @@ static const uint32_t *ticktable;
 #include "support.h"
 #include "modes.h"
 
-void rockwell_warning(char *instruction) {
+void rockwell_warning(const char *instruction) {
     uint8_t pc_bank;
 
     if (opcode_addr < 0xa000) {
