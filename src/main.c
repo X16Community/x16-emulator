@@ -1407,8 +1407,11 @@ emulator_loop(void *param)
 			if (lst) {
 				char *lf;
 				while ((lf = strchr(lst, '\n'))) {
-					for (int i = 0; i < 113; i++) {
+					for (int i = 0; i < 116; i++) {
 						printf(" ");
+					}
+					if (regs.is65c816) {
+						printf("         "); // 9 extra width
 					}
 					for (char *c = lst; c < lf; c++) {
 						printf("%c", *c);
@@ -1431,7 +1434,7 @@ emulator_loop(void *param)
 				printf(" ");
 			}
 
-			if (regs.c >= 0xc000) {
+			if (regs.pc >= 0xc000) {
 				printf (" %02x", memory_get_rom_bank());
 			} else if (regs.pc >= 0xa000) {
 				printf (" %02x", memory_get_ram_bank());
@@ -1453,22 +1456,32 @@ emulator_loop(void *param)
 			for (int i = 0; i < 15 - strlen(disasm_line); i++) {
 				printf(" ");
 			}
+			if (regs.is65c816) {
+				printf("a=$%04x x=$%04x y=$%04x s=$%04x p=", regs.c, regs.x, regs.y, regs.sp);
+				for (int i = 7; i >= 0; i--) {
+					printf("%c", (regs.status & (1 << i)) ? "czidxmvn"[i] : '-');
+				}
 
-			printf("a=$%04x x=$%04x y=$%04x s=$%04x p=", regs.c, regs.x, regs.y, regs.sp);
-			for (int i = 7; i >= 0; i--) {
-				printf("%c", (regs.status & (1 << i)) ? "czidxmvn"[i] : '-');
+				putchar(regs.e ? 'e' : '-');
+			} else {
+				printf("a=$%02x x=$%02x y=$%02x s=$%02x p=", regs.a, regs.xl, regs.yl, regs.sp & 0xff);
+				for (int i = 7; i >= 0; i--) {
+					printf("%c", (regs.status & (1 << i)) ? "czidb-vn"[i] : '-');
+				}
 			}
 
-			putchar(regs.e ? 'e' : '-');
-
 			if (eff_addr == 0x9f23) {
-				printf(" v=$%05x", video_get_address(0));
+				printf(" v=$%05x   ", video_get_address(0));
 			} else if (eff_addr == 0x9f24) {
-				printf(" v=$%05x", video_get_address(1));
+				printf(" v=$%05x   ", video_get_address(1));
+			} else if (eff_addr >= 0xc000) {
+				printf(" m=$%02x:%04x ", memory_get_rom_bank(), eff_addr);
+			} else if (eff_addr >= 0xa000) {
+				printf(" m=$%02x:%04x ", memory_get_ram_bank(), eff_addr);
 			} else if (eff_addr >= 0) {
-				printf(" m=$%04x ", eff_addr);
+				printf(" m=$--:%04x ", eff_addr);
 			} else {
-				printf("         ");
+				printf("            ");
 			}
 
 			if (lst) {

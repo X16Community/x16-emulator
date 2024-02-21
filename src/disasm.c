@@ -114,7 +114,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	//      indirect
 	//  $x1 and $xf ($x2 where x is odd)
 	//  as well as $6C, $7C and $FC
-	int isIndirect = (((opcode & 0x0f) == 0x01) || ((opcode & 0x1f) == 0x12) || opcode == 0x6c || opcode == 0x7c || opcode == 0xfc);
+	int isIndirect = (((opcode & 0x0f) == 0x01) || ((opcode & 0x1f) == 0x12) || opcode == 0x6c || opcode == 0x7c || opcode == 0xfc || opcode == 0xd4);
 
 	//
 	//      block move (MVN and MVP)
