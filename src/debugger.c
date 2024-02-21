@@ -664,7 +664,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 	char buffer[32];
 	uint8_t eff_status = regs.status;
 	uint8_t eff_e = regs.e;
-	uint8_t opcode, operand;
+	uint8_t opcode, operand, carry;
 
 	for (int y = 0; y < lines; y++) { 							// Each line
 
@@ -698,7 +698,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 					eff_status = operand | eff_status;
 					;;
 				case 0xFB: // XCE
-					uint8_t carry = eff_status & FLAG_CARRY;
+					carry = eff_status & FLAG_CARRY;
 					eff_status = (eff_status & ~FLAG_CARRY) | (eff_e ? FLAG_CARRY : 0);
 					eff_e = carry != 0;
 					;;
