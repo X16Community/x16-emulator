@@ -168,7 +168,7 @@ static void brk() {
 }
 
 static void brl() {
-    _do_branch(true);
+    regs.pc += reladdr;
 }
 
 static void bvc() {
