@@ -787,9 +787,7 @@ static int DEBUGRenderRegisters(void) {
 		DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
 		DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
 		DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
-		if (regs.is65c816) {
-			DEBUGNumber(DBG_LBLX+8, yc, regs.e, 1, col_data);
-		}
+		DEBUGNumber(DBG_LBLX+8, yc, regs.e, 1, col_data);
 		yc+= 2;
 
 		DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
