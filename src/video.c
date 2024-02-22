@@ -1734,6 +1734,93 @@ fx_vram_cache_write(uint32_t address, uint8_t value, uint8_t mask)
 	}
 }
 
+uint32_t video_get_fx_accum() {
+	return fx_mult_accumulator;
+}
+uint8_t video_get_dc_value(uint8_t reg) {
+	switch (reg & 0x1F) {
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x03:
+		case 0x04:
+		case 0x05:
+		case 0x06:
+		case 0x07:
+		case 0x08:
+		case 0x09:
+		case 0x0a:
+		case 0x0c:
+		case 0x0d:
+		case 0x0e:
+		case 0x0f:
+			return reg_composer[reg];
+			break;
+		case 0x0b:
+			return reg_composer[reg] & 0x3f;
+			break;
+		case 0x10: // DCSEL=4, $9F29
+			return (fx_x_pixel_position >> 16) & 0xff;
+			break;
+		case 0x11: // DCSEL=4, $9F2A
+			return ((fx_x_pixel_position >> 24) & 0x07) | (fx_x_pixel_position & 0x80);
+			break;
+		case 0x12: // DCSEL=4, $9F2B
+			return (fx_y_pixel_position >> 16) & 0xff;
+			break;
+		case 0x13: // DCSEL=4, $9F2C
+			return ((fx_y_pixel_position >> 24) & 0x07) | (fx_y_pixel_position & 0x80);
+			break;
+		case 0x14: // DCSEL=5, $9F29
+			return (fx_x_pixel_position >> 8) & 0xff;
+			break;
+		case 0x15: // DCSEL=4, $9F2A
+			return (fx_y_pixel_position >> 8) & 0xff;
+			break;
+		case 0x16: // DCSEL=5, 0x9F2B
+			if (fx_poly_fill_length >= 768) {
+				return ((fx_2bit_poly && fx_addr1_mode == 2) ? 0x00 : 0x80);
+			}
+			if (fx_4bit_mode) {
+				if (fx_2bit_poly && fx_addr1_mode == 2) {
+					return ((fx_y_pixel_position & 0x00008000) >> 8) |
+						((fx_x_pixel_position >> 11) & 0x60) |
+						((fx_x_pixel_position >> 14) & 0x10) |
+						((fx_poly_fill_length & 0x0007) << 1) |
+						((fx_x_pixel_position & 0x00008000) >> 15);
+				} else {
+					return ((!!(fx_poly_fill_length & 0xfff8)) << 7) |
+						((fx_x_pixel_position >> 11) & 0x60) |
+						((fx_x_pixel_position >> 14) & 0x10) |
+						((fx_poly_fill_length & 0x0007) << 1);
+				}
+			} else {
+				return ((!!(fx_poly_fill_length & 0xfff0)) << 7) |
+					((fx_x_pixel_position >> 11) & 0x60) |
+					((fx_poly_fill_length & 0x000f) << 1);
+			}
+			break;
+		case 0x17: // DCSEL=5, 0x9F2C
+			return ((fx_poly_fill_length & 0x03f8) >> 2);
+			break;
+		case 0x18: // DCSEL=6, 0x9F29
+			return fx_cache[0];
+			break;
+		case 0x19: // DCSEL=6, 0x9F2A
+			return fx_cache[1];
+			break;
+		case 0x1a: // DCSEL=6, 0x9F2B
+			return fx_cache[2];
+			break;
+		case 0x1b: // DCSEL=6, 0x9F2C
+			return fx_cache[3];
+			break;
+		default:
+			break;
+	}
+
+	return vera_version_string[reg % 4];
+}
 
 //
 // Vera: 6502 I/O Interface
@@ -1799,6 +1886,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 		case 0x0B:
 		case 0x0C: {
 			int i = reg - 0x09 + (io_dcsel << 2);
+			if (debugOn) return video_get_dc_value(i);
 			switch (i) {
 				case 0x00:
 				case 0x01:
@@ -1809,34 +1897,9 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 				case 0x06:
 				case 0x07:
 				case 0x08:
-					// DCSEL = [0,1] with any composer register, or [2] at $9f29
-					return reg_composer[i];
-					break;
 				case 0x16: // DCSEL=5, 0x9F2B
-					if (fx_poly_fill_length >= 768) {
-						return ((fx_2bit_poly && fx_addr1_mode == 2) ? 0x00 : 0x80);
-					}
-					if (fx_4bit_mode) {
-						if (fx_2bit_poly && fx_addr1_mode == 2) {
-							return ((fx_y_pixel_position & 0x00008000) >> 8) |
-								((fx_x_pixel_position >> 11) & 0x60) |
-								((fx_x_pixel_position >> 14) & 0x10) |
-								((fx_poly_fill_length & 0x0007) << 1) |
-								((fx_x_pixel_position & 0x00008000) >> 15);
-						} else {
-							return ((!!(fx_poly_fill_length & 0xfff8)) << 7) |
-								((fx_x_pixel_position >> 11) & 0x60) |
-								((fx_x_pixel_position >> 14) & 0x10) |
-								((fx_poly_fill_length & 0x0007) << 1);
-						}
-					} else {
-						return ((!!(fx_poly_fill_length & 0xfff0)) << 7) |
-							((fx_x_pixel_position >> 11) & 0x60) |
-							((fx_poly_fill_length & 0x000f) << 1);
-					}
-					break;
 				case 0x17: // DCSEL=5, 0x9F2C
-					return ((fx_poly_fill_length & 0x03f8) >> 2);
+					return video_get_dc_value(i);
 					break;
 				case 0x18: // DCSEL=6, 0x9F29
 					fx_mult_accumulator = 0;

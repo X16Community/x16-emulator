@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <SDL.h>
 #include "glue.h"
 #include "timing.h"
@@ -31,7 +32,8 @@ static void DEBUGAddress(int x, int y, int bank, int addr, SDL_Color colour);
 static void DEBUGVAddress(int x, int y, int addr, SDL_Color colour);
 
 static void DEBUGRenderData(int y,int data);
-static void DEBUGRenderZeroPageRegisters(int y);
+static int DEBUGRenderZeroPageRegisters(int y);
+static void DEBUGRenderVERAState(int y);
 static int DEBUGRenderRegisters(void);
 static void DEBUGRenderVRAM(int y, int data);
 static void DEBUGRenderCode(int lines,int initialPC);
@@ -79,14 +81,14 @@ static void DEBUGExecCmd();
 #define DBGKEY_SETBRK   SDLK_F9                         // F9 sets breakpoint
 #define DBGKEY_STEP     SDLK_F11                        // F11 is step into.
 #define DBGKEY_STEPOVER SDLK_F10                        // F10 is step over.
-#define DBGKEY_PAGE_NEXT	SDLK_KP_PLUS
-#define DBGKEY_PAGE_PREV	SDLK_KP_MINUS
+#define DBGKEY_BANK_NEXT	SDLK_KP_PLUS
+#define DBGKEY_BANK_PREV	SDLK_KP_MINUS
 
 #define DBGSCANKEY_BRK  SDL_SCANCODE_F12                // F12 is break into running code.
 #define DBGSCANKEY_SHOW SDL_SCANCODE_TAB                // Show screen key.
                                                         // *** MUST BE SCAN CODES ***
 
-#define DBGMAX_ZERO_PAGE_REGISTERS 20
+#define DBGMAX_ZERO_PAGE_REGISTERS 16
 
 #define DDUMP_RAM	0
 #define DDUMP_VERA	1
@@ -99,6 +101,8 @@ const SDL_Color col_label= {0, 255, 0, 255};
 const SDL_Color col_data= {0, 255, 255, 255};
 const SDL_Color col_highlight= {255, 255, 0, 255};
 const SDL_Color col_cmdLine= {255, 255, 255, 255};
+
+const SDL_Color col_directpage= {192, 224, 255, 255};
 
 const SDL_Color col_vram_tilemap = {0, 255, 255, 255};
 const SDL_Color col_vram_tiledata = {0, 255, 0, 255};
@@ -307,27 +311,59 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			currentPCBank= -1;
 			break;
 
-		case DBGKEY_PAGE_NEXT:
+		case DBGKEY_BANK_NEXT:
 			currentBank += 1;
 			break;
 
-		case DBGKEY_PAGE_PREV:
+		case DBGKEY_BANK_PREV:
 			currentBank -= 1;
 			break;
 
 		case SDLK_PAGEDOWN:
-			if (dumpmode == DDUMP_RAM) {
-				currentData = (currentData + 0x128) & 0xFFFF;
+			if (isShift) {
+				currentPC = (currentPC + 0x10) & 0xffff;
 			} else {
-				currentData = (currentData + 0x250) & 0x1FFFF;
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData + 0x100) & 0xFFFF;
+				} else {
+					currentData = (currentData + 0x200) & 0x1FFFF;
+				}
 			}
 			break;
 
 		case SDLK_PAGEUP:
-			if (dumpmode == DDUMP_RAM) {
-				currentData = (currentData - 0x128) & 0xFFFF;
+			if (isShift) {
+				currentPC = (currentPC - 0x10) & 0xffff;
 			} else {
-				currentData = (currentData - 0x250) & 0x1FFFF;
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData - 0x100) & 0xFFFF;
+				} else {
+					currentData = (currentData - 0x200) & 0x1FFFF;
+				}
+			}
+			break;
+
+		case SDLK_DOWN:
+			if (isShift) {
+				currentPC = (currentPC + 1) & 0xffff;
+			} else {
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData + 0x08) & 0xFFFF;
+				} else {
+					currentData = (currentData + 0x10) & 0x1FFFF;
+				}
+			}
+			break;
+
+		case SDLK_UP:
+			if (isShift) {
+				currentPC = (currentPC - 1) & 0xffff;
+			} else {
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData - 0x08) & 0xFFFF;
+				} else {
+					currentData = (currentData - 0x10) & 0x1FFFF;
+				}
 			}
 			break;
 
@@ -542,7 +578,8 @@ void DEBUGRenderDisplay(int width, int height) {
 	DEBUGRenderCode(register_lines, currentPC);							// Render 6502 disassembly.
 	if (dumpmode == DDUMP_RAM) {
 		DEBUGRenderData(register_lines + 1, currentData);
-		DEBUGRenderZeroPageRegisters(register_lines + 1);
+		int zp_lines = DEBUGRenderZeroPageRegisters(register_lines + 1);
+		DEBUGRenderVERAState(zp_lines + 1);
 	} else {
 		DEBUGRenderVRAM(register_lines + 1, currentData);
 	}
@@ -573,7 +610,7 @@ static void DEBUGRenderCmdLine(int x, int width, int height) {
 //
 // *******************************************************************************************
 
-static void DEBUGRenderZeroPageRegisters(int y) {
+static int DEBUGRenderZeroPageRegisters(int y) {
 #define LAST_R 15
 	unsigned char reg = 0;
 	int y_start = y;
@@ -607,6 +644,8 @@ static void DEBUGRenderZeroPageRegisters(int y) {
 	if (oldRegisterTicks != clockticks6502) {
 		oldRegisterTicks = clockticks6502;
 	}
+
+	return y;
 }
 
 // *******************************************************************************************
@@ -620,18 +659,17 @@ static void DEBUGRenderData(int y,int data) {
 		DEBUGAddress(DBG_MEMX, y, (uint8_t)currentBank, data & 0xFFFF, col_label);	// Show label.
 
 		for (int i = 0;i < 8;i++) {
-			int byte= real_read6502((data+i) & 0xFFFF, true, currentBank);
-			DEBUGNumber(DBG_MEMX+8+i*3,y,byte,2, col_data);
-			DEBUGWrite(dbgRenderer, DBG_MEMX+33+i,y,byte, col_data);
+			bool isDP = ((data+i - regs.dp) & 0xffff) < 256;
+			int byte = real_read6502((data+i) & 0xFFFF, true, currentBank);
+			DEBUGNumber(DBG_MEMX+8+i*3,y,byte,2, isDP ? col_directpage : col_data);
+			DEBUGWrite(dbgRenderer, DBG_MEMX+33+i,y,byte, isDP ? col_directpage : col_data);
 		}
 		y++;
 		data += 8;
 	}
 }
 
-static void
-DEBUGRenderVRAM(int y, int data)
-{
+static void DEBUGRenderVRAM(int y, int data) {
 	while (y < DBG_HEIGHT - 2) {                                                   // To bottom of screen
 		DEBUGVAddress(DBG_MEMX, y, data & 0x1FFFF, col_label); // Show label.
 
@@ -721,10 +759,10 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","Y","DB","K","","BKA","BKO", "PC","DP","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
-static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","Y","DB","K","","BKA","BKO", "PC","DP","SP","","BRK", NULL };
+static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","BKA","BKO", "PC","SP","","BRK", NULL };
 
-static void DEBUGNumberHighByteCondition(int x, int y, int n, _Bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
+static void DEBUGNumberHighByteCondition(int x, int y, int n, bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
 	if (condition) {
 		DEBUGNumber(x, y, n >> 8, 2, ifTrue);
 		DEBUGNumber(x + 2, y, n & 0xFF, 2, ifFalse);
@@ -802,12 +840,37 @@ static int DEBUGRenderRegisters(void) {
 	}
 	yc++;
 
-	DEBUGNumber(DBG_DATX, yc++, video_read(0, true) | (video_read(1, true)<<8) | (video_read(2, true)<<16), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, video_read(3, true), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, video_read(4, true), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, video_read(5, true), 2, col_data);
-
 	return n; 													// Number of code display lines
+}
+
+
+static char *vera_labels[] = { "ADDR0", "ADDR1", "DATA0","DATA1", "CTRL", "VIDEO", "HSCLE", "VSCLE", "FXCTL", "FXMUL", "CACHE", "ACCUM", NULL };
+
+static void DEBUGRenderVERAState(int y) {
+	int n=0;
+	int yc=y;
+	while (vera_labels[n] != NULL) { // Labels
+		DEBUGString(dbgRenderer, DBG_VERA_REGX, yc, vera_labels[n], col_label);n++;yc++;
+	}
+
+	yc=y;
+
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_address(0), 5, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_address(1), 5, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_read(3, true), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_read(4, true), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_read(5, true), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(0), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(1), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(2), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(8), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(11), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc, video_get_dc_value(24), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+8, yc, video_get_dc_value(25), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+10, yc, video_get_dc_value(26), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+12, yc++, video_get_dc_value(27), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_fx_accum(), 8, col_data);
+
 }
 
 // *******************************************************************************************

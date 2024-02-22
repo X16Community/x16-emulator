@@ -364,18 +364,24 @@ NOTE. To disassemble or dump memory locations in banked RAM or ROM, prepend the 
 
 The debugger keys are similar to the Microsoft Debugger shortcut keys, and work as follows
 
-| Key       | Description                                                                             |
-|-----------|-----------------------------------------------------------------------------------------|
-| F1        | resets the shown code position to the current PC                                        |
-| F2        | resets the emulated CPU but not any of the hardware.                                    |
-| F5        | close debugger window and return to Run mode, the emulator should run as normal.        |
-| F9        | sets the breakpoint to the currently code position.                                     |
-| F10       | steps 'over' routines - if the next instruction is JSR it will break on return.         |
-| F11       | steps 'into' routines.                                                                  |
-| F12       | is used to break back into the debugger. This does not happen if you do not have -debug |
-| PAGE UP   | is used to scroll up in the debugger.                                                   |
-| PAGE DOWN | is used to scroll down in the debugger.                                                 |
-| TAB       | when stopped, or single stepping, hides the debug information when pressed              |
+| Key               | Description                                                                             |
+|-------------------|-----------------------------------------------------------------------------------------|
+| F1                | resets the disassembly position to the current PC                                       |
+| F2                | resets the emulated CPU but not any of the hardware.                                    |
+| F5                | close debugger window and return to Run mode, the emulator should run as normal.        |
+| F9                | sets the breakpoint to the currently code position.                                     |
+| F10               | steps 'over' routines - if the next instruction is JSR it will break on return.         |
+| F11               | steps 'into' routines.                                                                  |
+| F12               | is used to break back into the debugger. This does not happen if you do not have -debug |
+| PAGE UP           | scrolls memory up by page.                                                              |
+| PAGE DOWN         | scrolls memory down by page.                                                            |
+| Shift + PAGE UP   | scrolls disassembly up by 16 bytes.                                                     |
+| Shift + PAGE DOWN | scrolls disassembly down by 16 bytes.                                                   |
+| UP                | scrolls memory up by row.                                                               |
+| DOWN              | scrolls memory down by row.                                                             |
+| Shift + UP        | scrolls disassembly up by one byte.                                                     |
+| Shift + DOWN      | scrolls disassembly down by one byte.                                                   |
+| TAB               | when stopped, or single stepping, hides the debug panel while pressed.                  |
 
 When `-debug` is selected the STP instruction (opcode $DB) will break into the debugger automatically.
 
