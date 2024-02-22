@@ -179,7 +179,7 @@ int  DEBUGGetCurrentStatus(void) {
 		}
 	}
 
-	if (hitBreakpoint(regs.pc, breakPoint) || hitBreakpoint(regs.pc, stepBreakPoint)) {       // Hit a breakpoint.
+	if ((currentMode != DMODE_STOP) && (hitBreakpoint(regs.pc, breakPoint) || hitBreakpoint(regs.pc, stepBreakPoint))) {       // Hit a breakpoint.
 		currentPC = regs.pc;                                                         // Update current PC
 		currentPCBank = getCurrentBank(regs.pc);                                     // Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;                                               // So now stop, as we've done it.
