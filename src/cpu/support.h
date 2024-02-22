@@ -176,8 +176,12 @@ void interrupt6502(enum InterruptType vector) {
     push16(regs.pc);
 
     if (regs.e) {
-        push8(vector == INT_BRK ? regs.status | FLAG_BREAK : regs.status & ~FLAG_BREAK);
-        vector = INT_IRQ;
+        if (vector == INT_BRK) {
+            push8(regs.status | FLAG_BREAK);
+            vector = INT_IRQ;
+        } else {
+            push8(regs.status & ~FLAG_BREAK);
+        }
     } else {
         push8(regs.status);
     }
