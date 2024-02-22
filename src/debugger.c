@@ -217,6 +217,7 @@ int  DEBUGGetCurrentStatus(void) {
 	showDebugOnRender = (currentMode != DMODE_RUN);                         // Do we draw it - only in RUN mode.
 	if (currentMode == DMODE_STOP) {                                        // We're in charge.
 		video_update();
+		SDL_Delay(10);
 		return 1;
 	}
 
