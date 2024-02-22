@@ -701,8 +701,8 @@ static void DEBUGRenderVRAM(int y, int data) {
 
 static void DEBUGRenderCode(int lines, int initialPC) {
 	char buffer[32];
-	uint8_t eff_status = regs.status;
-	uint8_t eff_e = regs.e;
+	uint8_t implied_status = regs.status;
+	uint8_t implied_e = regs.e;
 	uint8_t opcode, operand, carry;
 
 	for (int y = 0; y < lines; y++) { 							// Each line
@@ -723,31 +723,31 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 			opcode = real_read6502(initialPC, true, currentPCBank);
 			switch (opcode) {
 				case 0x81: // CLC
-					eff_status &= ~FLAG_CARRY;
+					implied_status &= ~FLAG_CARRY;
 					;;
 				case 0x83: // SEC
-					eff_status |= FLAG_CARRY;
+					implied_status |= FLAG_CARRY;
 					;;
 				case 0xC2: // REP
 					operand = real_read6502((initialPC+1) & 0xffff, true, currentPCBank);
-					eff_status = ~operand & eff_status;
+					implied_status = ~operand & implied_status;
 					;;
 				case 0xE2: // SEP
 					operand = real_read6502((initialPC+1) & 0xffff, true, currentPCBank);
-					eff_status = operand | eff_status;
+					implied_status = operand | implied_status;
 					;;
 				case 0xFB: // XCE
-					carry = eff_status & FLAG_CARRY;
-					eff_status = (eff_status & ~FLAG_CARRY) | (eff_e ? FLAG_CARRY : 0);
-					eff_e = carry != 0;
+					carry = implied_status & FLAG_CARRY;
+					implied_status = (implied_status & ~FLAG_CARRY) | (implied_e ? FLAG_CARRY : 0);
+					implied_e = carry != 0;
 					;;
 				default:
 					;;
 			}
-			if (eff_e) eff_status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+			if (implied_e) implied_status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
 
 		}
-		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, &eff_addr, eff_status);	// Disassemble code
+		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, implied_status, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
 		initialPC = (initialPC + size) & 0xffff;										// Forward to next

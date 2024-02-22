@@ -18,7 +18,7 @@
 //
 // *******************************************************************************************
 
-int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool debugOn, uint8_t bank, int32_t *eff_addr, uint8_t eff_status) {
+int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool debugOn, uint8_t bank, uint8_t implied_status, int32_t *eff_addr) {
 	uint8_t opcode = real_read6502(pc, debugOn, bank);
 	const char *mnemonic = regs.is65c816 ? mnemonics_c816[opcode] : mnemonics_c02[opcode];
 
@@ -275,7 +275,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	char *where = strstr(mnemonic, "%%0%hhux");
 	if (where) {
 		int isImmediateIndex = (opcode == 0xa0) || (opcode == 0xa2) || (opcode == 0xc0) || (opcode == 0xe0);
-		int len = snprintf(line, max_line, mnemonic, (eff_status & (isImmediateIndex ? FLAG_INDEX_WIDTH : FLAG_MEMORY_WIDTH)) ? 2 : 4);
+		int len = snprintf(line, max_line, mnemonic, (implied_status & (isImmediateIndex ? FLAG_INDEX_WIDTH : FLAG_MEMORY_WIDTH)) ? 2 : 4);
 		if (len == -1) {
 			return 0;
 		}
