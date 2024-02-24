@@ -750,6 +750,14 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, implied_status, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
+		// Populate effective address
+		if (initialPC == regs.pc) {
+			if (eff_addr < 0) {
+				DEBUGString(dbgRenderer, DBG_DATX, lines-1, "----", col_data);
+			} else {
+				DEBUGNumber(DBG_DATX, lines-1, eff_addr, 4, col_data);
+			}
+		}
 		initialPC = (initialPC + size) & 0xffff;										// Forward to next
 	}
 }
@@ -760,8 +768,8 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","Y","K","DB","","PC","DP","SP","BKA","BKO","","BRK", NULL };
-static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","PC","SP","BKA","BKO","","BRK", NULL };
+static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","Y","K","DB","","PC","DP","SP","BKA","BKO","","BRK","EFF", NULL };
+static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","PC","SP","BKA","BKO","","BRK","EFF", NULL };
 
 static void DEBUGNumberHighByteCondition(int x, int y, int n, bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
 	if (condition) {
@@ -832,7 +840,9 @@ static int DEBUGRenderRegisters(void) {
 
 	}
 
-	if (breakPoint.bank < 0) {
+	if (breakPoint.pc < 0) {
+		DEBUGString(dbgRenderer, DBG_DATX, yc++, "----", col_data);
+	} else if (breakPoint.bank < 0) {
 		DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
 	} else {
 		DEBUGNumber(DBG_DATX, yc++, (breakPoint.bank << 16) | breakPoint.pc, 6, col_data);
