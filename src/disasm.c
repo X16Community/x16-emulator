@@ -31,6 +31,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	int isIndirect = 0;
 	int isBlockMove = 0;
 	int isImmediate = 0;
+	int isStackRel = 0;
 
 	if (regs.is65c816) {
 		// Immediate opcodes (65C816)
@@ -71,13 +72,21 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 
 		// Y relative opcodes (65C816)
 		switch (opcode) {
+			case 0x13: // ora (zp,S),Y
 			case 0x17: // ora [zp],y
+			case 0x33: // and (zp,S),Y
 			case 0x37: // and [zp],y
+			case 0x53: // eor (zp,S),Y
 			case 0x57: // eor [zp],y
+			case 0x73: // adc (zp,S),Y
 			case 0x77: // adc [zp],y
+			case 0x93: // sta (zp,S),Y
 			case 0x97: // sta [zp],y
+			case 0xB3: // lda (zp,S),Y
 			case 0xB7: // lda [zp],y
+			case 0xD3: // cmp (zp,S),Y
 			case 0xD7: // cmp [zp],y
+			case 0xF3: // sbc (zp,S),Y
 			case 0xF7: // sbc [zp],y
 				isYrel = 1;
 				;;
@@ -88,22 +97,30 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		// indirect opcodes (65C816)
 		switch (opcode) {
 			case 0x07: // ora [zp]
+			case 0x13: // ora (zp,S),Y
 			case 0x17: // ora [zp],y
 			case 0x27: // and [zp]
+			case 0x33: // and (zp,S),Y
 			case 0x37: // and [zp],y
 			case 0x47: // eor [zp]
+			case 0x53: // eor (zp,S),Y
 			case 0x57: // eor [zp],y
 			case 0x67: // adc [zp]
+			case 0x73: // adc (zp,S),Y
 			case 0x77: // adc [zp],y
 			case 0x87: // sta [zp]
+			case 0x93: // sta (zp,S),Y
 			case 0x97: // sta [zp],y
 			case 0xA7: // lda [zp]
+			case 0xB3: // lda (zp,S),Y
 			case 0xB7: // lda [zp],y
 			case 0xC7: // cmp [zp]
+			case 0xD3: // cmp (zp,S),Y
 			case 0xD4: // pei (zp)
 			case 0xD7: // cmp [zp],y
 			case 0xDC: // jmp [abs]
 			case 0xE7: // sbc [zp]
+			case 0xF3: // sbc (zp,S),Y
 			case 0xF7: // sbc [zp],y
 			case 0xFC: // jsr (abs,x)
 				isIndirect = 1;
@@ -111,6 +128,9 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 			default:
 				;;
 		}
+
+		// stack-relative opcodes (65C816)
+		isStackRel = (opcode & 0x0F) == 0x03;
 
 		// block move (MVN and MVP)
 		isBlockMove = opcode == 0x44 || opcode == 0x54;
@@ -309,7 +329,15 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 				snprintf(line, max_line, mnemonic, pc + 2 + (int8_t)real_read6502(pc + 1, debugOn, bank));
 			} else {
 				snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank));
-				if (isIndirect) {
+				if (isStackRel) {
+					uint16_t ptr = regs.sp + real_read6502(pc + 1, debugOn, bank);
+					uint8_t ind_bank = ptr < 0xc000 ? memory_get_ram_bank() : memory_get_rom_bank();
+					if (isIndirect && isYrel) {
+						*eff_addr = (real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8)) + regs.y;
+					} else {
+						*eff_addr = ptr;
+					}
+				} else if (isIndirect) {
 					uint16_t ptr = real_read6502(pc + 1, debugOn, bank);
 					if (isXrel)
 						ptr += regs.x;
@@ -332,7 +360,8 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
 					ptr += regs.x;
-				*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
+				uint8_t ind_bank = ptr < 0xc000 ? memory_get_ram_bank() : memory_get_rom_bank();
+				*eff_addr = real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8);
 				if (isYrel)
 					*eff_addr += regs.y;
 			} else {
@@ -350,7 +379,8 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
 					ptr += regs.x;
-				*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
+				uint8_t ind_bank = ptr < 0xc000 ? memory_get_ram_bank() : memory_get_rom_bank();
+				*eff_addr = real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8);
 				if (isYrel)
 					*eff_addr += regs.y;
 			} else {
