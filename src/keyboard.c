@@ -226,6 +226,8 @@ keynum_from_SDL_Scancode(SDL_Scancode scancode)
 			return 95;
 		case SDL_SCANCODE_NUMLOCKCLEAR:
 			return 90;
+		case SDL_SCANCODE_INTERNATIONAL1:
+			return 56;
 		default:
 			return 0;
 	}
