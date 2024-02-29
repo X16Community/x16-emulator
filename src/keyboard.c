@@ -11,8 +11,6 @@
 int
 keynum_from_SDL_Scancode(SDL_Scancode scancode)
 {
-	printf("key value: %u\n", scancode);
-	
 	switch (scancode) {
 		case SDL_SCANCODE_GRAVE:
 			return 1;
