@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <SDL.h>
 #include "glue.h"
 #include "timing.h"
@@ -31,7 +32,8 @@ static void DEBUGAddress(int x, int y, int bank, int addr, SDL_Color colour);
 static void DEBUGVAddress(int x, int y, int addr, SDL_Color colour);
 
 static void DEBUGRenderData(int y,int data);
-static void DEBUGRenderZeroPageRegisters(int y);
+static int DEBUGRenderZeroPageRegisters(int y);
+static void DEBUGRenderVERAState(int y);
 static int DEBUGRenderRegisters(void);
 static void DEBUGRenderVRAM(int y, int data);
 static void DEBUGRenderCode(int lines,int initialPC);
@@ -79,14 +81,14 @@ static void DEBUGExecCmd();
 #define DBGKEY_SETBRK   SDLK_F9                         // F9 sets breakpoint
 #define DBGKEY_STEP     SDLK_F11                        // F11 is step into.
 #define DBGKEY_STEPOVER SDLK_F10                        // F10 is step over.
-#define DBGKEY_PAGE_NEXT	SDLK_KP_PLUS
-#define DBGKEY_PAGE_PREV	SDLK_KP_MINUS
+#define DBGKEY_BANK_NEXT	SDLK_KP_PLUS
+#define DBGKEY_BANK_PREV	SDLK_KP_MINUS
 
 #define DBGSCANKEY_BRK  SDL_SCANCODE_F12                // F12 is break into running code.
 #define DBGSCANKEY_SHOW SDL_SCANCODE_TAB                // Show screen key.
                                                         // *** MUST BE SCAN CODES ***
 
-#define DBGMAX_ZERO_PAGE_REGISTERS 20
+#define DBGMAX_ZERO_PAGE_REGISTERS 16
 
 #define DDUMP_RAM	0
 #define DDUMP_VERA	1
@@ -99,6 +101,8 @@ const SDL_Color col_label= {0, 255, 0, 255};
 const SDL_Color col_data= {0, 255, 255, 255};
 const SDL_Color col_highlight= {255, 255, 0, 255};
 const SDL_Color col_cmdLine= {255, 255, 255, 255};
+
+const SDL_Color col_directpage= {192, 224, 255, 255};
 
 const SDL_Color col_vram_tilemap = {0, 255, 255, 255};
 const SDL_Color col_vram_tiledata = {0, 255, 0, 255};
@@ -165,19 +169,19 @@ static inline bool hitBreakpoint(int pc, struct breakpoint bp) {
 int  DEBUGGetCurrentStatus(void) {
 
 	SDL_Event event;
-	if (currentPC < 0) currentPC = pc;                                      // Initialise current PC displayed.
+	if (currentPC < 0) currentPC = regs.pc;                                      // Initialise current PC displayed.
 
 	if (currentMode == DMODE_STEP) {                                        // Single step before
-		if (currentPC != pc || currentPCBank != getCurrentBank(pc)) {   // Ensure that the PC moved
-			currentPC = pc;                                         // Update current PC
-			currentPCBank = getCurrentBank(pc);                     // Update the bank if we are in upper memory.
+		if (currentPC != regs.pc || currentPCBank != getCurrentBank(regs.pc)) {   // Ensure that the PC moved
+			currentPC = regs.pc;                                         // Update current PC
+			currentPCBank = getCurrentBank(regs.pc);                     // Update the bank if we are in upper memory.
 			currentMode = DMODE_STOP;                               // So now stop, as we've done it.
 		}
 	}
 
-	if (hitBreakpoint(pc, breakPoint) || hitBreakpoint(pc, stepBreakPoint)) {       // Hit a breakpoint.
-		currentPC = pc;                                                         // Update current PC
-		currentPCBank = getCurrentBank(pc);                                     // Update the bank if we are in upper memory.
+	if ((currentMode != DMODE_STOP) && (hitBreakpoint(regs.pc, breakPoint) || hitBreakpoint(regs.pc, stepBreakPoint))) {       // Hit a breakpoint.
+		currentPC = regs.pc;                                                         // Update current PC
+		currentPCBank = getCurrentBank(regs.pc);                                     // Update the bank if we are in upper memory.
 		currentMode = DMODE_STOP;                                               // So now stop, as we've done it.
 		stepBreakPoint.pc = -1;                                                 // Clear step breakpoint.
 		stepBreakPoint.bank = -1;
@@ -185,8 +189,8 @@ int  DEBUGGetCurrentStatus(void) {
 
 	if (SDL_GetKeyboardState(NULL)[DBGSCANKEY_BRK]) {                       // Stop on break pressed.
 		currentMode = DMODE_STOP;
-		currentPC = pc;                                                 // Set the PC to what it is.
-		currentPCBank = getCurrentBank(pc);                             // Update the bank if we are in upper memory.
+		currentPC = regs.pc;                                                 // Set the PC to what it is.
+		currentPCBank = getCurrentBank(regs.pc);                             // Update the bank if we are in upper memory.
 	}
 
 	if (currentPCBank<0 && currentPC >= 0xA000) {
@@ -213,6 +217,7 @@ int  DEBUGGetCurrentStatus(void) {
 	showDebugOnRender = (currentMode != DMODE_RUN);                         // Do we draw it - only in RUN mode.
 	if (currentMode == DMODE_STOP) {                                        // We're in charge.
 		video_update();
+		SDL_Delay(10);
 		return 1;
 	}
 
@@ -255,8 +260,8 @@ void DEBUGSetBreakPoint(struct breakpoint newBreakPoint) {
 
 void DEBUGBreakToDebugger(void) {
 	currentMode = DMODE_STOP;
-	currentPC = pc;
-	currentPCBank = getCurrentBank(pc);
+	currentPC = regs.pc;
+	currentPCBank = getCurrentBank(regs.pc);
 }
 
 // *******************************************************************************************
@@ -275,10 +280,10 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
-			opcode = real_read6502(pc, true, currentPCBank);			// What opcode is it ?
-			if (opcode == 0x20) { 							// Is it JSR ?
-				stepBreakPoint.pc = pc + 3;					// Then break 3 on.
-				stepBreakPoint.bank = getCurrentBank(pc);
+			opcode = real_read6502(regs.pc, true, currentPCBank);			// What opcode is it ?
+			if (opcode == 0x20 || opcode == 0xFC || opcode == 0x22) { 		// Is it JSR or JSL ?
+				stepBreakPoint.pc = regs.pc + 3 + (opcode == 0x22);			// Then break 3 / 4 on.
+				stepBreakPoint.bank = getCurrentBank(regs.pc);
 				currentMode = DMODE_RUN;					// And run.
 				timing_init();
 			} else {
@@ -297,37 +302,69 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_HOME:								// F1 sets the display PC to the actual one.
-			currentPC = pc;
-			currentPCBank= getCurrentBank(pc);
+			currentPC = regs.pc;
+			currentPCBank= getCurrentBank(regs.pc);
 			break;
 
 		case DBGKEY_RESET:								// F2 reset the 6502
-			reset6502();
-			currentPC = pc;
+			reset6502(regs.is65c816);
+			currentPC = regs.pc;
 			currentPCBank= -1;
 			break;
 
-		case DBGKEY_PAGE_NEXT:
+		case DBGKEY_BANK_NEXT:
 			currentBank += 1;
 			break;
 
-		case DBGKEY_PAGE_PREV:
+		case DBGKEY_BANK_PREV:
 			currentBank -= 1;
 			break;
 
 		case SDLK_PAGEDOWN:
-			if (dumpmode == DDUMP_RAM) {
-				currentData = (currentData + 0x128) & 0xFFFF;
+			if (isShift) {
+				currentPC = (currentPC + 0x10) & 0xffff;
 			} else {
-				currentData = (currentData + 0x250) & 0x1FFFF;
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData + 0x100) & 0xFFFF;
+				} else {
+					currentData = (currentData + 0x200) & 0x1FFFF;
+				}
 			}
 			break;
 
 		case SDLK_PAGEUP:
-			if (dumpmode == DDUMP_RAM) {
-				currentData = (currentData - 0x128) & 0xFFFF;
+			if (isShift) {
+				currentPC = (currentPC - 0x10) & 0xffff;
 			} else {
-				currentData = (currentData - 0x250) & 0x1FFFF;
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData - 0x100) & 0xFFFF;
+				} else {
+					currentData = (currentData - 0x200) & 0x1FFFF;
+				}
+			}
+			break;
+
+		case SDLK_DOWN:
+			if (isShift) {
+				currentPC = (currentPC + 1) & 0xffff;
+			} else {
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData + 0x08) & 0xFFFF;
+				} else {
+					currentData = (currentData + 0x10) & 0x1FFFF;
+				}
+			}
+			break;
+
+		case SDLK_UP:
+			if (isShift) {
+				currentPC = (currentPC - 1) & 0xffff;
+			} else {
+				if (dumpmode == DDUMP_RAM) {
+					currentData = (currentData - 0x08) & 0xFFFF;
+				} else {
+					currentData = (currentData - 0x10) & 0x1FFFF;
+				}
 			}
 			break;
 
@@ -470,20 +507,47 @@ static void DEBUGExecCmd() {
 			sscanf(line, "%s %x", reg, &number);
 
 			if(!strcmp(reg, "pc")) {
-				pc= number & 0xFFFF;
+				regs.pc= number & 0xFFFF;
 				waiting = 0;
 			}
 			if(!strcmp(reg, "a")) {
-				a= number & 0x00FF;
+				regs.a= number & 0x00FF;
+			}
+			if(!strcmp(reg, "b")) {
+				regs.b= number & 0x00FF;
+			}
+			if(!strcmp(reg, "c")) {
+				regs.c= number & 0xFFFF;
+			}
+			if(!strcmp(reg, "d")) {
+				regs.dp= number & 0xFFFF;
+			}
+			if(!strcmp(reg, "k")) {
+				regs.k= number & 0x00FF;
+			}
+			if(!strcmp(reg, "dbr")) {
+				regs.db= number & 0x00FF;
 			}
 			if(!strcmp(reg, "x")) {
-				x= number & 0x00FF;
+				if (regs.e) {
+					regs.xl= number & 0x00FF;
+				} else {
+					regs.x= number & 0xFFFF;
+				}
 			}
 			if(!strcmp(reg, "y")) {
-				y= number & 0x00FF;
+				if (regs.e) {
+					regs.yl= number & 0x00FF;
+				} else {
+					regs.y= number & 0xFFFF;
+				}
 			}
 			if(!strcmp(reg, "sp")) {
-				sp= number & 0x00FF;
+				if (regs.e) {
+					regs.sp= 0x100 | (number & 0x00FF);
+				} else {
+					regs.sp= number & 0xFFFF;
+				}
 			}
 			break;
 
@@ -511,15 +575,16 @@ void DEBUGRenderDisplay(int width, int height) {
 	SDL_SetRenderDrawColor(dbgRenderer,0,0,0,SDL_ALPHA_OPAQUE);
 	SDL_RenderFillRect(dbgRenderer,&rc);
 
-	DEBUGRenderRegisters();							// Draw register name and values.
-	DEBUGRenderCode(20, currentPC);							// Render 6502 disassembly.
+	int register_lines = DEBUGRenderRegisters();							// Draw register name and values.
+	DEBUGRenderCode(register_lines, currentPC);							// Render 6502 disassembly.
 	if (dumpmode == DDUMP_RAM) {
-		DEBUGRenderData(21, currentData);
-		DEBUGRenderZeroPageRegisters(21);
+		DEBUGRenderData(register_lines + 1, currentData);
+		int zp_lines = DEBUGRenderZeroPageRegisters(register_lines + 1);
+		DEBUGRenderVERAState(zp_lines + 1);
 	} else {
-		DEBUGRenderVRAM(21, currentData);
+		DEBUGRenderVRAM(register_lines + 1, currentData);
 	}
-	DEBUGRenderStack(20);
+	DEBUGRenderStack(register_lines);
 
 	DEBUGRenderCmdLine(xPos, rc.w, height);
 }
@@ -546,7 +611,7 @@ static void DEBUGRenderCmdLine(int x, int width, int height) {
 //
 // *******************************************************************************************
 
-static void DEBUGRenderZeroPageRegisters(int y) {
+static int DEBUGRenderZeroPageRegisters(int y) {
 #define LAST_R 15
 	unsigned char reg = 0;
 	int y_start = y;
@@ -561,7 +626,7 @@ static void DEBUGRenderZeroPageRegisters(int y) {
 			DEBUGString(dbgRenderer, DBG_ZP_REG, y, lbl, col_label);
 
 			int reg_addr = 2 + reg * 2;
-			int n = real_read6502(reg_addr+1, true, currentBank)*256+real_read6502(reg_addr, true, currentBank);
+			int n = real_read6502(direct_page_add(reg_addr+1), true, currentBank)*256+real_read6502(direct_page_add(reg_addr), true, currentBank);
 
 			DEBUGNumber(DBG_ZP_REG+5, y, n, 4, col_data);
 
@@ -580,6 +645,8 @@ static void DEBUGRenderZeroPageRegisters(int y) {
 	if (oldRegisterTicks != clockticks6502) {
 		oldRegisterTicks = clockticks6502;
 	}
+
+	return y;
 }
 
 // *******************************************************************************************
@@ -593,18 +660,17 @@ static void DEBUGRenderData(int y,int data) {
 		DEBUGAddress(DBG_MEMX, y, (uint8_t)currentBank, data & 0xFFFF, col_label);	// Show label.
 
 		for (int i = 0;i < 8;i++) {
-			int byte= real_read6502((data+i) & 0xFFFF, true, currentBank);
-			DEBUGNumber(DBG_MEMX+8+i*3,y,byte,2, col_data);
-			DEBUGWrite(dbgRenderer, DBG_MEMX+33+i,y,byte, col_data);
+			bool isDP = ((data+i - regs.dp) & 0xffff) < 256;
+			int byte = real_read6502((data+i) & 0xFFFF, true, currentBank);
+			DEBUGNumber(DBG_MEMX+8+i*3,y,byte,2, isDP ? col_directpage : col_data);
+			DEBUGWrite(dbgRenderer, DBG_MEMX+33+i,y,byte, isDP ? col_directpage : col_data);
 		}
 		y++;
 		data += 8;
 	}
 }
 
-static void
-DEBUGRenderVRAM(int y, int data)
-{
+static void DEBUGRenderVRAM(int y, int data) {
 	while (y < DBG_HEIGHT - 2) {                                                   // To bottom of screen
 		DEBUGVAddress(DBG_MEMX, y, data & 0x1FFFF, col_label); // Show label.
 
@@ -635,14 +701,63 @@ DEBUGRenderVRAM(int y, int data)
 
 static void DEBUGRenderCode(int lines, int initialPC) {
 	char buffer[32];
+	uint8_t implied_status = regs.status;
+	uint8_t implied_e = regs.e;
+	uint8_t opcode, operand, carry;
+
 	for (int y = 0; y < lines; y++) { 							// Each line
 
 		DEBUGAddress(DBG_ASMX, y, currentPCBank, initialPC, col_label);
 		int32_t eff_addr;
 
-		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, &eff_addr);	// Disassemble code
+		// Attempt to display the disassembly correctly more often
+		// if the code logic is reasonably straightforward with respect
+		// to status flags changing in the immediate instruction list
+
+		// This doesn't predict status flags changes except by the few
+		// opcodes below. The PLP instruction, for instance, could easily
+		// render disassembly following it invalid, but this would have
+		// still been true without the added logic, anyway.
+
+		if (regs.is65c816) {
+			opcode = real_read6502(initialPC, true, currentPCBank);
+			switch (opcode) {
+				case 0x81: // CLC
+					implied_status &= ~FLAG_CARRY;
+					;;
+				case 0x83: // SEC
+					implied_status |= FLAG_CARRY;
+					;;
+				case 0xC2: // REP
+					operand = real_read6502((initialPC+1) & 0xffff, true, currentPCBank);
+					implied_status = ~operand & implied_status;
+					;;
+				case 0xE2: // SEP
+					operand = real_read6502((initialPC+1) & 0xffff, true, currentPCBank);
+					implied_status = operand | implied_status;
+					;;
+				case 0xFB: // XCE
+					carry = implied_status & FLAG_CARRY;
+					implied_status = (implied_status & ~FLAG_CARRY) | (implied_e ? FLAG_CARRY : 0);
+					implied_e = carry != 0;
+					;;
+				default:
+					;;
+			}
+			if (implied_e) implied_status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+
+		}
+		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, implied_status, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
-		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == pc ? col_highlight : col_data);
+		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
+		// Populate effective address
+		if (initialPC == regs.pc) {
+			if (eff_addr < 0) {
+				DEBUGString(dbgRenderer, DBG_DATX, lines-1, "----", col_data);
+			} else {
+				DEBUGNumber(DBG_DATX, lines-1, eff_addr, 4, col_data);
+			}
+		}
 		initialPC = (initialPC + size) & 0xffff;										// Forward to next
 	}
 }
@@ -653,48 +768,118 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 //
 // *******************************************************************************************
 
-static char *labels[] = { "NV-BDIZC","","","A","X","Y","","BKA","BKO", "PC","SP","","BRK","", "VA","VD0","VD1","VCT", NULL };
+static char *labels_c816[] = { "NVMXDIZCE","","","A","B","C","X","Y","K","DB","","PC","DP","SP","BKA","BKO","","BRK","EFF", NULL };
+static char *labels_c02[] = { "NV-BDIZC","","","A","X","Y","","PC","SP","BKA","BKO","","BRK","EFF", NULL };
 
+static void DEBUGNumberHighByteCondition(int x, int y, int n, bool condition, SDL_Color ifTrue, SDL_Color ifFalse) {
+	if (condition) {
+		DEBUGNumber(x, y, n >> 8, 2, ifTrue);
+		DEBUGNumber(x + 2, y, n & 0xFF, 2, ifFalse);
+	} else {
+		DEBUGNumber(x, y, n, 4, ifFalse);
+	}
+}
 
 static int DEBUGRenderRegisters(void) {
 	int n = 0,yc = 0;
-	while (labels[n] != NULL) {									// Labels
-		DEBUGString(dbgRenderer, DBG_LBLX,n,labels[n], col_label);n++;
+	if (regs.is65c816) {
+		while (labels_c816[n] != NULL) {								// Labels
+			DEBUGString(dbgRenderer, DBG_LBLX,n,labels_c816[n], col_label);n++;
+		}
+		yc++;
+		DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+2, yc, (regs.status >> 5) & 1, 1, regs.e ? col_vram_other : col_data);
+		DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, regs.e ? col_vram_other : col_data);
+		DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+8, yc, regs.e, 1, col_data);
+		yc+= 2;
+
+		DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.b, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.c, 4, col_data);
+		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.x, (regs.status >> 4) & 1, col_vram_other, col_data);
+		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.y, (regs.status >> 4) & 1, col_vram_other, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.k, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.db, 2, col_data);
+		yc++;
+
+		DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.dp, 4, col_data);
+		DEBUGNumberHighByteCondition(DBG_DATX, yc++, regs.sp, regs.e, col_vram_other, col_data);
+		DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
+		yc++;
+	} else {
+		while (labels_c02[n] != NULL) {									// Labels
+			DEBUGString(dbgRenderer, DBG_LBLX,n,labels_c02[n], col_label);n++;
+		}
+		yc++;
+		DEBUGNumber(DBG_LBLX, yc, (regs.status >> 7) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+1, yc, (regs.status >> 6) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+3, yc, (regs.status >> 4) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+4, yc, (regs.status >> 3) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+5, yc, (regs.status >> 2) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+6, yc, (regs.status >> 1) & 1, 1, col_data);
+		DEBUGNumber(DBG_LBLX+7, yc, (regs.status >> 0) & 1, 1, col_data);
+		yc+= 2;
+
+		DEBUGNumber(DBG_DATX, yc++, regs.a, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.xl, 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.yl, 2, col_data);
+		yc++;
+
+		DEBUGNumber(DBG_DATX, yc++, regs.pc, 4, col_data);
+		DEBUGNumber(DBG_DATX, yc++, regs.sp|0x100, 4, col_data);
+		DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
+		DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
+		yc++;
+
 	}
-	yc++;
-	DEBUGNumber(DBG_LBLX, yc, (status >> 7) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+1, yc, (status >> 6) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+3, yc, (status >> 4) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+4, yc, (status >> 3) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+5, yc, (status >> 2) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+6, yc, (status >> 1) & 1, 1, col_data);
-	DEBUGNumber(DBG_LBLX+7, yc, (status >> 0) & 1, 1, col_data);
-	yc+= 2;
 
-	DEBUGNumber(DBG_DATX, yc++, a, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, x, 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, y, 2, col_data);
-	yc++;
-
-	DEBUGNumber(DBG_DATX, yc++, memory_get_ram_bank(), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, memory_get_rom_bank(), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, pc, 4, col_data);
-	DEBUGNumber(DBG_DATX, yc++, sp|0x100, 4, col_data);
-	yc++;
-
-	if (breakPoint.bank < 0) {
+	if (breakPoint.pc < 0) {
+		DEBUGString(dbgRenderer, DBG_DATX, yc++, "----", col_data);
+	} else if (breakPoint.bank < 0) {
 		DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
 	} else {
 		DEBUGNumber(DBG_DATX, yc++, (breakPoint.bank << 16) | breakPoint.pc, 6, col_data);
 	}
 	yc++;
 
-	DEBUGNumber(DBG_DATX, yc++, video_read(0, true) | (video_read(1, true)<<8) | (video_read(2, true)<<16), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, video_read(3, true), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, video_read(4, true), 2, col_data);
-	DEBUGNumber(DBG_DATX, yc++, video_read(5, true), 2, col_data);
-
 	return n; 													// Number of code display lines
+}
+
+
+static char *vera_labels[] = { "ADDR0", "ADDR1", "DATA0","DATA1", "CTRL", "VIDEO", "HSCLE", "VSCLE", "FXCTL", "FXMUL", "CACHE", "ACCUM", NULL };
+
+static void DEBUGRenderVERAState(int y) {
+	int n=0;
+	int yc=y;
+	while (vera_labels[n] != NULL) { // Labels
+		DEBUGString(dbgRenderer, DBG_VERA_REGX, yc, vera_labels[n], col_label);n++;yc++;
+	}
+
+	yc=y;
+
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_address(0), 5, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_address(1), 5, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_read(3, true), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_read(4, true), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_read(5, true), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(0), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(1), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(2), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(8), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_dc_value(11), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc, video_get_dc_value(24), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+8, yc, video_get_dc_value(25), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+10, yc, video_get_dc_value(26), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+12, yc++, video_get_dc_value(27), 2, col_data);
+	DEBUGNumber(DBG_VERA_REGX+6, yc++, video_get_fx_accum(), 8, col_data);
+
 }
 
 // *******************************************************************************************
@@ -704,15 +889,17 @@ static int DEBUGRenderRegisters(void) {
 // *******************************************************************************************
 
 static void DEBUGRenderStack(int bytesCount) {
-	int data= (sp+1) | 0x100;
+	uint16_t sp = regs.sp;
+	increment_wrap_at_page_boundary(&sp);
+
 	int y= 0;
 	while (y < bytesCount) {
-		DEBUGNumber(DBG_STCK,y,data & 0xFFFF,4, col_label);
-		int byte = real_read6502((data++) & 0xFFFF, false, 0);
+		DEBUGNumber(DBG_STCK,y, sp,4, col_label);
+		int byte = real_read6502(sp, false, 0);
 		DEBUGNumber(DBG_STCK+5,y,byte,2, col_data);
 		DEBUGWrite(dbgRenderer, DBG_STCK+9,y,byte, col_data);
 		y++;
-		data= (data & 0xFF) | 0x100;
+		increment_wrap_at_page_boundary(&sp);
 	}
 }
 

@@ -78,11 +78,10 @@ jobs:
         run: |
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
-      - name: Fetch README.pdf
-        run: gh run download -n "readme-pdf" --dir emu_binaries
-        shell: cmd
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: readme-pdf
+          path: emu_binaries
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         shell: cmd
@@ -145,14 +144,12 @@ jobs:
         run: |
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
-      - name: Fetch README.pdf
-        run: gh run download -n "readme-pdf" --dir emu_binaries
-        shell: cmd
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: readme-pdf
+          path: emu_binaries
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
-        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
@@ -196,10 +193,10 @@ jobs:
         run: |
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
-      - name: Fetch README.pdf
-        run: gh run download -n "readme-pdf" --dir emu_binaries
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: readme-pdf
+          path: emu_binaries
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
@@ -256,10 +253,10 @@ jobs:
           sudo chown -R runner emu_binaries
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
-      - name: Fetch README.pdf
-        run: gh run download -n "readme-pdf" --dir emu_binaries
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: readme-pdf
+          path: emu_binaries
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
@@ -316,10 +313,10 @@ jobs:
           sudo chown -R runner emu_binaries
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
-      - name: Fetch README.pdf
-        run: gh run download -n "readme-pdf" --dir emu_binaries
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: readme-pdf
+          path: emu_binaries
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
@@ -367,10 +364,10 @@ jobs:
         run: |
           cp latest_rom/rom.bin emu_binaries/.
           cp latest_rom/*.sym emu_binaries/.
-      - name: Fetch README.pdf
-        run: gh run download -n "readme-pdf" --dir emu_binaries
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: readme-pdf
+          path: emu_binaries
       - name: Fetch x16-docs PDFs
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:

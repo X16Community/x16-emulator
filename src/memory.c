@@ -43,7 +43,7 @@ memory_init()
 {
 	// Initialize RAM array
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
-	
+
 	// Randomize all RAM (if option selected)
 	if (randomizeRAM) {
 		time_t t;
@@ -203,7 +203,7 @@ write6502(uint16_t address, uint8_t value)
 		}
 	}
 	// Write to CPU I/O ports
-	if (address < 2) { 
+	if (address < 2) {
 		cpuio_write(address, value);
 	}
 	// Write to memory

@@ -12,7 +12,7 @@ This is an emulator for the Commander X16 computer system. It only depends on SD
 Features
 --------
 
-* CPU: Full 65C02 instruction set
+* CPU: 65C02 and 65C816 instruction sets, selected by command line switch
 * VERA
 	* Mostly cycle exact emulation
 	* Supports almost all features:
@@ -124,7 +124,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 	* `V`: Video RAM and registers (128 KiB VRAM, 32 B composer registers, 512 B palette, 16 B layer0 registers, 16 B layer1 registers, 16 B sprite registers, 2 KiB sprite attributes)
 * `-testbench` Headless mode for unit testing with an external test runner
 * `-sound <device>` can be used to specify the output sound device. If 'none', no audio is generated.
-* `-abufs` can be used to specify the number of audio buffers (defaults to 8). If you're experiencing stuttering in the audio try to increase this number. This will result in additional audio latency though.
+* `-abufs` can be used to specify the number of audio buffers (defaults to 8 when using the SD card, 32 when using HostFS). If you're experiencing stuttering in the audio, try increasing this number. This will result in additional audio latency though.
 * `-via2` installs the second VIA chip expansion at $9F10.
 * `-midline-effects` enables mid-scanline raster effects at the cost of vastly increased host CPU usage.
 * `-mhz <integer>` sets the emulated CPU's speed. Range is from 1-40. This option is mainly for testing and benchmarking.
@@ -132,6 +132,9 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-wuninit` enables warnings on the console for reads of uninitialized memory.
 * `-zeroram` fills RAM at startup with zeroes instead of the default of random data.
 * `-version` prints additional version information of the emulator and ROM.
+* `-c02` selects the 65C02 CPU (default).
+* `-c816` selects the 65C816 CPU (experimental).
+* `-rockwell` when used while running with the 65C02 CPU, suppresses the console warning emitted on the first occurence when executing a Rockwell instruction. These are the SMBx, RMBx, BBRx, and BBSx instructions. Since these instructions are not supported on the 65C816 processor, such a program using them would not run properly on the 65C816.
 * When compiled with `#define TRACE`, `-trace` will enable an instruction trace on stdout.
 
 Run `x16emu -h` to see all command line options.
@@ -190,7 +193,7 @@ Functions while running
 * `Ctrl` + `P` will write a screenshot in PNG format to disk.
 * `Ctrl` + `R` will reset the computer.
 * `Ctrl` + `Backspace` will send an NMI to the computer (like RESTORE key).
-* `Ctrl` + `S` will save a system dump configurable with `-dump`) to disk.
+* `Ctrl` + `S` will save a system dump (configurable with `-dump`) to disk.
 * `Ctrl` + `V` will paste the clipboard by injecting key presses.
 * `Ctrl` + `=` and `Ctrl` + `+` will toggle warp mode.
 
@@ -340,7 +343,12 @@ Debugger
 
 The debugger requires `-debug`.  To start the debugger, press the F12 key. Without `-debug`, the debugger is disabled and won't start.  If you wish to set an initial breakpoint you can also include the memory address, in hexadecimal, of the breakpoint after the `-debug` switch. For example `-debug 080d`.
 
-There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, X, Y, and SP.
+There are 2 panels you can control. The code panel, the top left half, and the data panel, the bottom half of the screen. You can also edit the contents of the registers PC, A, B, C, D, K, DB, X, Y, and SP.
+
+Greyed out numbers in the register display indicate values that are fixed at their given value due to the current processor state. This applies to
+- the high bytes of X and Y if the index flags is set
+- the flags M (memory) and I (index) if emulation mode is active
+- the high byte of SP if emulation mode is active.
 
 The debugger uses its own command line with the following syntax:
 
@@ -350,24 +358,30 @@ The debugger uses its own command line with the following syntax:
 |m %x|Change the data panel to view memory starting from the address %x.|
 |v %x|Display VERA RAM (VRAM) starting from address %x.|
 |b %s %d|Changes the current memory bank for disassembly and data. The %s param can be either 'ram' or 'rom', the %d is the memory bank to display (but see NOTE below!).|
-|r %s %x|Changes the value in the specified register. Valid registers in the %s param are 'pc', 'a', 'x', 'y', and 'sp'. %x is the value to store in that register.|
+|r %s %x|Changes the value in the specified register. Valid registers in the %s param are 'pc', 'a', 'b', 'c', 'd', 'k', 'dbr', 'x', 'y', and 'sp'. %x is the value to store in that register.|
 
 NOTE. To disassemble or dump memory locations in banked RAM or ROM, prepend the bank number to the address; for example, "m 4a300" displays memory contents of BANK 4, starting at address $a300.  This also works for the 'd' command.
 
 The debugger keys are similar to the Microsoft Debugger shortcut keys, and work as follows
 
-| Key       | Description                                                                             |
-|-----------|-----------------------------------------------------------------------------------------|
-| F1        | resets the shown code position to the current PC                                        |
-| F2        | resets the 65C02 CPU but not any of the hardware.                                       |
-| F5        | close debugger window and return to Run mode, the emulator should run as normal.        |
-| F9        | sets the breakpoint to the currently code position.                                     |
-| F10       | steps 'over' routines - if the next instruction is JSR it will break on return.         |
-| F11       | steps 'into' routines.                                                                  |
-| F12       | is used to break back into the debugger. This does not happen if you do not have -debug |
-| PAGE UP   | is used to scroll up in the debugger.                                                   |
-| PAGE DOWN | is used to scroll down in the debugger.                                                 |
-| TAB       | when stopped, or single stepping, hides the debug information when pressed              |
+| Key               | Description                                                                             |
+|-------------------|-----------------------------------------------------------------------------------------|
+| F1                | resets the disassembly position to the current PC                                       |
+| F2                | resets the emulated CPU but not any of the hardware.                                    |
+| F5                | close debugger window and return to Run mode, the emulator should run as normal.        |
+| F9                | sets the breakpoint to the currently code position.                                     |
+| F10               | steps 'over' routines - if the next instruction is JSR it will break on return.         |
+| F11               | steps 'into' routines.                                                                  |
+| F12               | is used to break back into the debugger. This does not happen if you do not have -debug |
+| PAGE UP           | scrolls memory up by page.                                                              |
+| PAGE DOWN         | scrolls memory down by page.                                                            |
+| Shift + PAGE UP   | scrolls disassembly up by 16 bytes.                                                     |
+| Shift + PAGE DOWN | scrolls disassembly down by 16 bytes.                                                   |
+| UP                | scrolls memory up by row.                                                               |
+| DOWN              | scrolls memory down by row.                                                             |
+| Shift + UP        | scrolls disassembly up by one byte.                                                     |
+| Shift + DOWN      | scrolls disassembly down by one byte.                                                   |
+| TAB               | when stopped, or single stepping, hides the debug panel while pressed.                  |
 
 When `-debug` is selected the STP instruction (opcode $DB) will break into the debugger automatically.
 

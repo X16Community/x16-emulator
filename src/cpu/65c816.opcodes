@@ -1,0 +1,140 @@
+; *******************************************************************************************
+; *******************************************************************************************
+;
+;		File:		65C816.opcodes
+;		Date:		10th Januay 2024
+;		Purpose:	Descriptor file, standard 65C816 opcodes
+;		Author:		Paul Robson (paul@robson.org.uk), Fulgen
+;
+; *******************************************************************************************
+; *******************************************************************************************
+
+adc ind0 5 $72
+and ind0 5 $32
+cmp ind0 5 $d2
+eor ind0 5 $52
+lda ind0 5 $b2
+ora ind0 5 $12
+sbc ind0 5 $f2
+sta ind0 5 $92
+
+adc sr 4 $63
+and sr 4 $23
+cmp sr 4 $c3
+eor sr 4 $43
+lda sr 4 $a3
+ora sr 4 $03
+sbc sr 4 $e3
+sta sr 4 $83
+
+adc sridy 7 $73
+and sridy 7 $33
+cmp sridy 7 $d3
+eor sridy 7 $53
+lda sridy 7 $b3
+ora sridy 7 $13
+sbc sridy 7 $f3
+sta sridy 7 $93
+
+adc absl 5 $6f
+and absl 5 $2f
+cmp absl 5 $cf
+eor absl 5 $4f
+lda absl 5 $af
+ora absl 5 $0f
+sbc absl 5 $ef
+sta absl 5 $8f
+
+adc abslx 5 $7f
+and abslx 5 $3f
+cmp abslx 5 $df
+eor abslx 5 $5f
+lda abslx 5 $bf
+ora abslx 5 $1f
+sbc abslx 5 $ff
+sta abslx 5 $9f
+
+adc indl0 6 $67
+and indl0 6 $27
+cmp indl0 6 $c7
+eor indl0 6 $47
+lda indl0 6 $a7
+ora indl0 6 $07
+sbc indl0 6 $e7
+sta indl0 6 $87
+
+adc indly 6 $77
+and indly 6 $37
+cmp indly 6 $d7
+eor indly 6 $57
+lda indly 6 $b7
+ora indly 6 $17
+sbc indly 6 $f7
+sta indly 6 $97
+
+bit immm 2 $89
+bit zpx 4 $34
+bit absx 4 $3c
+
+brl rel16 4 $82
+
+cop imp8 7 $02
+
+dec acc 2 $3a
+inc acc 2 $1a
+
+jmp ainx 6 $7c
+jml absl 4 $5c
+jml aindl 6 $dc
+
+jsr ainx 8 $fc
+jsl absl 8 $22
+
+bra rel 3 $80
+
+pea imm16 5 $f4
+pei ind0 6 $d4
+per rel16 6 $62
+phb imp 3 $8b
+phd imp 4 $0b
+phk imp 3 $4b
+phx imp 3 $da
+phy imp 3 $5a
+plb imp 4 $ab
+pld imp 5 $2b
+plx imp 4 $fa
+ply imp 4 $7a
+
+rtl imp 6 $6b
+
+stz zp 3 $64
+stz zpx 4 $74
+stz abso 4 $9c
+stz absx 5 $9e
+
+trb zp 5 $14
+trb abso 6 $1c
+tsb zp 5 $04
+tsb abso 6 $0c
+
+wai imp 3 $cb
+
+dbg imp 1 $DB
+
+mvn bmv 7 $54
+mvp bmv 7 $44
+
+rep imm8 3 $c2
+sep imm8 3 $e2
+
+tcd imp 2 $5b
+tcs imp 2 $1b
+tdc imp 2 $7b
+tsc imp 2 $3b
+txy imp 2 $9b
+tyx imp 2 $bb
+
+wdm imm8 2 $42
+
+xba imp 3 $eb
+xce imp 2 $fb

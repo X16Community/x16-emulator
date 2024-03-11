@@ -7,12 +7,13 @@
 
 #include <stdint.h>
 
-extern void reset6502();
+extern void reset6502(bool c816);
 extern void step6502();
 extern void exec6502(uint32_t tickcount);
 extern void irq6502();
 extern void nmi6502();
 extern uint32_t clockticks6502;
 extern uint8_t waiting;
+extern bool warn_rockwell;
 
 #endif

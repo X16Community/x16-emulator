@@ -268,12 +268,12 @@ machine_dump(const char* reason)
 	}
 
 	if (dump_cpu) {
-		SDL_RWwrite(f, &a, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &x, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &y, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &sp, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &status, sizeof(uint8_t), 1);
-		SDL_RWwrite(f, &pc, sizeof(uint16_t), 1);
+		SDL_RWwrite(f, &regs.a, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.xl, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.yl, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.sp, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.status, sizeof(uint8_t), 1);
+		SDL_RWwrite(f, &regs.pc, sizeof(uint16_t), 1);
 	}
 	memory_save(f, dump_ram, dump_bank);
 
@@ -304,7 +304,7 @@ machine_reset()
 	}
 	video_reset();
 	mouse_state_init();
-	reset6502();
+	reset6502(regs.is65c816);
 }
 
 void
@@ -334,10 +334,15 @@ machine_toggle_warp()
 static bool
 is_kernal()
 {
-	return read6502(0xfff6) == 'M' && // only for KERNAL
+	// only for KERNAL
+	return (read6502(0xfff6) == 'M' &&
 			read6502(0xfff7) == 'I' &&
 			read6502(0xfff8) == 'S' &&
-			read6502(0xfff9) == 'T';
+			read6502(0xfff9) == 'T')
+		|| (read6502(0xc008) == 'M' &&
+			read6502(0xc009) == 'I' &&
+			read6502(0xc00a) == 'S' &&
+			read6502(0xc00b) == 'T');
 }
 
 static void
@@ -480,6 +485,13 @@ usage()
 	printf("-enable-ym2151-irq\n");
 	printf("\tConnect the YM2151 IRQ source to the emulated CPU. This option increases\n");
 	printf("\tCPU usage as audio render is triggered for every CPU instruction.\n");
+	printf("-c02\n");
+	printf("\tRun the emulator under an emulated 65C02 (default)\n");
+	printf("-c816\n");
+	printf("\tRun the emulator under an emulated 65C816\n");
+	printf("\tThis option is experimental.\n");
+	printf("-rockwell\n");
+	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -976,6 +988,18 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			ym2151_irq_support = true;
+		} else if (!strcmp(argv[0], "-c816")){
+			argc--;
+			argv++;
+			regs.is65c816 = true;
+		} else if (!strcmp(argv[0], "-c02")){
+			argc--;
+			argv++;
+			regs.is65c816 = false;
+		} else if (!strcmp(argv[0], "-rockwell")){
+			argc--;
+			argv++;
+			warn_rockwell = false;
 		} else {
 			usage();
 		}
@@ -1189,7 +1213,7 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	if (pc < 0xFEB1 || !is_kernal()) {
+	if (regs.pc < 0xFEB1 || !is_kernal()) {
 		return false;
 	}
 
@@ -1216,61 +1240,61 @@ handle_ieee_intercept()
 	static int count_unlistn = 0;
 	bool handled = true;
 	int s = -1;
-	switch(pc) {
+	switch(regs.pc) {
 		case 0xFEB1: {
-			uint16_t count = a;
-			s=MCIOUT(y << 8 | x, &count, status & 0x01);
+			uint16_t count = regs.a;
+			s=MCIOUT(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
 			if (s == -2) {
 				handled = false;
 			} else if (s == -3) {
-				status = (status | 1); // SEC (unsupported, or in this case, no open context)
+				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
-				x = count & 0xff;
-				y = count >> 8;
-				status &= 0xfe; // clear C -> supported
+				regs.x = count & 0xff;
+				regs.y = count >> 8;
+				regs.status &= 0xfe; // clear C -> supported
 			}
 			break;
 		}
 		case 0xFF44: {
-			uint16_t count = a;
-			s=MACPTR(y << 8 | x, &count, status & 0x01);
+			uint16_t count = regs.a;
+			s=MACPTR(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
 			if (s == -2) {
 				handled = false;
 			} else if (s == -3) {
-				status = (status | 1); // SEC (unsupported, or in this case, no open context)
+				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
 			} else {
-				x = count & 0xff;
-				y = count >> 8;
-				status &= 0xfe; // clear C -> supported
+				regs.x = count & 0xff;
+				regs.y = count >> 8;
+				regs.status &= 0xfe; // clear C -> supported
 			}
 			break;
 		}
 		case 0xFF93:
-			s=SECOND(a);
+			s=SECOND(regs.a);
 			if (s == -2) {
 				handled = false;
 			}
 			break;
 		case 0xFF96:
-			s=TKSA(a);
+			s=TKSA(regs.a);
 			if (s == -2) {
 				handled = false;
 			}
 			break;
 		case 0xFFA5:
-			s=ACPTR(&a);
+			s=ACPTR(&regs.a);
 			if (s == -2) {
 				handled = false;
 			} else {
-				status = (status & ~3) | (!a << 1); // unconditional CLC, and set zero flag based on byte read
+				regs.status = (regs.status & ~3) | (!regs.a << 1); // unconditional CLC, and set zero flag based on byte read
 			}
 			break;
 		case 0xFFA8:
-			s=CIOUT(a);
+			s=CIOUT(regs.a);
 			if (s == -2) {
 				handled = false;
 			} else {
-				status = (status & ~1); // unconditonal CLC
+				regs.status = (regs.status & ~1); // unconditonal CLC
 			}
 			break;
 		case 0xFFAB:
@@ -1295,19 +1319,19 @@ handle_ieee_intercept()
 			}
 			break;
 		case 0xFFB1:
-			s=LISTEN(a);
+			s=LISTEN(regs.a);
 			if (s == -2) {
 				handled = false;
 			} else {
-				status = (status & ~1); // unconditonal CLC
+				regs.status = (regs.status & ~1); // unconditonal CLC
 			}
 			break;
 		case 0xFFB4:
-			s=TALK(a);
+			s=TALK(regs.a);
 			if (s == -2) {
 				handled = false;
 			} else {
-				status = (status & ~1); // unconditonal CLC
+				regs.status = (regs.status & ~1); // unconditonal CLC
 			}
 			break;
 		default:
@@ -1323,12 +1347,14 @@ handle_ieee_intercept()
 		clockticks6502 += missed_ticks;
 		if (s >= 0) {
 			if (!set_kernal_status(s)) {
-				printf("Warning: Could not set STATUS!\n");
+				printf("Warning: Could not set regs.status!\n");
 			}
 		}
 
-		pc = (RAM[0x100 + sp + 1] | (RAM[0x100 + sp + 2] << 8)) + 1;
-		sp += 2;
+		increment_wrap_at_page_boundary(&regs.sp);
+		uint8_t low = read6502(regs.sp);
+		increment_wrap_at_page_boundary(&regs.sp);
+		regs.pc = ((read6502(regs.sp) << 8) | low) + 1;
 	}
 	return handled;
 }
@@ -1346,7 +1372,7 @@ emulator_loop(void *param)
 	for (;;) {
 		if (smc_requested_reset) machine_reset();
 
-		if (testbench && pc == 0xfffd){
+		if (testbench && regs.pc == 0xfffd){
 			testbench_init();
 		}
 
@@ -1364,25 +1390,28 @@ emulator_loop(void *param)
 		if (memory_get_rom_bank() == 3) {
 			static uint8_t old_sp;
 			static uint16_t base_pc;
-			if (sp < old_sp) {
+			if (regs.sp < old_sp) {
 				base_pc = pc;
 			}
-			old_sp = sp;
+			old_sp = regs.sp;
 			stat[base_pc]++;
 		}
 #endif
 
 #ifdef TRACE
-		if (pc == trace_address && trace_address != 0) {
+		if (regs.pc == trace_address && trace_address != 0) {
 			trace_mode = true;
 		}
 		if (trace_mode) {
-			char *lst = lst_for_address(pc);
+			char *lst = lst_for_address(regs.pc);
 			if (lst) {
 				char *lf;
 				while ((lf = strchr(lst, '\n'))) {
-					for (int i = 0; i < 113; i++) {
+					for (int i = 0; i < 116; i++) {
 						printf(" ");
+					}
+					if (regs.is65c816) {
+						printf("         "); // 9 extra width
 					}
 					for (char *c = lst; c < lf; c++) {
 						printf("%c", *c);
@@ -1396,7 +1425,7 @@ emulator_loop(void *param)
 
 			int32_t eff_addr;
 
-			char *label = label_for_address(pc);
+			char *label = label_for_address(regs.pc);
 			int label_len = label ? strlen(label) : 0;
 			if (label) {
 				printf("%s", label);
@@ -1405,20 +1434,20 @@ emulator_loop(void *param)
 				printf(" ");
 			}
 
-			if (pc >= 0xc000) {
+			if (regs.pc >= 0xc000) {
 				printf (" %02x", memory_get_rom_bank());
-			} else if (pc >= 0xa000) {
+			} else if (regs.pc >= 0xa000) {
 				printf (" %02x", memory_get_ram_bank());
 			} else {
 				printf (" --");
 			}
 
-			printf(":.,%04x ", pc);
+			printf(":.,%04x ", regs.pc);
 
 			char disasm_line[15];
-			int len = disasm(pc, RAM, disasm_line, sizeof(disasm_line), false, 0, &eff_addr);
+			int len = disasm(regs.pc, RAM, disasm_line, sizeof(disasm_line), false, 0, regs.status, &eff_addr);
 			for (int i = 0; i < len; i++) {
-				printf("%02x ", read6502(pc + i));
+				printf("%02x ", read6502(regs.pc + i));
 			}
 			for (int i = 0; i < 9 - 3 * len; i++) {
 				printf(" ");
@@ -1427,20 +1456,32 @@ emulator_loop(void *param)
 			for (int i = 0; i < 15 - strlen(disasm_line); i++) {
 				printf(" ");
 			}
+			if (regs.is65c816) {
+				printf("a=$%04x x=$%04x y=$%04x s=$%04x p=", regs.c, regs.x, regs.y, regs.sp);
+				for (int i = 7; i >= 0; i--) {
+					printf("%c", (regs.status & (1 << i)) ? "czidxmvn"[i] : '-');
+				}
 
-			printf("a=$%02x x=$%02x y=$%02x s=$%02x p=", a, x, y, sp);
-			for (int i = 7; i >= 0; i--) {
-				printf("%c", (status & (1 << i)) ? "czidb.vn"[i] : '-');
+				putchar(regs.e ? 'e' : '-');
+			} else {
+				printf("a=$%02x x=$%02x y=$%02x s=$%02x p=", regs.a, regs.xl, regs.yl, regs.sp & 0xff);
+				for (int i = 7; i >= 0; i--) {
+					printf("%c", (regs.status & (1 << i)) ? "czidb-vn"[i] : '-');
+				}
 			}
 
 			if (eff_addr == 0x9f23) {
-				printf(" v=$%05x", video_get_address(0));
+				printf(" v=$%05x   ", video_get_address(0));
 			} else if (eff_addr == 0x9f24) {
-				printf(" v=$%05x", video_get_address(1));
+				printf(" v=$%05x   ", video_get_address(1));
+			} else if (eff_addr >= 0xc000) {
+				printf(" m=$%02x:%04x ", memory_get_rom_bank(), eff_addr);
+			} else if (eff_addr >= 0xa000) {
+				printf(" m=$%02x:%04x ", memory_get_ram_bank(), eff_addr);
 			} else if (eff_addr >= 0) {
-				printf(" m=$%04x ", eff_addr);
+				printf(" m=$--:%04x ", eff_addr);
 			} else {
-				printf("         ");
+				printf("            ");
 			}
 
 			if (lst) {
@@ -1515,7 +1556,7 @@ emulator_loop(void *param)
 			irq6502();
 		}
 
-		if (pc == 0xffff) {
+		if (regs.pc == 0xffff) {
 			if (save_on_exit) {
 				machine_dump("CPU program counter reached $ffff");
 			}
@@ -1525,14 +1566,14 @@ emulator_loop(void *param)
 		// Change this comparison value if ever additional KERNAL
 		// API calls are snooped in this routine.
 
-		if (pc >= 0xff68 && is_kernal()) {
-			if (pc == 0xff68) {
-				kernal_mouse_enabled = !!a;
+		if (regs.pc >= 0xff68 && is_kernal()) {
+			if (regs.pc == 0xff68) {
+				kernal_mouse_enabled = !!regs.a;
 				SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
 			}
 
-			if (echo_mode != ECHO_MODE_NONE && pc == 0xffd2) {
-				uint8_t c = a;
+			if (echo_mode != ECHO_MODE_NONE && regs.pc == 0xffd2) {
+				uint8_t c = regs.a;
 				if (echo_mode == ECHO_MODE_COOKED) {
 					if (c == 0x0d) {
 						printf("\n");
@@ -1559,7 +1600,7 @@ emulator_loop(void *param)
 				fflush(stdout);
 			}
 
-			if (pc == 0xffcf) {
+			if (regs.pc == 0xffcf) {
 				// as soon as BASIC starts reading a line...
 				static bool prg_done = false;
 
@@ -1598,7 +1639,7 @@ emulator_loop(void *param)
 #if 0 // enable this for slow pasting
 		if (!(instruction_counter % 100000))
 #endif
-		while (pasting_bas && RAM[NDX] < 10 && !(status & 0x04)) {
+		while (pasting_bas && RAM[NDX] < 10 && !(regs.status & 0x04)) {
 			uint32_t c;
 			int e = 0;
 
