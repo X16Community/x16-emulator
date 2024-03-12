@@ -103,4 +103,5 @@ extern bool mouse_grabbed;
 extern bool no_keyboard_capture;
 extern bool kernal_mouse_enabled;
 extern char window_title[];
+extern bool pwr_long_press;
 #endif
