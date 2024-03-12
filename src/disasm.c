@@ -310,6 +310,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	if (isBlockMove) {
 		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), real_read6502(pc + 2, debugOn, bank));
 		length = 3;
+		if (regs.c != 0xFFFF) *eff_addr = regs.y; // We can have only one effective address, so we're choosing the destination
 	}
 	else if (isZprel) {
 		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), pc + 3 + (int8_t)real_read6502(pc + 2, debugOn, bank));
@@ -364,7 +365,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 				*eff_addr = real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8);
 				if (isYrel)
 					*eff_addr += regs.y;
-			} else {
+			} else if (!isImmediate) {
 				*eff_addr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
 				if (isXrel)
 					*eff_addr += regs.x;
