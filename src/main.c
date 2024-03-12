@@ -1407,11 +1407,11 @@ emulator_loop(void *param)
 			if (lst) {
 				char *lf;
 				while ((lf = strchr(lst, '\n'))) {
-					for (int i = 0; i < 118; i++) {
+					for (int i = 0; i < 120; i++) {
 						printf(" ");
 					}
 					if (regs.is65c816) {
-						printf("         "); // 9 extra width
+						printf("        "); // 8 extra width
 					}
 					for (char *c = lst; c < lf; c++) {
 						printf("%c", *c);
@@ -1485,7 +1485,7 @@ emulator_loop(void *param)
 			}
 
 			if (lst) {
-				printf("    %s", lst);
+				printf("%s      %s", regs.is65c816 ? "" : " ", lst);
 			}
 
 			printf("\n");
