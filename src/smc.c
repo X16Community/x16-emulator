@@ -34,7 +34,16 @@ smc_read(uint8_t a) {
 		// Offset that returns one byte from the keyboard buffer
 		case 7:
 			return i2c_kbd_buffer_next();
-
+		// Offset, initially used for debugging in the SMC, but now
+		// also used to inform kernal whether power on was done by
+		// holding the power button
+		case 9:
+			if (pwr_long_press) {
+				// Reset pwr_long_press so a reset will start normally
+				pwr_long_press = false;
+				return 1;
+			} else	return 0;
+			
 		// Offset that returns three bytes from mouse buffer (one movement packet) or a single zero if there is not complete packet in the buffer
 		// mse_count keeps track of which one of the three bytes it's sending
 		case 0x21:

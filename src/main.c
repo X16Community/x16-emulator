@@ -146,6 +146,8 @@ bool run_after_load = false;
 
 char *nvram_path = NULL;
 
+bool pwr_long_press=false;
+
 #ifdef TRACE
 #include "rom_labels.h"
 #include "rom_lst.h"
@@ -492,6 +494,8 @@ usage()
 	printf("\tThis option is experimental.\n");
 	printf("-rockwell\n");
 	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
+	printf("-longpwron\n");
+	printf("\tSimulate that the system has been powered on with a longpress on powerbuttn.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -943,6 +947,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			grab_mouse = true;
+		} else if (!strcmp(argv[0], "-longpwron")) {
+			argc--;
+			argv++;
+			pwr_long_press = true;
 		} else if (!strcmp(argv[0], "-nokeyboardcapture")) {
 			argc--;
 			argv++;
