@@ -495,7 +495,7 @@ usage()
 	printf("-rockwell\n");
 	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 	printf("-longpwron\n");
-	printf("\tSimulate that the system has been powered on with a longpress on powerbuttn.\n");
+	printf("\tSimulate that the system has been powered on with a longpress on powerbutton.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
