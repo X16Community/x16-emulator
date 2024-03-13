@@ -141,6 +141,8 @@ void reset6502(bool c816) {
     regs.dp = 0;
     regs.sp = 0x1FD;
     regs.e = 1;
+    regs.k = 0;
+    regs.db = 0;
     if (c816) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
         regs.is65c816 = true;
