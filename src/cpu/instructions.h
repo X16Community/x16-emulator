@@ -465,7 +465,7 @@ static void pha() {
 }
 
 static void phb() {
-    push8(regs.b);
+    push8(regs.db);
 }
 
 static void phd() {
@@ -493,9 +493,9 @@ static void pla() {
 }
 
 static void plb() {
-    regs.b = pull8();
-    zerocalc(regs.b, 0);
-    signcalc(regs.b, 0);
+    regs.db = pull8();
+    zerocalc(regs.db, 0);
+    signcalc(regs.db, 0);
 }
 
 static void pld() {
