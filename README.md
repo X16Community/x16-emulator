@@ -135,7 +135,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-c02` selects the 65C02 CPU (default).
 * `-c816` selects the 65C816 CPU (experimental).
 * `-rockwell` when used while running with the 65C02 CPU, suppresses the console warning emitted on the first occurence when executing a Rockwell instruction. These are the SMBx, RMBx, BBRx, and BBSx instructions. Since these instructions are not supported on the 65C816 processor, such a program using them would not run properly on the 65C816.
-* `-longpwron` Simulate that the system has been powered on with a longpress on powerbutton.
+* `-longpwron` Simulate a long press of the power button at system power-on.
 * When compiled with `#define TRACE`, `-trace` will enable an instruction trace on stdout.
 
 Run `x16emu -h` to see all command line options.
