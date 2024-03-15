@@ -37,6 +37,8 @@ void i2c_reset_state() {
 	value = 0;
 	count = 0;
 	smc_requested_reset = false;
+	i2c_mse_buffer_flush();
+	i2c_kbd_buffer_flush();
 }
 
 uint8_t
