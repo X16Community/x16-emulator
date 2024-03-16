@@ -1854,12 +1854,14 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 
 			if (fx_cache_fill) {
 				if (fx_4bit_mode) {
+					uint8_t nibble_read = (fx_nibble_bit[reg - 3] ? ((value & 0x0f) << 4) : (value & 0xf0));
+
 					if (fx_cache_nibble_index) {
-						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0xf0) | (value & 0x0f);
+						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0xf0) | (nibble_read >> 4);
 						fx_cache_nibble_index = 0;
 						fx_cache_byte_index = ((fx_cache_byte_index + 1) & 0x3);
 					} else {
-						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0x0f) | (value & 0xf0);
+						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0x0f) | (nibble_read);
 						fx_cache_nibble_index = 1;
 					}
 				} else {
