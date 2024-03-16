@@ -537,7 +537,7 @@ static const char *mnemonics_c816[256] = {
 	/* $D9 */ "cmp $%04x,y",
 	/* $DA */ "phx ",
 	/* $DB */ "dbg ",
-	/* $DC */ "jml [$%06x]",
+	/* $DC */ "jml [$%04x]",
 	/* $DD */ "cmp $%04x,x",
 	/* $DE */ "dec $%04x,x",
 	/* $DF */ "cmp $%06x,x",
