@@ -162,7 +162,7 @@ def convertMnemonic(opInfo):
         "absy": "$%04x,y",
         "absl": "$%06x",
         "abslx": "$%06x,x",
-        "aindl": "[$%06x]",
+        "aindl": "[$%04x]",
         "ainx": "($%04x,x)",
         "indy": "($%02x),y",
         "indly": "[$%02x],y",
