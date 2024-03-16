@@ -1854,7 +1854,7 @@ uint8_t video_read(uint8_t reg, bool debugOn) {
 
 			if (fx_cache_fill) {
 				if (fx_4bit_mode) {
-					uint8_t nibble_read = (fx_nibble_bit[reg - 3] ? ((value & 0xf0) << 4) : (value & 0xf0));
+					uint8_t nibble_read = (fx_nibble_bit[reg - 3] ? ((value & 0x0f) << 4) : (value & 0xf0));
 					nibble_read |= nibble_read >> 4;
 					if (fx_cache_nibble_index) {
 						fx_cache[fx_cache_byte_index] = (fx_cache[fx_cache_byte_index] & 0xf0) | (nibble_read & 0x0f);
