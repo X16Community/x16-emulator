@@ -108,8 +108,8 @@ static void ply() {
     } else {
         regs.yl = pull8();
 
-        zerocalc(regs.xl, 0);
-        signcalc(regs.xl, 0);
+        zerocalc(regs.yl, 0);
+        signcalc(regs.yl, 0);
     }
 }
 
