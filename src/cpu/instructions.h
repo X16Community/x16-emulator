@@ -201,7 +201,7 @@ static void cmp() {
 
     if (memory_16bit()) {
         result = regs.c - value;
-        if(regs.c >= value) setcarry();
+        if (regs.c >= value) setcarry();
         else clearcarry();
         if (regs.c == value) setzero();
         else clearzero();
@@ -531,7 +531,7 @@ static void rol() {
 
 static void ror() {
     value = getvalue(memory_16bit());
-    result = (value >> 1) | ((regs.status & FLAG_CARRY) << 7);
+    result = (value >> 1) | ((regs.status & FLAG_CARRY) << (memory_16bit() ? 15 : 7));
 
     if (value & 1) setcarry();
         else clearcarry();
