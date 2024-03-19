@@ -103,10 +103,10 @@ smc_write(uint8_t a, uint8_t v) {
 			}
 			break;
 		case 4:
-			// TODO power LED
+			// Power LED is not controllable
 			break;
 		case 5:
-			activity_led = v;
+			activity_led = v >= 128 ? 255 : 0;
 			break;
 
 		case 0x20:
