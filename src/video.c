@@ -1140,7 +1140,7 @@ render_line(uint16_t y, float scan_pos_x)
 	// If video output is enabled, calculate color indices for line.
 	if (out_mode != 0) {
 		// Add border after if required.
-		if (y < vstart || y > vstop) {
+		if (y < vstart || y >= vstop) {
 			uint32_t border_fill = border_color;
 			border_fill = border_fill | (border_fill << 8);
 			border_fill = border_fill | (border_fill << 16);
