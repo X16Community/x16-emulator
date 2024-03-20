@@ -16,7 +16,7 @@ enum waveform {
 
 struct channel {
 	uint16_t freq;
-	uint8_t  volume;
+	uint16_t volume;
 	bool     left, right;
 	uint8_t  pw;
 	uint8_t  waveform;
@@ -27,13 +27,13 @@ struct channel {
 
 static struct channel channels[16];
 
-static uint8_t volume_lut[64] = {
-	 0,                                  1,  1,  1,
-	 2,  2,  2,  2,  2,  2,  2,  3,  3,  3,  3,  3,
-	 4,  4,  4,  4,  5,  5,  5,  6,  6,  7,  7,  7,
-	 8,  8,  9,  9, 10, 11, 11, 12, 13, 14, 14, 15,
-	16, 17, 18, 19, 21, 22, 23, 25, 26, 28, 29, 31,
-	33, 35, 37, 39, 42, 44, 47, 50, 52, 56, 59, 63
+static uint16_t volume_lut[64] = {
+	  0,                                           4,   8,  12,
+	 16,  17,  18,  20,  21,  22,  23,  25,  26,  28,  30,  31,
+	 33,  35,  37,  40,  42,  45,  47,  50,  53,  56,  60,  63,
+	 67,  71,  75,  80,  85,  90,  95, 101, 107, 113, 120, 127,
+	135, 143, 151, 160, 170, 180, 191, 202, 214, 227, 241, 255,
+	270, 286, 303, 321, 341, 361, 382, 405, 429, 455, 482, 511
 };
 
 static uint16_t noise_state;
@@ -86,7 +86,7 @@ render(int16_t *left, int16_t *right)
 
 		uint32_t new_phase = (ch->left || ch->right) ? ((ch->phase + ch->freq) & 0x1FFFF) : 0;
 		if ((ch->phase & 0x10000) != (new_phase & 0x10000)) {
-			ch->noiseval = noise_state & 0x3F;
+			ch->noiseval = (noise_state >> 1) & 0x3F;
 		}
 		ch->phase = new_phase;
 
@@ -105,10 +105,10 @@ render(int16_t *left, int16_t *right)
 		int16_t val = sv * ch->volume;
 
 		if (ch->left) {
-			l += val;
+			l += val >> 3;
 		}
 		if (ch->right) {
-			r += val;
+			r += val >> 3;
 		}
 	}
 
