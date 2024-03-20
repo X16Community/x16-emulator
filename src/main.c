@@ -1097,6 +1097,10 @@ main(int argc, char **argv)
 	emscripten_set_main_loop(emscripten_main_loop, 0, 0);
 #endif
 	if (!headless) {
+		// Shows up in the power management area of Linux desktops of applications inhibiting the screensaver
+		// Unless hinted, defaults are "My SDL application" and "Playing a game"
+		SDL_SetHint(SDL_HINT_APP_NAME, "Commander X16 Emulator R" VER);
+		SDL_SetHint(SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME, "Emulating modern retro awesomeness");
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 		audio_init(audio_dev_name, audio_buffers);
 		video_init(window_scale, screen_x_scale, scale_quality, fullscreen, window_opacity);
