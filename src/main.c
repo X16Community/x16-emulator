@@ -1366,7 +1366,7 @@ handle_ieee_intercept()
 		clockticks6502 += missed_ticks;
 		if (s >= 0) {
 			if (!set_kernal_status(s)) {
-				printf("Warning: Could not set regs.status!\n");
+				printf("Warning: Could not set STATUS!\n");
 			}
 		}
 
