@@ -103,6 +103,7 @@ bool dump_ram = true;
 bool dump_bank = true;
 bool dump_vram = false;
 bool warp_mode = false;
+bool warp_pastes = false;
 bool grab_mouse = false;
 echo_mode_t echo_mode;
 bool save_on_exit = true;
@@ -322,6 +323,7 @@ machine_paste(char *s)
 		paste_text = s;
 		clipboard_buffer = s; // so that we can free this later
 		pasting_bas = true;
+		if (warp_pastes) warp_mode = true;
 	}
 }
 
@@ -410,6 +412,8 @@ usage()
 	printf("\tStart the -prg/-bas program using RUN\n");
 	printf("-warp\n");
 	printf("\tEnable warp mode, run emulator as fast as possible.\n");
+	printf("-pastewarp\n");
+	printf("\tEnable warp mode during pastes and during loading via -bas.\n");
 	printf("-echo [{iso|raw}]\n");
 	printf("\tPrint all KERNAL output to the host's stdout.\n");
 	printf("\tBy default, everything but printable ASCII characters get\n");
@@ -665,6 +669,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			warp_mode = true;
+		} else if (!strcmp(argv[0], "-pastewarp")) {
+			argc--;
+			argv++;
+			warp_pastes = true;
 		} else if (!strcmp(argv[0], "-echo")) {
 			argc--;
 			argv++;
@@ -1651,6 +1659,7 @@ emulator_loop(void *param)
 				if (paste_text) {
 					// ...paste BASIC code into the keyboard buffer
 					pasting_bas = true;
+					if (warp_pastes) warp_mode = true;
 				}
 			}
 
@@ -1676,6 +1685,7 @@ emulator_loop(void *param)
 				RAM[NDX]++;
 			} else {
 				pasting_bas = false;
+				if (warp_pastes) warp_mode = false;
 				paste_text = NULL;
 				if (clipboard_buffer) {
 					SDL_free(clipboard_buffer);
