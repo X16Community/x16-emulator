@@ -308,7 +308,7 @@ parse_dos_filename(const uint8_t *name, bool dirhandling)
 	int i, j;
 
 	newname[u8strlen(name)] = 0;
-	
+
 	overwrite = false;
 
 	// [[@][<media 0-9>][</relative_path/> | <//absolute_path/>]:]<file_path>[*]
@@ -559,10 +559,13 @@ resolve_path_utf8(const uint8_t *name, bool must_exist, int wildcard_filetype)
 			}
 			u8strcpy(tmp, name);
 			c = u8strrchr(tmp, '/');
-			if (c == NULL)
-				c = u8strrchr(tmp, '\\');
-			if (c != NULL)
-				*c = 0; // truncate string here
+			d = u8strrchr(tmp, '\\');
+			if (c > d) {
+				*c = 0;
+			} else if (d != NULL) {
+				*d = 0;
+				c = d;
+			}
 
 			// assemble a path with what we have left
 			ret = malloc(u8strlen(tmp)+u8strlen(hostfscwd)+2);
@@ -574,6 +577,10 @@ resolve_path_utf8(const uint8_t *name, bool must_exist, int wildcard_filetype)
 
 			if (name[0] == '/' || name[0] == '\\') { // absolute
 				u8strcpy(ret, fsroot_path);
+				if (c == tmp) { // leading slash was the only slash
+					*tmp = name[0];
+					c = NULL;
+				}
 				u8strcpy(ret+u8strlen(fsroot_path), tmp);
 			} else { // relative
 				u8strcpy(ret, hostfscwd);
@@ -583,7 +590,7 @@ resolve_path_utf8(const uint8_t *name, bool must_exist, int wildcard_filetype)
 
 			free(tmp);
 
-			// if we found a path separator in the name string
+			// if we found a path separator in the name string (non-leading)
 			// we check everything up to that final separator
 			if (c != NULL) {
 				tmp = u8realpath(ret, NULL);
@@ -613,7 +620,6 @@ resolve_path_utf8(const uint8_t *name, bool must_exist, int wildcard_filetype)
 
 	if (ret == NULL)
 		return ret;
-
 
 	// Prevent resolving outside the fsroot_path
 	if (u8strlen(fsroot_path) > u8strlen(ret)) {
@@ -923,7 +929,7 @@ continue_directory_listing(uint8_t *data)
 
 			data += sprintf((char *)data, "%02X %08X ", attrbyte, (unsigned int)fullsize);
 		}
-		
+
 		free(tmpnam);
 
 		*data++ = 0;
