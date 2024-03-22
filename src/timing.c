@@ -50,7 +50,6 @@ timing_update()
 			sprintf(window_title, WINDOW_TITLE " (%d%%)%s", perf, mouse_grabbed ? MOUSE_GRAB_MSG : "");
 		} else {
 			sprintf(window_title, WINDOW_TITLE "%s", mouse_grabbed ? MOUSE_GRAB_MSG : "");
-			
 		}
 
 		video_update_title(window_title);

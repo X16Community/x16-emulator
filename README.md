@@ -110,6 +110,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-serial` makes accesses to the host filesystem go through the Serial Bus [experimental].
 * `-nohostieee` or `-nohostfs` disables IEEE API interception to access the host fs. IEEE API HostFS is normally enabled unless `-sdcard` or `-serial` is specified.
 * `-warp` causes the emulator to run as fast as possible, possibly faster than a real X16.
+* `-pastewarp` causes the emulator to enter warp mode during pasting (`Ctrl+V` or `⌘V`) and during loading via `-bas`.
 * `-gif <filename>[,wait]` to record the screen into a GIF. See below for more info.
 * `-wav <filename>[{,wait|,auto}]` to record audio into a WAV. See below for more info.
 * `-log` enables one or more types of logging (e.g. `-log KS`):
