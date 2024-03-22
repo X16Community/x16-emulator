@@ -42,8 +42,9 @@ smc_read(uint8_t a) {
 				// Reset pwr_long_press so a reset will start normally
 				pwr_long_press = false;
 				return 1;
-			} else	return 0;
-			
+			} else {
+				return 0;
+			}
 		// Offset that returns three bytes from mouse buffer (one movement packet) or a single zero if there is not complete packet in the buffer
 		// mse_count keeps track of which one of the three bytes it's sending
 		case 0x21:

@@ -568,7 +568,7 @@ resolve_path_utf8(const uint8_t *name, bool must_exist, int wildcard_filetype)
 			}
 
 			// assemble a path with what we have left
-			ret = malloc(u8strlen(tmp)+u8strlen(hostfscwd)+2);
+			ret = malloc(u8strlen(name)+u8strlen(hostfscwd)+2);
 			if (ret == NULL) {
 				free(tmp);
 				set_error(0x70, 0, 0);
