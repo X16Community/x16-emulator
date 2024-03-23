@@ -240,6 +240,12 @@ lst_for_address(uint16_t address)
 		case 3: lst = lst_bank3; break;
 		case 4: lst = lst_bank4; break;
 		case 5: lst = lst_bank5; break;
+		case 7: lst = lst_bank7; break;
+		case 8: lst = lst_bank8; break;
+		case 9: lst = lst_bank9; break;
+		case 10: lst = lst_bankA; break;
+		case 11: lst = lst_bankB; break;
+		case 12: lst = lst_bankC; break;
 		default:
 			return NULL;
 	}
