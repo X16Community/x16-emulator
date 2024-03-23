@@ -1078,6 +1078,7 @@ render_line(uint16_t y, float scan_pos_x)
 	uint16_t vstop = reg_composer[7] << 1;
 
 	uint16_t eff_y = (eff_y_fp >> 16);
+	if (eff_y >= 480) eff_y = 480 - (y & 1);
 
 	layer_line_enable[0] = dc_video & 0x10;
 	layer_line_enable[1] = dc_video & 0x20;
@@ -1156,7 +1157,7 @@ render_line(uint16_t y, float scan_pos_x)
 			const uint32_t scale = reg_composer[1];
 			for (uint16_t x = MAX(hstart, s_pos_x_p); x < hstop && x < s_pos_x; ++x) {
 				uint16_t eff_x = eff_x_fp >> 16;
-				col_line[x] = calculate_line_col_index(sprite_line_z[eff_x], sprite_line_col[eff_x], layer_line[0][eff_x], layer_line[1][eff_x]);
+				col_line[x] = (eff_x < SCREEN_WIDTH) ? calculate_line_col_index(sprite_line_z[eff_x], sprite_line_col[eff_x], layer_line[0][eff_x], layer_line[1][eff_x]) : 0;
 				eff_x_fp += (scale << 9);
 			}
 			for (uint16_t x = hstop; x < s_pos_x; ++x) {
