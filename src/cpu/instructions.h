@@ -421,7 +421,16 @@ static void lsr() {
 }
 
 static void nop() {
-    // cycle counts should be accurate in the opcode tables
+    switch (opcode) {
+        case 0x1C:
+        case 0x3C:
+        case 0x5C:
+        case 0x7C:
+        case 0xDC:
+        case 0xFC:
+            penaltyop = 1;
+            break;
+    }
 }
 
 static void ora() {
