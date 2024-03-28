@@ -23,7 +23,6 @@ static bool read_mode = false;
 static uint8_t value = 0;
 static int count = 0;
 static uint8_t device;
-static uint8_t offset;
 
 #define KBD_SIZE 16
 uint8_t kbd_buffer[KBD_SIZE];						//Ring buffer for key codes
@@ -41,37 +40,57 @@ void i2c_reset_state() {
 	i2c_kbd_buffer_flush();
 }
 
-uint8_t
-i2c_read(uint8_t device, uint8_t offset) {
+static void
+i2c_data(uint8_t device, uint8_t v) {
+	switch (device) {
+		case DEVICE_SMC:
+			smc_i2c_data(v);
+			break;
+		case DEVICE_RTC:
+			rtc_i2c_data(v);
+			break;
+		default:
+			break;
+	}
+#if LOG_LEVEL >= 1
+	printf("I2C DATA($%02X) => $%02X\n", device, value);
+#endif
+}
+
+static uint8_t
+i2c_read(uint8_t device) {
 	uint8_t value;
 	switch (device) {
 		case DEVICE_SMC:
-			return smc_read(offset);
+			value = smc_read();
+			break;
 		case DEVICE_RTC:
-			return rtc_read(offset);
+			value = rtc_read();
+			break;
 		default:
 			value = 0xff;
+			break;
 	}
 #if LOG_LEVEL >= 1
-	printf("I2C READ($%02X:$%02X) = $%02X\n", device, offset, value);
+	printf("I2C READ($%02X) = $%02X\n", device, value);
 #endif
 	return value;
 }
 
-void
-i2c_write(uint8_t device, uint8_t offset, uint8_t value) {
+static void
+i2c_write(uint8_t device) {
 	switch (device) {
 		case DEVICE_SMC:
-			smc_write(offset, value);
+			smc_write();
 			break;
 		case DEVICE_RTC:
-			rtc_write(offset, value);
+			rtc_write();
 			break;
 			//        default:
 			// no-op
 	}
 #if LOG_LEVEL >= 1
-	printf("I2C WRITE $%02X:$%02X, $%02X\n", device, offset, value);
+	printf("I2C WRITE $%02X\n", device);
 #endif
 }
 
@@ -105,7 +124,7 @@ i2c_step()
 			if (state < 8) {
 				if (read_mode) {
 					if (state == 0) {
-						value = i2c_read(device, offset);
+						value = i2c_read(device);
 					}
 					i2c_port.data_out = !!(value & 0x80);
 					value <<= 1;
@@ -134,7 +153,6 @@ i2c_step()
 #if LOG_LEVEL >= 3
 					printf("I2C OUT DONE (ACK)\n");
 #endif
-						if (!read_mode) offset++;							//Set I2C write bit by increasing offset by one; don't do that if we're in read_mode
 					}
 				} else {
 					bool ack = true;
@@ -147,11 +165,11 @@ i2c_step()
 							}
 							break;
 						case 1:
-							offset = value;
+							i2c_data(device, value);
 							break;
 						default:
-							i2c_write(device, offset, value);
-							offset++;
+							i2c_data(device, value);
+							i2c_write(device);
 							break;
 					}
 					if (ack) {
