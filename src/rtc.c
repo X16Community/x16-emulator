@@ -30,6 +30,20 @@ static int day;
 static int month;
 static int year;
 
+#define I2C_DATA_LEN 16
+static uint8_t i2c_data[I2C_DATA_LEN];
+static uint8_t i2c_data_pos = 0;
+
+void
+rtc_i2c_data(uint8_t v) {
+	if (i2c_data_pos < I2C_DATA_LEN) {
+		i2c_data[i2c_data_pos] = v;
+		i2c_data_pos++;
+	}
+}
+
+
+
 #define BCD(a) (((a) / 10) << 4 | ((a) % 10))
 #define UNBCD(a) (((a) >> 4) * 10 + ((a) & 0xf))
 
@@ -130,13 +144,16 @@ rtc_step(int c)
 
 
 uint8_t
-rtc_read(uint8_t a) {
+rtc_read() {
 	//    printf("RTC READ $%02X\n", a);
-	switch (a) {
+	uint8_t ret;
+	switch (i2c_data[0]) {
 		case 0:
-			return BCD(seconds) | (running << 7);
+			ret = BCD(seconds) | (running << 7);
+			break;
 		case 1:
-			return BCD(minutes);
+			ret = BCD(minutes);
+			break;
 		case 2: {
 			uint8_t h = hours;
 			bool pm = false;
@@ -153,47 +170,57 @@ rtc_read(uint8_t a) {
 			h = BCD(h);
 			h |= pm << 5;
 			h |= (!h24) << 6;
-			return h;
+			ret = h;
+			break;
 		}
 		case 3: {
 			uint8_t v = day_of_week;
 			v |= vbaten << 3;
 			v |= running << 5;
-			return v;
+			ret = v;
+			break;
 		}
 		case 4:
-			return BCD(day);
+			ret = BCD(day);
+			break;
 		case 5:
-			return BCD(month) | is_leap_year() << 5;
+			ret = BCD(month) | is_leap_year() << 5;
+			break;
 		case 6:
-			return BCD(year);
+			ret = BCD(year);
+			break;
 		default:
-			if (a >= 0x20 && a < 0x60) {
-				return nvram[a - 0x20];
-			} else if (a >= 0x60) {
-				return 0xff;
+			if (i2c_data[0] >= 0x20 && i2c_data[0] < 0x60) {
+				ret = nvram[i2c_data[0] - 0x20];
+			} else if (i2c_data[0] >= 0x60) {
+				ret = 0xff;
+			} else {
+				ret = 0;
 			}
-			return 0;
+			break;
 	}
+
+	i2c_data_pos = 0;
+	return ret;
 }
 
 void
-rtc_write(uint8_t a, uint8_t v) {
+rtc_write() {
 	//    printf("RTC WRITE $%02X, $%02X\n", a, v);
-	switch (a) {
+	switch (i2c_data[0]) {
 		case 0:
-			running = !!(v & 0x80);
-			seconds = UNBCD(v & 0x7f);
+			running = !!(i2c_data[1] & 0x80);
+			seconds = UNBCD(i2c_data[1] & 0x7f);
 			break;
 		case 1:
-			minutes = UNBCD(v);
+			minutes = UNBCD(i2c_data[1]);
 			break;
 		case 2: {
-			h24 = !(v & 0x40);
-			uint8_t h = v & 0x3f;
+			h24 = !(i2c_data[1] & 0x40);
+			uint8_t h = i2c_data[1] & 0x3f;
 			bool pm = false;
 			if (!h24) {
-				pm = v & 0x20;
+				pm = i2c_data[1] & 0x20;
 				h &= 0x1f;
 			}
 			h = UNBCD(h);
@@ -207,24 +234,26 @@ rtc_write(uint8_t a, uint8_t v) {
 			break;
 		}
 		case 3: {
-			day_of_week = v & 7;
-			vbaten = !!(v & 0x20);
+			day_of_week = i2c_data[1] & 7;
+			vbaten = !!(i2c_data[1] & 0x20);
 			break;
 		}
 		case 4:
-			day = UNBCD(v);
+			day = UNBCD(i2c_data[1]);
 			break;
 		case 5:
-			month = UNBCD(v);
+			month = UNBCD(i2c_data[1]);
 			break;
 		case 6:
-			year = UNBCD(v);
+			year = UNBCD(i2c_data[1]);
 			break;
 		default:
-			if (a >= 0x20 && a < 0x60) {
-				nvram[a - 0x20] = v;
+			if (i2c_data[0] >= 0x20 && i2c_data[0] < 0x60) {
+				nvram[i2c_data[0]- 0x20] = i2c_data[1];
 				nvram_dirty = true;
 			}
 	}
+
+	i2c_data_pos = 0;
 }
 
