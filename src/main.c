@@ -1112,12 +1112,13 @@ main(int argc, char **argv)
 #endif
 	if (!headless) {
 		// Shows up in the power management area of Linux desktops of applications inhibiting the screensaver
+		// As well as the audio mixer
 		// Unless hinted, defaults are "My SDL application" and "Playing a game"
 #ifdef SDL_HINT_AUDIO_DEVICE_APP_NAME
-		SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "Commander X16 Emulator R" VER);
+		SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "Commander X16 Emulator");
 #endif
 #ifdef SDL_HINT_APP_NAME
-		SDL_SetHint(SDL_HINT_APP_NAME, "Commander X16 Emulator R" VER);
+		SDL_SetHint(SDL_HINT_APP_NAME, "Commander X16 Emulator");
 #endif
 #ifdef SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME
 		SDL_SetHint(SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME, "Emulating modern retro awesomeness");
