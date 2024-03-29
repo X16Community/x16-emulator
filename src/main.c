@@ -209,6 +209,21 @@ label_for_address(uint16_t address)
 			labels = labels_bankC;
 			count = sizeof(addresses_bankC) / sizeof(uint16_t);
 			break;
+		case 13:
+			addresses = addresses_bankD;
+			labels = labels_bankD;
+			count = sizeof(addresses_bankD) / sizeof(uint16_t);
+			break;
+		case 14:
+			addresses = addresses_bankE;
+			labels = labels_bankE;
+			count = sizeof(addresses_bankE) / sizeof(uint16_t);
+			break;
+		case 15:
+			addresses = addresses_bankF;
+			labels = labels_bankF;
+			count = sizeof(addresses_bankF) / sizeof(uint16_t);
+			break;
 		default:
 			addresses = NULL;
 			labels = NULL;
@@ -246,6 +261,9 @@ lst_for_address(uint16_t address)
 		case 10: lst = lst_bankA; break;
 		case 11: lst = lst_bankB; break;
 		case 12: lst = lst_bankC; break;
+		case 13: lst = lst_bankD; break;
+		case 14: lst = lst_bankE; break;
+		case 15: lst = lst_bankF; break;
 		default:
 			return NULL;
 	}
