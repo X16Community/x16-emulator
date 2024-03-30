@@ -5,7 +5,7 @@
 
 ## Releases
 
-### Unreleased changes
+### Release 47 ("Roswell")
 
 This is a major release with numerous bugfixes, as well as introducing 65C816 support.
 
@@ -36,6 +36,7 @@ This is a major release with numerous bugfixes, as well as introducing 65C816 su
 	* VERA: DC_HSCALE and DC_VSCALE values > 0x80 now render as they do on hardware.
 	* SMC 47.0.0 fast PS/2 read support
 	* Now with native build for Apple Silicon (built on the GitHub MacOS ARM runner)
+	* More changes in the [ROM](https://github.com/X16Community/x16-rom/tree/r47#release-47-roswell).
 
 
 ### Release 46 ("Winnipeg")

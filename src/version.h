@@ -4,4 +4,4 @@
 
 #define VER "47"
 #define VER_NAME "Roswell"
-#define VER_INFO "### Prerelease 47 (\"Roswell\")"
+#define VER_INFO "### Release 47 (\"Roswell\")"
