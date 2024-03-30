@@ -936,7 +936,7 @@ static void DEBUGNumberDec(int x, int y, int n, int w, SDL_Color colour) {
 	snprintf(buf1, sizeof(buf1), "%d", n);
 	buf2[sizeof(buf2)-1] = 0; // null terminate string
 	int count = 0;
-	for (i=strlen(buf1) - 1, j=sizeof(buf2) - 1; i >= 0 && j >= 0; i--) {
+	for (i=strlen(buf1) - 1, j=sizeof(buf2) - 1; i >= 0 && j > 1; i--) {
 		buf2[--j] = buf1[i];
 		count++;
 
