@@ -16,7 +16,6 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <SDL.h>
-#include <locale.h>
 #include "glue.h"
 #include "timing.h"
 #include "disasm.h"
