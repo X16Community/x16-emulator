@@ -2,6 +2,6 @@
 // Copyright (c) 2019, 2024 Michael Steil, et al
 // All rights reserved. License: 2-clause BSD
 
-#define VER "47"
-#define VER_NAME "Roswell"
-#define VER_INFO "### Release 47 (\"Roswell\")"
+#define VER "48"
+#define VER_NAME "next"
+#define VER_INFO "### Prerelease 48 (\"next\")"
