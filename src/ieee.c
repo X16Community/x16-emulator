@@ -1650,6 +1650,8 @@ cseek(int channel, uint32_t pos)
 
 	if (channels[channel].f) {
 		SDL_RWseek(channels[channel].f, pos, RW_SEEK_SET);
+	} else {
+		set_error(0x70, 0, 0);
 	}
 }
 
@@ -1674,6 +1676,8 @@ ctell(int channel)
 		}
 		snprintf((char *)buf, sizeof(buf), "%08X %08X", (uint32_t)pos, (uint32_t)siz);
 		set_error_text(0x07, buf, 0, 0);
+	} else {
+		set_error(0x70, 0, 0);
 	}
 }
 
