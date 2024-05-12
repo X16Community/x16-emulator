@@ -52,10 +52,10 @@ bool log_ieee = false;
 
 bool ieee_initialized_once = false;
 
-uint8_t error[80];
+uint8_t error[256];
 int error_len = 0;
 int error_pos = 0;
-uint8_t cmd[80];
+uint8_t cmd[256];
 int cmdlen = 0;
 int namelen = 0;
 int channel = 0;
@@ -128,6 +128,7 @@ static void set_error(int e, int t, int s);
 static void cchdir(uint8_t *dir);
 static int cgetcwd(uint8_t *buf, size_t len);
 static void cseek(int channel, uint32_t pos);
+static void ctell(int channel);
 static void cmkdir(uint8_t *dir);
 static void crmdir(uint8_t *dir);
 static void cunlink(uint8_t *f);
@@ -1069,7 +1070,7 @@ create_cwd_listing(uint8_t *data)
 
 
 
-static char*
+static const char*
 error_string(int e)
 {
 	switch(e) {
@@ -1140,9 +1141,9 @@ set_activity(bool active)
 }
 
 static void
-set_error(int e, int t, int s)
+set_error_text(int e, const char *text, int t, int s)
 {
-	snprintf((char *)error, sizeof(error), "%02x,%s,%02d,%02d\r", e, error_string(e), t, s);
+	snprintf((char *)error, sizeof(error), "%02x,%s,%02d,%02d\r", e, text, t, s);
 	error_len = u8strlen(error);
 	error_pos = 0;
 	uint8_t cbdos_flags = get_kernal_cbdos_flags();
@@ -1152,6 +1153,12 @@ set_error(int e, int t, int s)
 		cbdos_flags |= 0x20; // set error flag
 	}
 	set_kernal_cbdos_flags(cbdos_flags);
+}
+
+static void
+set_error(int e, int t, int s)
+{
+	set_error_text(e, error_string(e), t, s);
 }
 
 static void
@@ -1233,6 +1240,9 @@ command(uint8_t *cmd)
 					cunlink(cmd); // Need to parse out the arg in this function
 					return;
 			}	
+		case 'T': // Tell
+			ctell(cmd[1]);
+			return;
 		case 'U':
 			switch(cmd[1]) {
 				case 'I': // UI: Reset
@@ -1640,6 +1650,34 @@ cseek(int channel, uint32_t pos)
 
 	if (channels[channel].f) {
 		SDL_RWseek(channels[channel].f, pos, RW_SEEK_SET);
+	} else {
+		set_error(0x70, 0, 0);
+	}
+}
+
+static void
+ctell(int channel)
+{
+	char buf[32];
+
+	if (channel == 15) {
+		set_error(0x30, 0, 0);
+		return;
+	}
+
+	if (channels[channel].f) {
+		uint64_t pos = SDL_RWtell(channels[channel].f);
+		uint64_t siz = SDL_RWsize(channels[channel].f);
+		if (pos > 0xffffffffULL) {
+			pos = 0xffffffff;
+		}
+		if (siz > 0xffffffffULL) {
+			siz = 0xffffffff;
+		}
+		snprintf((char *)buf, sizeof(buf), "%08X %08X", (uint32_t)pos, (uint32_t)siz);
+		set_error_text(0x07, buf, 0, 0);
+	} else {
+		set_error(0x70, 0, 0);
 	}
 }
 
@@ -1829,7 +1867,7 @@ ACPTR(uint8_t *a)
 					// We need to send EOI on the last byte of the file.
 					// We have to check every time since CMDR-DOS
 					// supports random access R/W mode
-					
+
 					Sint64 curpos = SDL_RWtell(channels[channel].f);
 					if (curpos == SDL_RWseek(channels[channel].f, 0, RW_SEEK_END)) {
 						ret = 0x40;
@@ -1865,9 +1903,9 @@ CIOUT(uint8_t a)
 			}
 		} else {
 			if (channel == 15) {
-				// P command takes binary parameters, so we can't terminate
+				// P/T commands take binary parameters, so we can't terminate
 				// the command on CR.
-				if ((a == 13) && (cmd[0] != 'P')) {
+				if ((a == 13) && (cmd[0] != 'P' && cmd[0] != 'T')) {
 					cmd[cmdlen] = 0;
 					command(cmd);
 					cmdlen = 0;
