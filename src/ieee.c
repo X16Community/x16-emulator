@@ -1668,10 +1668,10 @@ ctell(int channel)
 	if (channels[channel].f) {
 		uint64_t pos = SDL_RWtell(channels[channel].f);
 		uint64_t siz = SDL_RWsize(channels[channel].f);
-		if (pos > 0xffffffff) {
+		if (pos > 0xffffffffULL) {
 			pos = 0xffffffff;
 		}
-		if (siz > 0xffffffff) {
+		if (siz > 0xffffffffULL) {
 			siz = 0xffffffff;
 		}
 		snprintf((char *)buf, sizeof(buf), "%08X %08X", (uint32_t)pos, (uint32_t)siz);
