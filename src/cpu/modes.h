@@ -157,6 +157,16 @@ static void indy() { // (indirect),Y
     }
 }
 
+static void ind0p() { // (zp) used by PEI, which doesn't do wraparound calculations
+    uint16_t eahelp;
+    eahelp = (uint16_t)read6502(regs.pc++);
+    ea = (uint16_t)read6502(regs.dp + eahelp) | ((uint16_t)read6502(regs.dp + eahelp + 1) << 8);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
+}
+
 static void zprel() { // zero-page, relative for branch ops (8-bit immediatel value, sign-extended)
 	ea = (uint16_t)read6502(regs.pc);
 	reladdr = (uint16_t)read6502(regs.pc+1);
