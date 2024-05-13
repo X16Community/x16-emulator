@@ -35,7 +35,7 @@ static void (*addrtable_c816[256])() = {
 /* A */    immx, indx, immx,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* A */
 /* B */     rel, indy, ind0,sridy,  zpx,  zpx,  zpy,indly,  imp, absy,  imp,  imp, absx, absx, absy,abslx, /* B */
 /* C */    immx, indx, imm8,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* C */
-/* D */     rel, indy, ind0,sridy, ind0,  zpx,  zpx,indly,  imp, absy,  imp,  imp,aindl, absx, absx,abslx, /* D */
+/* D */     rel, indy, ind0,sridy,ind0p,  zpx,  zpx,indly,  imp, absy,  imp,  imp,aindl, absx, absx,abslx, /* D */
 /* E */    immx, indx, imm8,   sr,   zp,   zp,   zp,indl0,  imp, immm,  imp,  imp, abso, abso, abso, absl, /* E */
 /* F */     rel, indy, ind0,sridy,imm16,  zpx,  zpx,indly,  imp, absy,  imp,  imp, ainx, absx, absx,abslx  /* F */
 };

@@ -169,6 +169,7 @@ def convertMnemonic(opInfo):
         "indx": "($%02x,x)",
         "ind": "($%04x)",
         "ind0": "($%02x)",
+        "ind0p": "($%02x)",
         "indl0": "[$%02x]",
         "acc": "a",
         "sr": "$%02x,S",
