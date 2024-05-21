@@ -2164,8 +2164,10 @@ void video_write(uint8_t reg, uint8_t value) {
 					fx_x_pixel_increment = ((((reg_composer[0x0d] & 0x7f) << 15) + (reg_composer[0x0c] << 7)) // base value
 						| ((reg_composer[0x0d] & 0x40) ? 0xffc00000 : 0)) // sign extend if negative
 						<< 5*(!!(reg_composer[0x0d] & 0x80)); // multiply by 32 if flag set
-					// Reset subpixel to 0.5
-					fx_x_pixel_position = (fx_x_pixel_position & 0x07ff0000) | 0x00008000;
+					if (fx_addr1_mode == 1 || fx_addr1_mode == 2) {
+						// Reset subpixel to 0.5
+						fx_x_pixel_position = (fx_x_pixel_position & 0x07ff0000) | 0x00008000;
+					}
 					break;
 				case 0x0e: // DCSEL=3, $9F2B
 					fx_y_pixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
@@ -2176,8 +2178,10 @@ void video_write(uint8_t reg, uint8_t value) {
 					fx_y_pixel_increment = ((((reg_composer[0x0f] & 0x7f) << 15) + (reg_composer[0x0e] << 7)) // base value
 						| ((reg_composer[0x0f] & 0x40) ? 0xffc00000 : 0)) // sign extend if negative
 						<< 5*(!!(reg_composer[0x0f] & 0x80)); // multiply by 32 if flag set
-					// Reset subpixel to 0.5
-					fx_y_pixel_position = (fx_y_pixel_position & 0x07ff0000) | 0x00008000;
+					if (fx_addr1_mode == 1 || fx_addr1_mode == 2) {
+						// Reset subpixel to 0.5
+						fx_y_pixel_position = (fx_y_pixel_position & 0x07ff0000) | 0x00008000;
+					}
 					break;
 				case 0x10: // DCSEL=4, $9F29
 					fx_x_pixel_position = (fx_x_pixel_position & 0x0700ff80) | (value << 16);
