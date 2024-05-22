@@ -30,6 +30,11 @@ static uint8_t addr_ym = 0;
 bool randomizeRAM = false;
 bool reportUninitializedAccess = false;
 bool *RAM_access_flags;
+uint64_t *RAM_system_reads;
+uint64_t *RAM_system_writes;
+uint64_t *RAM_banked_reads[256];
+uint64_t *RAM_banked_writes[256];
+
 
 static uint32_t clock_snap = 0UL;
 static uint32_t clock_base = 0UL;
@@ -43,6 +48,13 @@ memory_init()
 {
 	// Initialize RAM array
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
+	RAM_system_reads = calloc(65536, sizeof(uint64_t));
+	RAM_system_writes = calloc(65536, sizeof(uint64_t));
+	for(int bank=0; bank<256; bank++) {
+		RAM_banked_reads[bank] = calloc(8192, sizeof(uint64_t));
+		RAM_banked_writes[bank] = calloc(8192, sizeof(uint64_t));
+	}
+
 
 	// Randomize all RAM (if option selected)
 	if (randomizeRAM) {
@@ -112,7 +124,7 @@ read6502(uint16_t address) {
 	// Report access to uninitialized RAM (if option selected)
 	if (reportUninitializedAccess) {
 		uint8_t pc_bank;
-		
+
 		if (opcode_addr < 0xa000) {
 			pc_bank = 0;
 		} else if (opcode_addr < 0xc000) {
@@ -135,9 +147,18 @@ read6502(uint16_t address) {
 	return real_read6502(address, false, 0);
 }
 
+
 uint8_t
 real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 {
+	if (address < 0xa000) {
+		RAM_system_reads[address]++;
+	} else if (address < 0xc000) {
+		RAM_banked_reads[bank][address]++;
+	} else {
+		RAM_system_reads[address]++;  // actually ROM but we only care about the address really
+	}
+
 	if (address < 0x9f00) { // RAM
 		return RAM[address];
 	} else if (address < 0xa000) { // I/O
@@ -193,6 +214,15 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 void
 write6502(uint16_t address, uint8_t value)
 {
+	if (address < 0xa000) {
+		RAM_system_writes[address]++;
+	} else if (address < 0xc000) {
+		if (effective_ram_bank() < num_ram_banks)
+			RAM_banked_writes[effective_ram_bank()][address]++;
+	} else {
+		RAM_system_writes[address]++;  // actually ROM but we only care about the address really
+	}
+
 	// Update RAM access flag
 	if (reportUninitializedAccess) {
 		if (address < 0xa000) {
@@ -267,6 +297,37 @@ memory_save(SDL_RWops *f, bool dump_ram, bool dump_bank)
 	}
 }
 
+
+void memory_dump_usage_counts() {
+	printf("Usage counts of all memory locations. Locations not printed have count zero.\n");
+	printf("system ram reads:\n");
+	int addr;
+	for(addr=0; addr<65536; ++addr) {
+		if(RAM_system_reads[addr]>0)
+			printf("r %04x %" PRIu64 "\n", addr, RAM_system_reads[addr]);
+	}
+	printf("system ram writes:\n");
+	for(addr=0; addr<65536; ++addr) {
+		if(RAM_system_writes[addr]>0)
+			printf("w %04x %" PRIu64 "\n", addr, RAM_system_writes[addr]);
+	}
+	printf("banked ram reads:\n");
+	int bank;
+	for(bank=0; bank<256; ++bank) {
+		for(addr=0; addr<8192; ++addr) {
+			if(RAM_banked_reads[bank][addr]>0)
+				printf("r %02x:%04x %" PRIu64 "\n", bank, addr, RAM_banked_reads[bank][addr]);
+		}
+	}
+	printf("banked ram writes:\n");
+	for(bank=0; bank<256; ++bank) {
+		for(addr=0; addr<8192; ++addr) {
+			if(RAM_banked_writes[bank][addr]>0)
+				printf("w %02x:%04x %" PRIu64 "\n", bank, addr, RAM_banked_writes[bank][addr]);
+		}
+	}
+
+}
 
 ///
 ///

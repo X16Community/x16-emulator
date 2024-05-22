@@ -1150,6 +1150,7 @@ main(int argc, char **argv)
 #endif
 
 	main_shutdown();
+	memory_dump_usage_counts();
 	return 0;
 }
 
@@ -1256,7 +1257,7 @@ handle_ieee_intercept()
 		// do high-level KERNAL IEEE API interception
 		return false;
 	}
-	
+
 	if (sdcard_attached && !prg_file && !using_hostfs) {
 		// if should emulate an SD card (and don't need to
 		// hack a PRG into RAM), we skip HostFS if it uses unit 8
@@ -1578,7 +1579,7 @@ emulator_loop(void *param)
 #endif
 		}
 
-		// The optimization from the opportunistic batching of audio rendering 
+		// The optimization from the opportunistic batching of audio rendering
 		// is lost if we need to track the YM2151 IRQ, so it has been made a
 		// command-line switch that's disabled by default.
 		if (ym2151_irq_support) {
