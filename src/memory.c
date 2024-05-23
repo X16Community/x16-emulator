@@ -151,13 +151,15 @@ read6502(uint16_t address) {
 uint8_t
 real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 {
-	if (address < 0xa000) {
-		RAM_system_reads[address]++;
-	} else if (address < 0xc000) {
-		RAM_banked_reads[bank][address]++;
-	} else {
-		RAM_system_reads[address]++;  // actually ROM but we only care about the address really
-	}
+    if (debugOn == false) {
+      if (address < 0xa000) {
+        RAM_system_reads[address]++;
+      } else if (address < 0xc000) {
+        RAM_banked_reads[effective_ram_bank()][address-0xa000]++;
+      } else {
+        RAM_system_reads[address]++;  // TODO actually count banked ROM reads properly
+      }
+    }
 
 	if (address < 0x9f00) { // RAM
 		return RAM[address];
@@ -217,10 +219,9 @@ write6502(uint16_t address, uint8_t value)
 	if (address < 0xa000) {
 		RAM_system_writes[address]++;
 	} else if (address < 0xc000) {
-		if (effective_ram_bank() < num_ram_banks)
-			RAM_banked_writes[effective_ram_bank()][address]++;
+		RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
 	} else {
-		RAM_system_writes[address]++;  // actually ROM but we only care about the address really
+		RAM_system_writes[address]++;  // TODO actually count banked ROM writes properly
 	}
 
 	// Update RAM access flag
