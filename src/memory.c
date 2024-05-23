@@ -34,6 +34,8 @@ uint64_t *RAM_system_reads;
 uint64_t *RAM_system_writes;
 uint64_t *RAM_banked_reads[256];
 uint64_t *RAM_banked_writes[256];
+uint64_t *ROM_banked_reads[256];
+uint64_t *ROM_banked_writes[256];	// shouldn't occur for obvious reasons unless Bonk RAM is installed in a cart
 
 
 static uint32_t clock_snap = 0UL;
@@ -50,9 +52,11 @@ memory_init()
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
 	RAM_system_reads = calloc(65536, sizeof(uint64_t));
 	RAM_system_writes = calloc(65536, sizeof(uint64_t));
-	for(int bank=0; bank<256; bank++) {
+	for(int bank=0; bank<256; ++bank) {
 		RAM_banked_reads[bank] = calloc(8192, sizeof(uint64_t));
 		RAM_banked_writes[bank] = calloc(8192, sizeof(uint64_t));
+		ROM_banked_reads[bank] = calloc(16384, sizeof(uint64_t));
+		ROM_banked_writes[bank] = calloc(16384, sizeof(uint64_t));
 	}
 
 
@@ -108,7 +112,7 @@ memory_initialize_cart(uint8_t *mem)
 	}
 }
 
-static uint8_t
+inline static uint8_t
 effective_ram_bank()
 {
 	return ram_bank;
@@ -157,7 +161,7 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
       } else if (address < 0xc000) {
         RAM_banked_reads[effective_ram_bank()][address-0xa000]++;
       } else {
-        RAM_system_reads[address]++;  // TODO actually count banked ROM reads properly
+		ROM_banked_reads[rom_bank][address-0xc000]++;
       }
     }
 
@@ -221,7 +225,8 @@ write6502(uint16_t address, uint8_t value)
 	} else if (address < 0xc000) {
 		RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
 	} else {
-		RAM_system_writes[address]++;  // TODO actually count banked ROM writes properly
+		// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
+		ROM_banked_writes[rom_bank][address-0xc000]++;
 	}
 
 	// Update RAM access flag
@@ -301,30 +306,45 @@ memory_save(SDL_RWops *f, bool dump_ram, bool dump_bank)
 
 void memory_dump_usage_counts() {
 	printf("Usage counts of all memory locations. Locations not printed have count zero.\n");
-	printf("system ram reads:\n");
+	printf("Tip: use 'sort -r -n -k 3' to sort it so it shows the most used at the top.\n");
+	printf("system RAM reads:\n");
 	int addr;
 	for(addr=0; addr<65536; ++addr) {
 		if(RAM_system_reads[addr]>0)
 			printf("r %04x %" PRIu64 "\n", addr, RAM_system_reads[addr]);
 	}
-	printf("system ram writes:\n");
+	printf("\nsystem RAM writes:\n");
 	for(addr=0; addr<65536; ++addr) {
 		if(RAM_system_writes[addr]>0)
 			printf("w %04x %" PRIu64 "\n", addr, RAM_system_writes[addr]);
 	}
-	printf("banked ram reads:\n");
+	printf("\nbanked RAM reads:\n");
 	int bank;
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<8192; ++addr) {
 			if(RAM_banked_reads[bank][addr]>0)
-				printf("r %02x:%04x %" PRIu64 "\n", bank, addr, RAM_banked_reads[bank][addr]);
+				printf("r %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_reads[bank][addr]);
 		}
 	}
-	printf("banked ram writes:\n");
+	printf("\nbanked RAM writes:\n");
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<8192; ++addr) {
 			if(RAM_banked_writes[bank][addr]>0)
-				printf("w %02x:%04x %" PRIu64 "\n", bank, addr, RAM_banked_writes[bank][addr]);
+				printf("w %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_writes[bank][addr]);
+		}
+	}
+	printf("\nbanked ROM reads:\n");
+	for(bank=0; bank<256; ++bank) {
+		for(addr=0; addr<16384; ++addr) {
+			if(ROM_banked_reads[bank][addr]>0)
+				printf("r %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_reads[bank][addr]);
+		}
+	}
+	printf("\nbanked ROM / 'Bonk RAM' writes:\n");
+	for(bank=0; bank<256; ++bank) {
+		for(addr=0; addr<16384; ++addr) {
+			if(ROM_banked_writes[bank][addr]>0)
+				printf("w %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_writes[bank][addr]);
 		}
 	}
 
@@ -334,25 +354,25 @@ void memory_dump_usage_counts() {
 ///
 ///
 
-void
+inline void
 memory_set_ram_bank(uint8_t bank)
 {
 	ram_bank = bank & (NUM_MAX_RAM_BANKS - 1);
 }
 
-uint8_t
+inline uint8_t
 memory_get_ram_bank()
 {
 	return ram_bank;
 }
 
-void
+inline void
 memory_set_rom_bank(uint8_t bank)
 {
 	rom_bank = bank;
 }
 
-uint8_t
+inline uint8_t
 memory_get_rom_bank()
 {
 	return rom_bank;
