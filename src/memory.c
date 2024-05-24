@@ -29,6 +29,7 @@ static uint8_t addr_ym = 0;
 
 bool randomizeRAM = false;
 bool reportUninitializedAccess = false;
+bool reportUsageStatistics = false;
 bool *RAM_access_flags;
 uint64_t *RAM_system_reads;
 uint64_t *RAM_system_writes;
@@ -50,13 +51,16 @@ memory_init()
 {
 	// Initialize RAM array
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
-	RAM_system_reads = calloc(65536, sizeof(uint64_t));
-	RAM_system_writes = calloc(65536, sizeof(uint64_t));
-	for(int bank=0; bank<256; ++bank) {
-		RAM_banked_reads[bank] = calloc(8192, sizeof(uint64_t));
-		RAM_banked_writes[bank] = calloc(8192, sizeof(uint64_t));
-		ROM_banked_reads[bank] = calloc(16384, sizeof(uint64_t));
-		ROM_banked_writes[bank] = calloc(16384, sizeof(uint64_t));
+
+	if(reportUsageStatistics) {
+		RAM_system_reads = calloc(65536, sizeof(uint64_t));
+		RAM_system_writes = calloc(65536, sizeof(uint64_t));
+		for(int bank=0; bank<256; ++bank) {
+			RAM_banked_reads[bank] = calloc(8192, sizeof(uint64_t));
+			RAM_banked_writes[bank] = calloc(8192, sizeof(uint64_t));
+			ROM_banked_reads[bank] = calloc(16384, sizeof(uint64_t));
+			ROM_banked_writes[bank] = calloc(16384, sizeof(uint64_t));
+		}
 	}
 
 
@@ -92,6 +96,11 @@ void
 memory_report_uninitialized_access(bool value)
 {
 	reportUninitializedAccess = value;
+}
+
+void
+memory_report_usage_statistics(bool value) {
+	reportUsageStatistics = value;
 }
 
 void
@@ -155,7 +164,7 @@ read6502(uint16_t address) {
 uint8_t
 real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 {
-    if (debugOn == false) {
+    if (reportUsageStatistics && debugOn == false) {
       if (address < 0xa000) {
         RAM_system_reads[address]++;
       } else if (address < 0xc000) {
@@ -202,8 +211,6 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 		} else {
 			return (address >> 8) & 0xff; // open bus read
 		}
-
-
 	} else { // banked ROM
 		int romBank = debugOn ? bank : rom_bank;
 		if (romBank < 32) {
@@ -220,13 +227,15 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 void
 write6502(uint16_t address, uint8_t value)
 {
-	if (address < 0xa000) {
-		RAM_system_writes[address]++;
-	} else if (address < 0xc000) {
-		RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
-	} else {
-		// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
-		ROM_banked_writes[rom_bank][address-0xc000]++;
+	if(reportUsageStatistics) {
+		if (address < 0xa000) {
+			RAM_system_writes[address]++;
+		} else if (address < 0xc000) {
+			RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
+		} else {
+			// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
+			ROM_banked_writes[rom_bank][address-0xc000]++;
+		}
 	}
 
 	// Update RAM access flag
@@ -305,6 +314,10 @@ memory_save(SDL_RWops *f, bool dump_ram, bool dump_bank)
 
 
 void memory_dump_usage_counts() {
+	if(reportUsageStatistics==false)
+		return;
+
+	printf("--- begin of memory usage statistics dump ---\n");
 	printf("Usage counts of all memory locations. Locations not printed have count zero.\n");
 	printf("Tip: use 'sort -r -n -k 3' to sort it so it shows the most used at the top.\n");
 	printf("system RAM reads:\n");
@@ -347,7 +360,7 @@ void memory_dump_usage_counts() {
 				printf("w %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_writes[bank][addr]);
 		}
 	}
-
+	printf("--- end of memory usage statistics dump ---\n");
 }
 
 ///

@@ -18,6 +18,7 @@ void vp6502();
 void memory_init();
 void memory_reset();
 void memory_report_uninitialized_access(bool);
+void memory_report_usage_statistics(bool);
 void memory_randomize_ram(bool);
 
 void memory_save(SDL_RWops *f, bool dump_ram, bool dump_bank);

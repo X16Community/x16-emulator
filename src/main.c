@@ -461,6 +461,8 @@ usage()
 	printf("\tSet all RAM to zero instead of uninitialized random values\n");
 	printf("-wuninit\n");
 	printf("\tPrints warning to stdout if uninitialized RAM is accessed\n");
+	printf("-memorystats\n");
+	printf("\tPrints memory access statistics when emulator exits\n");
 	printf("-dump {C|R|B|V}...\n");
 	printf("\tConfigure system dump: (C)PU, (R)AM, (B)anked-RAM, (V)RAM\n");
 	printf("\tMultiple characters are possible, e.g. -dump CV ; Default: RB\n");
@@ -800,6 +802,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			memory_report_uninitialized_access(true);
+		} else if (!strcmp(argv[0], "-memorystats")) {
+			argc--;
+			argv++;
+			memory_report_usage_statistics(true);
 		} else if (!strcmp(argv[0], "-joy1")) {
 			argc--;
 			argv++;
