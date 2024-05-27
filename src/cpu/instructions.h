@@ -506,6 +506,9 @@ static void plp() {
     regs.status = pull8();
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
+    } else if (regs.status & FLAG_INDEX_WIDTH) {
+        regs.xh = 0;
+        regs.yh = 0;
     }
 }
 
@@ -549,6 +552,10 @@ static void rti() {
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
     } else {
+        if (regs.status & FLAG_INDEX_WIDTH) {
+            regs.xh = 0;
+            regs.yh = 0;
+        }
         regs.k = pull8();
     }
 }
