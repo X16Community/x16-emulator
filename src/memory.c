@@ -29,7 +29,7 @@ static uint8_t addr_ym = 0;
 
 bool randomizeRAM = false;
 bool reportUninitializedAccess = false;
-bool reportUsageStatistics = false;
+const char *reportUsageStatisticsFilename = NULL;
 bool *RAM_access_flags;
 uint64_t *RAM_system_reads;
 uint64_t *RAM_system_writes;
@@ -52,7 +52,7 @@ memory_init()
 	// Initialize RAM array
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
 
-	if(reportUsageStatistics) {
+	if(reportUsageStatisticsFilename!=NULL) {
 		RAM_system_reads = calloc(65536, sizeof(uint64_t));
 		RAM_system_writes = calloc(65536, sizeof(uint64_t));
 		for(int bank=0; bank<256; ++bank) {
@@ -99,8 +99,8 @@ memory_report_uninitialized_access(bool value)
 }
 
 void
-memory_report_usage_statistics(bool value) {
-	reportUsageStatistics = value;
+memory_report_usage_statistics(const char *filename) {
+	reportUsageStatisticsFilename = filename;
 }
 
 void
@@ -164,7 +164,7 @@ read6502(uint16_t address) {
 uint8_t
 real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 {
-    if (reportUsageStatistics && debugOn == false) {
+    if (reportUsageStatisticsFilename!=NULL && debugOn == false) {
       if (address < 0xa000) {
         RAM_system_reads[address]++;
       } else if (address < 0xc000) {
@@ -227,7 +227,7 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 void
 write6502(uint16_t address, uint8_t value)
 {
-	if(reportUsageStatistics) {
+	if(reportUsageStatisticsFilename!=NULL) {
 		if (address < 0xa000) {
 			RAM_system_writes[address]++;
 		} else if (address < 0xc000) {
@@ -313,55 +313,73 @@ memory_save(SDL_RWops *f, bool dump_ram, bool dump_bank)
 }
 
 
+void writestring(SDL_RWops *f, const char *string) {
+	SDL_RWwrite(f, string, strlen(string), 1);
+}
+
 void memory_dump_usage_counts() {
-	if(reportUsageStatistics==false)
+	if(reportUsageStatisticsFilename==NULL)
 		return;
 
-	printf("--- begin of memory usage statistics dump ---\n");
-	printf("Usage counts of all memory locations. Locations not printed have count zero.\n");
-	printf("Tip: use 'sort -r -n -k 3' to sort it so it shows the most used at the top.\n");
-	printf("system RAM reads:\n");
+	SDL_RWops *f = SDL_RWFromFile(reportUsageStatisticsFilename, "w");
+	if (!f) {
+		printf("Cannot write to %s!\n", reportUsageStatisticsFilename);
+		return;
+	}
+
+	writestring(f, "Usage counts of all memory locations. Locations not printed have count zero.\n");
+	writestring(f, "Tip: use 'sort -r -n -k 3' to sort it so it shows the most used at the top.\n");
+	writestring(f, "\nsystem RAM reads:\n");
 	int addr;
+	char buf[100];
 	for(addr=0; addr<65536; ++addr) {
-		if(RAM_system_reads[addr]>0)
-			printf("r %04x %" PRIu64 "\n", addr, RAM_system_reads[addr]);
+		if(RAM_system_reads[addr]>0) {
+			SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "r %04x %" PRIu64 "\n", addr, RAM_system_reads[addr]), 1);
+		}
 	}
-	printf("\nsystem RAM writes:\n");
+	writestring(f, "\nsystem RAM writes:\n");
 	for(addr=0; addr<65536; ++addr) {
-		if(RAM_system_writes[addr]>0)
-			printf("w %04x %" PRIu64 "\n", addr, RAM_system_writes[addr]);
+		if(RAM_system_writes[addr]>0) {
+			SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %04x %" PRIu64 "\n", addr, RAM_system_writes[addr]), 1);
+		}
 	}
-	printf("\nbanked RAM reads:\n");
+	writestring(f, "\nbanked RAM reads:\n");
 	int bank;
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<8192; ++addr) {
-			if(RAM_banked_reads[bank][addr]>0)
-				printf("r %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_reads[bank][addr]);
+			if(RAM_banked_reads[bank][addr]>0) {
+				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "r %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_reads[bank][addr]), 1);
+			}
 		}
 	}
-	printf("\nbanked RAM writes:\n");
+	writestring(f, "\nbanked RAM writes:\n");
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<8192; ++addr) {
-			if(RAM_banked_writes[bank][addr]>0)
-				printf("w %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_writes[bank][addr]);
+			if(RAM_banked_writes[bank][addr]>0) {
+				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_reads[bank][addr]), 1);
+			}
 		}
 	}
-	printf("\nbanked ROM reads:\n");
+	writestring(f, "\nbanked ROM reads:\n");
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<16384; ++addr) {
-			if(ROM_banked_reads[bank][addr]>0)
-				printf("r %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_reads[bank][addr]);
+			if(ROM_banked_reads[bank][addr]>0) {
+				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "r %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_reads[bank][addr]), 1);
+			}
 		}
 	}
-	printf("\nbanked ROM / 'Bonk RAM' writes:\n");
+	writestring(f, "\nbanked ROM / 'Bonk RAM' writes:\n");
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<16384; ++addr) {
-			if(ROM_banked_writes[bank][addr]>0)
-				printf("w %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_writes[bank][addr]);
+			if(ROM_banked_writes[bank][addr]>0) {
+				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_reads[bank][addr]), 1);
+			}
 		}
 	}
-	printf("--- end of memory usage statistics dump ---\n");
+
+	SDL_RWclose(f);
 }
+
 
 ///
 ///
