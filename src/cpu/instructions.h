@@ -518,7 +518,7 @@ static void rep() {
 
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
-    } 
+    }
 }
 
 static void rol() {
