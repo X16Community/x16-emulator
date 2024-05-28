@@ -254,7 +254,7 @@ void testbench_init()
                 if (iaddr == -1) {
                     invalid();
                 } else {
-                    printf("%lx\n", (long)read6502((uint16_t)iaddr));
+                    printf("%lx\n", (long)real_read6502((uint16_t)iaddr, true, 0));
                     fflush(stdout);
                 }
             }
