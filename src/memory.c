@@ -356,7 +356,7 @@ void memory_dump_usage_counts() {
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<8192; ++addr) {
 			if(RAM_banked_writes[bank][addr]>0) {
-				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_reads[bank][addr]), 1);
+				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %02x:%04x %" PRIu64 "\n", bank, addr+0xa000, RAM_banked_writes[bank][addr]), 1);
 			}
 		}
 	}
@@ -372,7 +372,7 @@ void memory_dump_usage_counts() {
 	for(bank=0; bank<256; ++bank) {
 		for(addr=0; addr<16384; ++addr) {
 			if(ROM_banked_writes[bank][addr]>0) {
-				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_reads[bank][addr]), 1);
+				SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "w %02x:%04x %" PRIu64 "\n", bank, addr+0xc000, ROM_banked_writes[bank][addr]), 1);
 			}
 		}
 	}
