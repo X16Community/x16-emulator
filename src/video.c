@@ -350,6 +350,11 @@ video_init(int window_scale, float screen_x_scale, char *quality, bool fullscree
 
 	SDL_SetWindowOpacity(window, opacity);
 
+#ifdef _WIN32
+	extern void video_win32_set_rounded_corners(SDL_Window *window);
+	video_win32_set_rounded_corners(window);
+#endif
+
 	if (record_gif != RECORD_GIF_DISABLED) {
 		if (!strcmp(gif_path+strlen(gif_path)-5, ",wait")) {
 			// wait for POKE

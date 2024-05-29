@@ -10,6 +10,12 @@ else
 	SDL2CONFIG=sdl2-config
 endif
 
+ifeq ($(CROSS_COMPILE_WINDOWS),1)
+	TARGET_WIN32=yes
+else ifeq ($(OS),Windows_NT)
+	TARGET_WIN32=yes
+endif
+
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
 LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
@@ -55,6 +61,10 @@ else
 endif
 endif
 
+ifdef TARGET_WIN32
+	LDFLAGS+=-ldwmapi
+endif
+
 ifdef EMSCRIPTEN
 	LDFLAGS+=--shell-file webassembly/x16emu-template.html --preload-file rom.bin -s TOTAL_MEMORY=32MB -s ASSERTIONS=1 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=1
 	# To the Javascript runtime exported functions
@@ -66,6 +76,11 @@ endif
 
 _X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o iso_8859_15.o ymglue.o
 _X16_OBJS += extern/ymfm/src/ymfm_opm.o
+
+ifdef TARGET_WIN32
+	_X16_OBJS += video_win32.o
+endif
+
 X16_OBJS = $(patsubst %,$(X16_ODIR)/%,$(_X16_OBJS))
 X16_DEPS := $(X16_OBJS:.o=.d)
 
