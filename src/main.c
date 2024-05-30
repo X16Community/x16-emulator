@@ -345,14 +345,14 @@ static bool
 is_kernal()
 {
 	// only for KERNAL
-	return (read6502(0xfff6) == 'M' &&
-			read6502(0xfff7) == 'I' &&
-			read6502(0xfff8) == 'S' &&
-			read6502(0xfff9) == 'T')
-		|| (read6502(0xc008) == 'M' &&
-			read6502(0xc009) == 'I' &&
-			read6502(0xc00a) == 'S' &&
-			read6502(0xc00b) == 'T');
+	return (real_read6502(0xfff6, true, 0) == 'M' &&
+			real_read6502(0xfff7, true, 0) == 'I' &&
+			real_read6502(0xfff8, true, 0) == 'S' &&
+			real_read6502(0xfff9, true, 0) == 'T')
+		|| (real_read6502(0xc008, true, 0) == 'M' &&
+			real_read6502(0xc009, true, 0) == 'I' &&
+			real_read6502(0xc00a, true, 0) == 'S' &&
+			real_read6502(0xc00b, true, 0) == 'T');
 }
 
 static void
@@ -461,6 +461,8 @@ usage()
 	printf("\tSet all RAM to zero instead of uninitialized random values\n");
 	printf("-wuninit\n");
 	printf("\tPrints warning to stdout if uninitialized RAM is accessed\n");
+	printf("-memorystats <file.txt>\n");
+	printf("\tSaves memory access statistics to the given file when emulator exits\n");
 	printf("-dump {C|R|B|V}...\n");
 	printf("\tConfigure system dump: (C)PU, (R)AM, (B)anked-RAM, (V)RAM\n");
 	printf("\tMultiple characters are possible, e.g. -dump CV ; Default: RB\n");
@@ -800,6 +802,15 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			memory_report_uninitialized_access(true);
+		} else if (!strcmp(argv[0], "-memorystats")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			memory_report_usage_statistics(argv[0]);
+			argv++;
+			argc--;
 		} else if (!strcmp(argv[0], "-joy1")) {
 			argc--;
 			argv++;
@@ -1150,6 +1161,7 @@ main(int argc, char **argv)
 #endif
 
 	main_shutdown();
+	memory_dump_usage_counts();
 	return 0;
 }
 
@@ -1207,29 +1219,29 @@ set_kernal_status(uint8_t s)
 	// from it.
 
 	// JMP in the KERNAL API vectors
-	if (read6502(0xffb7) != 0x4c) {
+	if (real_read6502(0xffb7, true, 0) != 0x4c) {
 		return false;
 	}
 	// target of KERNAL API vector JMP
-	uint16_t readst = read6502(0xffb8) | read6502(0xffb9) << 8;
+	uint16_t readst = real_read6502(0xffb8, true, 0) | real_read6502(0xffb9, true, 0) << 8;
 	if (readst < 0xc000) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (read6502(readst) != 0xad) {
+	if (real_read6502(readst, true, 0) != 0xad) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (read6502(readst + 3) != 0x0d) {
+	if (real_read6502(readst + 3, true, 0) != 0x0d) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (read6502(readst + 6) != 0x8d) {
+	if (real_read6502(readst + 6, true, 0) != 0x8d) {
 		return false;
 	}
-	uint16_t status0 = read6502(readst+1) | read6502(readst+2) << 8;
-	uint16_t status1 = read6502(readst+4) | read6502(readst+5) << 8;
-	uint16_t status2 = read6502(readst+7) | read6502(readst+8) << 8;
+	uint16_t status0 = real_read6502(readst+1, true, 0) | real_read6502(readst+2, true, 0) << 8;
+	uint16_t status1 = real_read6502(readst+4, true, 0) | real_read6502(readst+5, true, 0) << 8;
+	uint16_t status2 = real_read6502(readst+7, true, 0) | real_read6502(readst+8, true, 0) << 8;
 	// all three addresses must be the same
 	if (status0 != status1 || status0 != status2) {
 		return false;
@@ -1256,7 +1268,7 @@ handle_ieee_intercept()
 		// do high-level KERNAL IEEE API interception
 		return false;
 	}
-	
+
 	if (sdcard_attached && !prg_file && !using_hostfs) {
 		// if should emulate an SD card (and don't need to
 		// hack a PRG into RAM), we skip HostFS if it uses unit 8
@@ -1386,9 +1398,9 @@ handle_ieee_intercept()
 		}
 
 		increment_wrap_at_page_boundary(&regs.sp);
-		uint8_t low = read6502(regs.sp);
+		uint8_t low = real_read6502(regs.sp, true, 0);
 		increment_wrap_at_page_boundary(&regs.sp);
-		regs.pc = ((read6502(regs.sp) << 8) | low) + 1;
+		regs.pc = ((real_read6502(regs.sp, true, 0) << 8) | low) + 1;
 	}
 	return handled;
 }
@@ -1481,7 +1493,7 @@ emulator_loop(void *param)
 			char disasm_line[15];
 			int len = disasm(regs.pc, RAM, disasm_line, sizeof(disasm_line), false, 0, regs.status, &eff_addr);
 			for (int i = 0; i < len; i++) {
-				printf("%02x ", read6502(regs.pc + i));
+				printf("%02x ", real_read6502(regs.pc + i, true, 0));
 			}
 			for (int i = 0; i < 9 - 3 * len; i++) {
 				printf(" ");
@@ -1578,7 +1590,7 @@ emulator_loop(void *param)
 #endif
 		}
 
-		// The optimization from the opportunistic batching of audio rendering 
+		// The optimization from the opportunistic batching of audio rendering
 		// is lost if we need to track the YM2151 IRQ, so it has been made a
 		// command-line switch that's disabled by default.
 		if (ym2151_irq_support) {

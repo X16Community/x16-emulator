@@ -18,9 +18,11 @@ void vp6502();
 void memory_init();
 void memory_reset();
 void memory_report_uninitialized_access(bool);
+void memory_report_usage_statistics(const char *filename);
 void memory_randomize_ram(bool);
 
 void memory_save(SDL_RWops *f, bool dump_ram, bool dump_bank);
+void memory_dump_usage_counts();
 
 void memory_set_ram_bank(uint8_t bank);
 void memory_set_rom_bank(uint8_t bank);
