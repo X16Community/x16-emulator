@@ -123,6 +123,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 	* `R`: RAM (40 KiB)
 	* `B`: Banked RAM (2 MiB)
 	* `V`: Video RAM and registers (128 KiB VRAM, 32 B composer registers, 512 B palette, 16 B layer0 registers, 16 B layer1 registers, 16 B sprite registers, 2 KiB sprite attributes)
+* `-memorystats <filename.txt>` Saves memory read and write access statistics to the given file when emulator exits.
 * `-testbench` Headless mode for unit testing with an external test runner
 * `-sound <device>` can be used to specify the output sound device. If 'none', no audio is generated.
 * `-abufs` can be used to specify the number of audio buffers (defaults to 8 when using the SD card, 32 when using HostFS). If you're experiencing stuttering in the audio, try increasing this number. This will result in additional audio latency though.
