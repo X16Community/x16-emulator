@@ -70,8 +70,13 @@ if (layouts.includes(lang)) {
 
 var url = new URL(window.location.href);
 var manifest_link = url.searchParams.get("manifest");
+var ram_val = url.searchParams.get("ram");
 
 var emuArguments = ['-keymap', lang, '-rtc'];
+
+if (ram_val) {
+    emuArguments.push('-ram', ram_val);
+}
 
 if (manifest_link) {
     openFs();
