@@ -345,14 +345,14 @@ static bool
 is_kernal()
 {
 	// only for KERNAL
-	return (real_read6502(0xfff6, true, 0) == 'M' &&
-			real_read6502(0xfff7, true, 0) == 'I' &&
-			real_read6502(0xfff8, true, 0) == 'S' &&
-			real_read6502(0xfff9, true, 0) == 'T')
-		|| (real_read6502(0xc008, true, 0) == 'M' &&
-			real_read6502(0xc009, true, 0) == 'I' &&
-			real_read6502(0xc00a, true, 0) == 'S' &&
-			real_read6502(0xc00b, true, 0) == 'T');
+	return (real_read6502(0xfff6, true, memory_get_rom_bank()) == 'M' &&
+			real_read6502(0xfff7, true, memory_get_rom_bank()) == 'I' &&
+			real_read6502(0xfff8, true, memory_get_rom_bank()) == 'S' &&
+			real_read6502(0xfff9, true, memory_get_rom_bank()) == 'T')
+		|| (real_read6502(0xc008, true, memory_get_rom_bank()) == 'M' &&
+			real_read6502(0xc009, true, memory_get_rom_bank()) == 'I' &&
+			real_read6502(0xc00a, true, memory_get_rom_bank()) == 'S' &&
+			real_read6502(0xc00b, true, memory_get_rom_bank()) == 'T');
 }
 
 static void
