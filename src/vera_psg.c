@@ -93,8 +93,8 @@ render(int16_t *left, int16_t *right)
 		uint32_t v = 0;
 		switch (ch->waveform) {
 			case WF_PULSE: v = ((ch->phase >> 10) > ch->pw) ? 0 : 0x3F; break;
-			case WF_SAWTOOTH: v = ch->phase >> 11; break;
-			case WF_TRIANGLE: v = (ch->phase & 0x10000) ? (~(ch->phase >> 10) & 0x3F) : ((ch->phase >> 10) & 0x3F); break;
+    		case WF_SAWTOOTH: v = (ch->phase >> 11) ^ ((ch->pw ^ 0x3f) & 0x3f); break;
+			case WF_TRIANGLE: v = ((ch->phase & 0x10000) ? (~(ch->phase >> 10) & 0x3F) : ((ch->phase >> 10) & 0x3F)) ^ ((ch->pw ^ 0x3f) & 0x3f); break;		
 			case WF_NOISE: v = ch->noiseval; break;
 		}
 		int16_t sv = (v ^ 0x20);
