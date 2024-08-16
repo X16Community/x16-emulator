@@ -345,14 +345,14 @@ static bool
 is_kernal()
 {
 	// only for KERNAL
-	return (real_read6502(0xfff6, true, memory_get_rom_bank()) == 'M' &&
-			real_read6502(0xfff7, true, memory_get_rom_bank()) == 'I' &&
-			real_read6502(0xfff8, true, memory_get_rom_bank()) == 'S' &&
-			real_read6502(0xfff9, true, memory_get_rom_bank()) == 'T')
-		|| (real_read6502(0xc008, true, memory_get_rom_bank()) == 'M' &&
-			real_read6502(0xc009, true, memory_get_rom_bank()) == 'I' &&
-			real_read6502(0xc00a, true, memory_get_rom_bank()) == 'S' &&
-			real_read6502(0xc00b, true, memory_get_rom_bank()) == 'T');
+	return (debug_read6502_curbank(0xfff6) == 'M' &&
+			debug_read6502_curbank(0xfff7) == 'I' &&
+			debug_read6502_curbank(0xfff8) == 'S' &&
+			debug_read6502_curbank(0xfff9) == 'T')
+		|| (debug_read6502_curbank(0xc008) == 'M' &&
+			debug_read6502_curbank(0xc009) == 'I' &&
+			debug_read6502_curbank(0xc00a) == 'S' &&
+			debug_read6502_curbank(0xc00b) == 'T');
 }
 
 static void
@@ -1219,29 +1219,29 @@ set_kernal_status(uint8_t s)
 	// from it.
 
 	// JMP in the KERNAL API vectors
-	if (real_read6502(0xffb7, true, 0) != 0x4c) {
+	if (debug_read6502(0xffb7, 0) != 0x4c) {
 		return false;
 	}
 	// target of KERNAL API vector JMP
-	uint16_t readst = real_read6502(0xffb8, true, 0) | real_read6502(0xffb9, true, 0) << 8;
+	uint16_t readst = debug_read6502(0xffb8, 0) | debug_read6502(0xffb9, 0) << 8;
 	if (readst < 0xc000) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (real_read6502(readst, true, 0) != 0xad) {
+	if (debug_read6502(readst, 0) != 0xad) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (real_read6502(readst + 3, true, 0) != 0x0d) {
+	if (debug_read6502(readst + 3, 0) != 0x0d) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (real_read6502(readst + 6, true, 0) != 0x8d) {
+	if (debug_read6502(readst + 6, 0) != 0x8d) {
 		return false;
 	}
-	uint16_t status0 = real_read6502(readst+1, true, 0) | real_read6502(readst+2, true, 0) << 8;
-	uint16_t status1 = real_read6502(readst+4, true, 0) | real_read6502(readst+5, true, 0) << 8;
-	uint16_t status2 = real_read6502(readst+7, true, 0) | real_read6502(readst+8, true, 0) << 8;
+	uint16_t status0 = debug_read6502(readst+1, 0) | debug_read6502(readst+2, 0) << 8;
+	uint16_t status1 = debug_read6502(readst+4, 0) | debug_read6502(readst+5, 0) << 8;
+	uint16_t status2 = debug_read6502(readst+7, 0) | debug_read6502(readst+8, 0) << 8;
 	// all three addresses must be the same
 	if (status0 != status1 || status0 != status2) {
 		return false;
@@ -1398,9 +1398,9 @@ handle_ieee_intercept()
 		}
 
 		increment_wrap_at_page_boundary(&regs.sp);
-		uint8_t low = real_read6502(regs.sp, true, 0);
+		uint8_t low = debug_read6502_curbank(regs.sp);
 		increment_wrap_at_page_boundary(&regs.sp);
-		regs.pc = ((real_read6502(regs.sp, true, 0) << 8) | low) + 1;
+		regs.pc = ((debug_read6502_curbank(regs.sp) << 8) | low) + 1;
 	}
 	return handled;
 }
@@ -1491,9 +1491,9 @@ emulator_loop(void *param)
 			printf(":.,%04x ", regs.pc);
 
 			char disasm_line[15];
-			int len = disasm(regs.pc, RAM, disasm_line, sizeof(disasm_line), false, 0, regs.status, &eff_addr);
+			int len = disasm(regs.pc, RAM, disasm_line, sizeof(disasm_line), 0, regs.status, &eff_addr);
 			for (int i = 0; i < len; i++) {
-				printf("%02x ", real_read6502(regs.pc + i, true, 0));
+				printf("%02x ", debug_read6502_curbank(regs.pc + i));
 			}
 			for (int i = 0; i < 9 - 3 * len; i++) {
 				printf(" ");

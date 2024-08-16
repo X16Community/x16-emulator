@@ -283,7 +283,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key,int isShift) {
 			break;
 
 		case DBGKEY_STEPOVER:								// Step over (F10 by default)
-			opcode = real_read6502(regs.pc, true, currentPCBank);			// What opcode is it ?
+			opcode = debug_read6502(regs.pc, currentPCBank);			// What opcode is it ?
 			if (opcode == 0x20 || opcode == 0xFC || opcode == 0x22) { 		// Is it JSR or JSL ?
 				stepBreakPoint.pc = regs.pc + 3 + (opcode == 0x22);			// Then break 3 / 4 on.
 				stepBreakPoint.bank = getCurrentBank(regs.pc);
@@ -632,7 +632,7 @@ static int DEBUGRenderZeroPageRegisters(int y) {
 			DEBUGString(dbgRenderer, DBG_ZP_REG, y, lbl, col_label);
 
 			int reg_addr = 2 + reg * 2;
-			int n = real_read6502(direct_page_add(reg_addr+1), true, currentBank)*256+real_read6502(direct_page_add(reg_addr), true, currentBank);
+			int n = debug_read6502_curbank(direct_page_add(reg_addr+1))*256+debug_read6502_curbank(direct_page_add(reg_addr));
 
 			DEBUGNumber(DBG_ZP_REG+5, y, n, 4, col_data);
 
@@ -667,7 +667,7 @@ static void DEBUGRenderData(int y,int data) {
 
 		for (int i = 0;i < 8;i++) {
 			bool isDP = ((data+i - regs.dp) & 0xffff) < 256;
-			int byte = real_read6502((data+i) & 0xFFFF, true, currentBank);
+			int byte = debug_read6502((data+i) & 0xFFFF, currentBank);
 			DEBUGNumber(DBG_MEMX+8+i*3,y,byte,2, isDP ? col_directpage : col_data);
 			DEBUGWrite(dbgRenderer, DBG_MEMX+33+i,y,byte, isDP ? col_directpage : col_data);
 		}
@@ -726,7 +726,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 		// still been true without the added logic, anyway.
 
 		if (regs.is65c816) {
-			opcode = real_read6502(initialPC, true, currentPCBank);
+			opcode = debug_read6502(initialPC, currentPCBank);
 			switch (opcode) {
 				case 0x81: // CLC
 					implied_status &= ~FLAG_CARRY;
@@ -735,11 +735,11 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 					implied_status |= FLAG_CARRY;
 					;;
 				case 0xC2: // REP
-					operand = real_read6502((initialPC+1) & 0xffff, true, currentPCBank);
+					operand = debug_read6502((initialPC+1) & 0xffff, currentPCBank);
 					implied_status = ~operand & implied_status;
 					;;
 				case 0xE2: // SEP
-					operand = real_read6502((initialPC+1) & 0xffff, true, currentPCBank);
+					operand = debug_read6502((initialPC+1) & 0xffff, currentPCBank);
 					implied_status = operand | implied_status;
 					;;
 				case 0xFB: // XCE
@@ -753,7 +753,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 			if (implied_e) implied_status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
 
 		}
-		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), true, currentPCBank, implied_status, &eff_addr);	// Disassemble code
+		int size = disasm(initialPC, RAM, buffer, sizeof(buffer), currentPCBank, implied_status, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
 		// Populate effective address
@@ -903,7 +903,7 @@ static void DEBUGRenderStack(int bytesCount) {
 	int y= 0;
 	while (y < bytesCount) {
 		DEBUGNumber(DBG_STCK,y, sp,4, col_label);
-		int byte = real_read6502(sp, true, 0);
+		int byte = debug_read6502_curbank(sp);
 		DEBUGNumber(DBG_STCK+5,y,byte,2, col_data);
 		DEBUGWrite(dbgRenderer, DBG_STCK+9,y,byte, col_data);
 		y++;

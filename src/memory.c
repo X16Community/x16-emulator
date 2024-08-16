@@ -157,14 +157,7 @@ read6502(uint16_t address) {
 		}
 	}
 
-	return real_read6502(address, false, 0);
-}
-
-
-uint8_t
-real_read6502(uint16_t address, bool debugOn, uint8_t bank)
-{
-    if (reportUsageStatisticsFilename!=NULL && debugOn == false) {
+    if (reportUsageStatisticsFilename!=NULL) {
       if (address < 0xa000) {
         RAM_system_reads[address]++;
       } else if (address < 0xc000) {
@@ -174,6 +167,20 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
       }
     }
 
+	return real_read6502(address, false, false, 0);
+}
+
+uint8_t debug_read6502_curbank(uint16_t address) {
+	return real_read6502(address, true, false, 0);
+}
+
+uint8_t debug_read6502(uint16_t address, uint8_t bank) {
+	return real_read6502(address, true, true, bank);
+}
+
+uint8_t
+real_read6502(uint16_t address, bool debugOn, bool useBank, uint8_t bank)
+{
 	if (address < 0x9f00) { // RAM
 		return RAM[address];
 	} else if (address < 0xa000) { // I/O
@@ -205,14 +212,14 @@ real_read6502(uint16_t address, bool debugOn, uint8_t bank)
 			return 0x9f; // open bus read
 		}
 	} else if (address < 0xc000) { // banked RAM
-		int ramBank = debugOn ? bank : effective_ram_bank();
+		int ramBank = useBank ? bank : effective_ram_bank();
 		if (ramBank < num_ram_banks) {
 			return RAM[0xa000 + (ramBank << 13) + address - 0xa000];
 		} else {
 			return (address >> 8) & 0xff; // open bus read
 		}
 	} else { // banked ROM
-		int romBank = debugOn ? bank : rom_bank;
+		int romBank = useBank ? bank : rom_bank;
 		if (romBank < 32) {
 			return ROM[(romBank << 14) + address - 0xc000];
 		} else {
