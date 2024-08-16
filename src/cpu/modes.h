@@ -182,7 +182,7 @@ static void sr() { // absolute,S
 static void sridy() { // (indirect,S),Y
     uint16_t eahelp, startpage;
     eahelp = regs.sp + (uint16_t)read6502(regs.pc++);
-    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
+    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp + 1) << 8);
     startpage = ea & 0xFF00;
     ea += (uint16_t)regs.y;
 
