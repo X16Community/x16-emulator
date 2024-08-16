@@ -403,5 +403,9 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		free((char *) mnemonic);
 	}
 
+	if (*eff_addr >= 0x10000) {
+		*eff_addr &= 0xffff;
+	}
+
 	return length;
 }

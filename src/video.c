@@ -1545,7 +1545,7 @@ uint32_t
 video_get_address(uint8_t sel)
 {
 	uint32_t address = io_addr[sel];
-	return address;
+	return address & 0x1ffff;
 }
 
 uint32_t
