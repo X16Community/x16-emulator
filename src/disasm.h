@@ -7,6 +7,6 @@
 
 #include <stdint.h>
 
-int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, uint8_t bank, uint8_t implied_status, int32_t *eff_addr);
+int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, int16_t bank, uint8_t implied_status, int32_t *eff_addr);
 
 #endif

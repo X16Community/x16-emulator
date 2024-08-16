@@ -11,8 +11,7 @@
 #include <SDL.h>
 
 uint8_t read6502(uint16_t address);
-uint8_t debug_read6502(uint16_t address, uint8_t bank);
-uint8_t debug_read6502_curbank(uint16_t address);
+uint8_t debug_read6502(uint16_t address, int16_t bank);
 uint8_t real_read6502(uint16_t address, bool debugOn, bool useBank, uint8_t bank);
 void write6502(uint16_t address, uint8_t value);
 void vp6502();

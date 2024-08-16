@@ -170,12 +170,12 @@ read6502(uint16_t address) {
 	return real_read6502(address, false, false, 0);
 }
 
-uint8_t debug_read6502_curbank(uint16_t address) {
-	return real_read6502(address, true, false, 0);
-}
-
-uint8_t debug_read6502(uint16_t address, uint8_t bank) {
-	return real_read6502(address, true, true, bank);
+uint8_t debug_read6502(uint16_t address, int16_t bank) {
+	if (bank < 0) {
+		return real_read6502(address, true, false, 0);
+	} else {
+		return real_read6502(address, true, true, bank);
+	}
 }
 
 uint8_t

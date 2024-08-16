@@ -632,7 +632,7 @@ static int DEBUGRenderZeroPageRegisters(int y) {
 			DEBUGString(dbgRenderer, DBG_ZP_REG, y, lbl, col_label);
 
 			int reg_addr = 2 + reg * 2;
-			int n = debug_read6502_curbank(direct_page_add(reg_addr+1))*256+debug_read6502_curbank(direct_page_add(reg_addr));
+			int n = debug_read6502(direct_page_add(reg_addr+1), -1)*256+debug_read6502(direct_page_add(reg_addr), -1);
 
 			DEBUGNumber(DBG_ZP_REG+5, y, n, 4, col_data);
 
@@ -903,7 +903,7 @@ static void DEBUGRenderStack(int bytesCount) {
 	int y= 0;
 	while (y < bytesCount) {
 		DEBUGNumber(DBG_STCK,y, sp,4, col_label);
-		int byte = debug_read6502_curbank(sp);
+		int byte = debug_read6502(sp, -1);
 		DEBUGNumber(DBG_STCK+5,y,byte,2, col_data);
 		DEBUGWrite(dbgRenderer, DBG_STCK+9,y,byte, col_data);
 		y++;
