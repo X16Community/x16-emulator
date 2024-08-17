@@ -10,9 +10,11 @@
 #include <stdio.h>
 #include <SDL.h>
 
+#define USE_CURRENT_BANK (-1)
+#define debug_read6502(a, b) real_read6502(a, true, b)
+
 uint8_t read6502(uint16_t address);
-uint8_t debug_read6502(uint16_t address, int16_t bank);
-uint8_t real_read6502(uint16_t address, bool debugOn, bool useBank, uint8_t bank);
+uint8_t real_read6502(uint16_t address, bool debugOn, int16_t bank);
 void write6502(uint16_t address, uint8_t value);
 void vp6502();
 

@@ -254,7 +254,7 @@ void testbench_init()
                 if (iaddr == -1) {
                     invalid();
                 } else {
-                    printf("%lx\n", (long)debug_read6502((uint16_t)iaddr, -1));
+                    printf("%lx\n", (long)debug_read6502((uint16_t)iaddr, USE_CURRENT_BANK));
                     fflush(stdout);
                 }
             }

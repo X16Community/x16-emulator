@@ -345,14 +345,14 @@ static bool
 is_kernal()
 {
 	// only for KERNAL
-	return (debug_read6502(0xfff6, -1) == 'M' &&
-			debug_read6502(0xfff7, -1) == 'I' &&
-			debug_read6502(0xfff8, -1) == 'S' &&
-			debug_read6502(0xfff9, -1) == 'T')
-		|| (debug_read6502(0xc008, -1) == 'M' &&
-			debug_read6502(0xc009, -1) == 'I' &&
-			debug_read6502(0xc00a, -1) == 'S' &&
-			debug_read6502(0xc00b, -1) == 'T');
+	return (debug_read6502(0xfff6, USE_CURRENT_BANK) == 'M' &&
+			debug_read6502(0xfff7, USE_CURRENT_BANK) == 'I' &&
+			debug_read6502(0xfff8, USE_CURRENT_BANK) == 'S' &&
+			debug_read6502(0xfff9, USE_CURRENT_BANK) == 'T')
+		|| (debug_read6502(0xc008, USE_CURRENT_BANK) == 'M' &&
+			debug_read6502(0xc009, USE_CURRENT_BANK) == 'I' &&
+			debug_read6502(0xc00a, USE_CURRENT_BANK) == 'S' &&
+			debug_read6502(0xc00b, USE_CURRENT_BANK) == 'T');
 }
 
 static void
@@ -1398,9 +1398,9 @@ handle_ieee_intercept()
 		}
 
 		increment_wrap_at_page_boundary(&regs.sp);
-		uint8_t low = debug_read6502(regs.sp, -1);
+		uint8_t low = debug_read6502(regs.sp, USE_CURRENT_BANK);
 		increment_wrap_at_page_boundary(&regs.sp);
-		regs.pc = ((debug_read6502(regs.sp, -1) << 8) | low) + 1;
+		regs.pc = ((debug_read6502(regs.sp, USE_CURRENT_BANK) << 8) | low) + 1;
 	}
 	return handled;
 }
@@ -1493,7 +1493,7 @@ emulator_loop(void *param)
 			char disasm_line[15];
 			int len = disasm(regs.pc, RAM, disasm_line, sizeof(disasm_line), -1, regs.status, &eff_addr);
 			for (int i = 0; i < len; i++) {
-				printf("%02x ", debug_read6502(regs.pc + i, -1));
+				printf("%02x ", debug_read6502(regs.pc + i, USE_CURRENT_BANK));
 			}
 			for (int i = 0; i < 9 - 3 * len; i++) {
 				printf(" ");
