@@ -18,8 +18,8 @@
 //
 // *******************************************************************************************
 
-int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool debugOn, uint8_t bank, uint8_t implied_status, int32_t *eff_addr) {
-	uint8_t opcode = real_read6502(pc, debugOn, bank);
+int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, int16_t bank, uint8_t implied_status, int32_t *eff_addr) {
+	uint8_t opcode = debug_read6502(pc, bank);
 	const char *mnemonic = regs.is65c816 ? mnemonics_c816[opcode] : mnemonics_c02[opcode];
 
 	*eff_addr = -1;
@@ -308,45 +308,45 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 	}
 
 	if (isBlockMove) {
-		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), real_read6502(pc + 2, debugOn, bank));
+		snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank), debug_read6502(pc + 2, bank));
 		length = 3;
 		if (regs.c != 0xFFFF) *eff_addr = regs.y; // We can have only one effective address, so we're choosing the destination
 	}
 	else if (isZprel) {
-		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank), pc + 3 + (int8_t)real_read6502(pc + 2, debugOn, bank));
+		snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank), pc + 3 + (int8_t)debug_read6502(pc + 2, bank));
 		length = 3;
 	}
 	else if (isRel16) {
-		snprintf(line, max_line, mnemonic, (pc + 3 + (int16_t)(real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8))) & 0xffff);
+		snprintf(line, max_line, mnemonic, (pc + 3 + (int16_t)(debug_read6502(pc + 1, bank) | (debug_read6502(pc + 2, bank) << 8))) & 0xffff);
 		length = 3;
 	}
 	else if (isBrkOrCop) {
-		snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank));
+		snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank));
 		length = 2;
 	} else {
 		if (strstr(line, "%02x")) {
 			length = 2;
 			if (isRel8) {
-				snprintf(line, max_line, mnemonic, pc + 2 + (int8_t)real_read6502(pc + 1, debugOn, bank));
+				snprintf(line, max_line, mnemonic, pc + 2 + (int8_t)debug_read6502(pc + 1, bank));
 			} else {
-				snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank));
+				snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank));
 				if (isStackRel) {
-					uint16_t ptr = regs.sp + real_read6502(pc + 1, debugOn, bank);
+					uint16_t ptr = regs.sp + debug_read6502(pc + 1, bank);
 					uint8_t ind_bank = ptr < 0xc000 ? memory_get_ram_bank() : memory_get_rom_bank();
 					if (isIndirect && isYrel) {
-						*eff_addr = (real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8)) + regs.y;
+						*eff_addr = (debug_read6502(ptr, ind_bank) | (debug_read6502(ptr + 1, ind_bank) << 8)) + regs.y;
 					} else {
 						*eff_addr = ptr;
 					}
 				} else if (isIndirect) {
-					uint16_t ptr = real_read6502(pc + 1, debugOn, bank);
+					uint16_t ptr = debug_read6502(pc + 1, bank);
 					if (isXrel)
 						ptr += regs.x;
-					*eff_addr = real_read6502(ptr, debugOn, bank) | (real_read6502(ptr + 1, debugOn, bank) << 8);
+					*eff_addr = debug_read6502(ptr, bank) | (debug_read6502(ptr + 1, bank) << 8);
 					if (isYrel)
 						*eff_addr += regs.y;
 				} else if (!isImmediate) {
-					*eff_addr = real_read6502(pc + 1, debugOn, bank);
+					*eff_addr = debug_read6502(pc + 1, bank);
 					if (isXrel)
 						*eff_addr += regs.x;
 					if (isYrel)
@@ -356,17 +356,17 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		}
 		if (strstr(line, "%04x")) {
 			length = 3;
-			snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank) | real_read6502(pc + 2, debugOn, bank) << 8);
+			snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank) | debug_read6502(pc + 2, bank) << 8);
 			if (isIndirect) {
-				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
+				uint16_t ptr = debug_read6502(pc + 1, bank) | (debug_read6502(pc + 2, bank) << 8);
 				if (isXrel)
 					ptr += regs.x;
 				uint8_t ind_bank = ptr < 0xc000 ? memory_get_ram_bank() : memory_get_rom_bank();
-				*eff_addr = real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8);
+				*eff_addr = debug_read6502(ptr, ind_bank) | (debug_read6502(ptr + 1, ind_bank) << 8);
 				if (isYrel)
 					*eff_addr += regs.y;
 			} else if (!isImmediate) {
-				*eff_addr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
+				*eff_addr = debug_read6502(pc + 1, bank) | (debug_read6502(pc + 2, bank) << 8);
 				if (isXrel)
 					*eff_addr += regs.x;
 				if (isYrel)
@@ -375,17 +375,17 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, bool de
 		}
 		if (strstr(line, "%06x")) {
 			length = 4;
-			snprintf(line, max_line, mnemonic, real_read6502(pc + 1, debugOn, bank) | real_read6502(pc + 2, debugOn, bank) << 8 | real_read6502(pc + 3, debugOn, bank) << 16);
+			snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank) | debug_read6502(pc + 2, bank) << 8 | debug_read6502(pc + 3, bank) << 16);
 			if (isIndirect) {
-				uint16_t ptr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
+				uint16_t ptr = debug_read6502(pc + 1, bank) | (debug_read6502(pc + 2, bank) << 8);
 				if (isXrel)
 					ptr += regs.x;
 				uint8_t ind_bank = ptr < 0xc000 ? memory_get_ram_bank() : memory_get_rom_bank();
-				*eff_addr = real_read6502(ptr, debugOn, ind_bank) | (real_read6502(ptr + 1, debugOn, ind_bank) << 8);
+				*eff_addr = debug_read6502(ptr, ind_bank) | (debug_read6502(ptr + 1, ind_bank) << 8);
 				if (isYrel)
 					*eff_addr += regs.y;
 			} else {
-				*eff_addr = real_read6502(pc + 1, debugOn, bank) | (real_read6502(pc + 2, debugOn, bank) << 8);
+				*eff_addr = debug_read6502(pc + 1, bank) | (debug_read6502(pc + 2, bank) << 8);
 				if (isXrel)
 					*eff_addr += regs.x;
 				if (isYrel)

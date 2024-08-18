@@ -1755,17 +1755,17 @@ ieee_init()
 	// Locate and remember cbdos_flags variable address in KERNAL vars
 	{
 		// check JMP instruction at ACPTR API
-		if (real_read6502(0xffa5, true, 0) != 0x4c) goto fail;
+		if (debug_read6502(0xffa5, 0) != 0x4c) goto fail;
 
 		// get address of ACPTR routine
-		uint16_t kacptr = real_read6502(0xffa6, true, 0) | real_read6502(0xffa7, true, 0) << 8;
+		uint16_t kacptr = debug_read6502(0xffa6, 0) | debug_read6502(0xffa7, 0) << 8;
 		if (kacptr < 0xc000) goto fail;
 
 		// first instruction is BIT cbdos_flags
-		if (real_read6502(kacptr, true, 0) != 0x2c) goto fail;
+		if (debug_read6502(kacptr, 0) != 0x2c) goto fail;
 
 		// get the address of cbdos_flags
-		cbdos_flags = real_read6502(kacptr+1, true, 0) | real_read6502(kacptr+2, true, 0) << 8;
+		cbdos_flags = debug_read6502(kacptr+1, 0) | debug_read6502(kacptr+2, 0) << 8;
 
 		if (cbdos_flags < 0x0200 || cbdos_flags >= 0x0400) goto fail;
 		goto success;
