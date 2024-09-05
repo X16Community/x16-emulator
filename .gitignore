@@ -6,6 +6,9 @@ x16emu_win.zip
 x16-rom
 src/rom_labels.h
 src/rom_lst.h
+src/basload_labels.h
+src/x16edit_D_labels.h
+src/x16edit_E_labels.h
 rom.bin
 chargen.bin
 .vscode/
