@@ -10,16 +10,16 @@
 * Features/Fixes
 	* Emulated VERA SPI clock has been updated to half of the VERA clock speed rather than the CPU clock.
 	* Trace for ROM banks 13-15 (x16edit and Basload) is now supported [stefan-b-jakobsson]
-	* Fixed 65C816 stack relative indirect address calulation wrongly using the direct page [Fulgen301]
 	* Fixed debug reads from the stack and a few unbounded values in the debugger display
 	* VERA PSG: for the saw and triangle waves, the inverse of the pulse width value is XORed with the value of the wave. This is the behavior of VERA 47.0.2 on hardware. [m00dawg]
 	* Allow setting the amount of RAM in the web version of the emulator [JimmyDansbo]
 	* Windows 11: Rounded corners should no longer cut off the lower left and lower right of the emulator window.
 	* New memory statistics feature [irmen]
-	* 65C816: high bytes of .X and .Y are now cleared when PLP or RTI set x=1 [cnelson20]
-	* 65C816: PEI no longer does improper page wraparound, `[dp]` indirect modes now properly read the address. [Fulgen301]
 	* HostFS: Implement DOS "T"ell command
 	* Debugger now includes elapsed cpu clocks since the last breakpoint or step
+	* 65C816: Fixed stack relative indirect address calulation wrongly using the direct page [Fulgen301]
+	* 65C816: high bytes of .X and .Y are now cleared when PLP or RTI set x=1 [cnelson20]
+	* 65C816: PEI no longer does improper page wraparound, `[dp]` indirect modes now properly read the address. [Fulgen301]
 
 ### Release 47 ("Roswell")
 
