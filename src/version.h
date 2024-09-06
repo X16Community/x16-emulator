@@ -3,5 +3,5 @@
 // All rights reserved. License: 2-clause BSD
 
 #define VER "48"
-#define VER_NAME "next"
-#define VER_INFO "### Prerelease 48 (\"next\")"
+#define VER_NAME "Cadmium"
+#define VER_INFO "### Release 48 (\"Cadmium\")"

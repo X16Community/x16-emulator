@@ -5,7 +5,7 @@
 
 ## Releases
 
-### Prerelease R48
+### Release R48 ("Cadmium")
 
 * Features/Fixes
 	* Emulated VERA SPI clock has been updated to half of the VERA clock speed rather than the CPU clock.
@@ -20,6 +20,7 @@
 	* 65C816: Fixed stack relative indirect address calulation wrongly using the direct page [Fulgen301]
 	* 65C816: high bytes of .X and .Y are now cleared when PLP or RTI set x=1 [cnelson20]
 	* 65C816: PEI no longer does improper page wraparound, `[dp]` indirect modes now properly read the address. [Fulgen301]
+	* More changes in the [ROM](https://github.com/X16Community/x16-rom/tree/r48#release-48-cadmium).
 
 ### Release 47 ("Roswell")
 
