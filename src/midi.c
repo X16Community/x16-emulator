@@ -20,7 +20,7 @@
 #endif
 
 #define ASSIGN_FUNCTION(lib, var, name) {\
-    (void *)var = (void *)GET_FUNCTION(lib, name);\
+    var = (void *)GET_FUNCTION(lib, name);\
     if (!var) { fprintf(stderr, "Unable to find symbol for '%s'\n", name); CLOSE_LIBRARY(handle); return; }\
 }
 
