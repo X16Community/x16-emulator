@@ -18,7 +18,7 @@ endif
 
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
-LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
+LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -ldl
 
 # build with link time optimization
 ifndef NOLTO
@@ -42,6 +42,10 @@ MAKECART_OUTPUT=makecart
 GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD || /bin/echo "00000000") || /bin/echo -n $$( /bin/echo -n $$(git rev-parse --short=7 HEAD || /bin/echo "0000000"); /bin/echo -n '+'))
 
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
+
+ifdef FLUIDSYNTH_INCLUDE
+	CFLAGS+=-I$(FLUIDSYNTH_INCLUDE)
+endif
 
 ifeq ($(MAC_STATIC),1)
 	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
