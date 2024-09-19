@@ -78,7 +78,7 @@ jobs:
           cp $(which libintl-8.dll) emu_binaries/.
           cp $(which libstdc++-6.dll) emu_binaries/.
           cp $(which libgomp-1.dll) emu_binaries/.
-          cp $(which libreadline-8.dll) emu_binaries/.
+          cp $(which libreadline8.dll) emu_binaries/.
           cp $(which libsndfile-1.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
@@ -154,7 +154,7 @@ jobs:
           cp $(which libintl-8.dll) emu_binaries/.
           cp $(which libstdc++-6.dll) emu_binaries/.
           cp $(which libgomp-1.dll) emu_binaries/.
-          cp $(which libreadline-8.dll) emu_binaries/.
+          cp $(which libreadline8.dll) emu_binaries/.
           cp $(which libsndfile-1.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
