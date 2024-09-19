@@ -404,8 +404,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          brew ls --verbose fluid-synth
-          TRACE=1 MAC_STATIC=1 $(pkg-config --cflags fluid-synth) LIBSDL_FILE=/opt/homebrew/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
+          TRACE=1 MAC_STATIC=1 -I$(dirname $(find /opt/homebrew/Cellar/fluid-synth/ -name fluidsynth.h)) LIBSDL_FILE=/opt/homebrew/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
           cp x16emu emu_binaries/.

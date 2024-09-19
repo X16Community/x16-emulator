@@ -18,7 +18,7 @@ endif
 
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
-LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -ldl
+LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
 
 # build with link time optimization
 ifndef NOLTO
@@ -63,6 +63,8 @@ endif
 
 ifdef TARGET_WIN32
 	LDFLAGS+=-ldwmapi
+else
+	LDFLAGS+=-ldl
 endif
 
 ifdef EMSCRIPTEN
