@@ -83,6 +83,8 @@ void midi_init()
 
 #ifdef _WIN32
     LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth-3.dll");
+#elif __APPLE__
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.dylib");
 #else
     LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so");
 #endif
