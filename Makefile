@@ -26,6 +26,10 @@ ifndef NOLTO
 	LDFLAGS+=-flto
 endif
 
+ifdef ADDLINCLUDE
+	CFLAGS+=-I$(ADDLINCLUDE)
+endif
+
 X16_ODIR = build/x16emu
 X16_SDIR = src
 
