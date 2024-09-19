@@ -82,9 +82,9 @@ void midi_init()
 {
 
 #ifdef _WIN32
-    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth-3.dll")
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth-3.dll");
 #else
-    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so")
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so");
 #endif
 
     if (!handle) {
