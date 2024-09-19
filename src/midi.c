@@ -7,6 +7,10 @@
 
 #ifdef _WIN32
     #include <windows.h>
+    #define LIBRARY_TYPE HMODULE
+    #define LOAD_LIBRARY(name) LoadLibrary(name)
+    #define GET_FUNCTION(lib, name) GetProcAddress(lib, name)
+    #define CLOSE_LIBRARY(lib) FreeLibrary(lib)
 #else
     #include <dlfcn.h>
     #define LIBRARY_TYPE void*
@@ -16,7 +20,7 @@
 #endif
 
 #define ASSIGN_FUNCTION(lib, var, name) {\
-    var = GET_FUNCTION(lib, name);\
+    var = (void *)GET_FUNCTION(lib, name);\
     if (!var) { fprintf(stderr, "Unable to find symbol for '%s'\n", name); CLOSE_LIBRARY(handle); return; }\
 }
 
@@ -78,27 +82,24 @@ void midi_init()
 {
 
 #ifdef _WIN32
-    dl_new_fluid_settings = new_fluid_settings;
-    dl_new_fluid_synth = new_fluid_synth;
-    dl_fs_sfload = fluid_synth_sfload;
-    dl_fs_program_change = fluid_synth_program_change;
-    dl_fs_channel_pressure = fluid_synth_channel_pressure;
-    dl_fs_system_reset = fluid_synth_system_reset;
-    dl_fs_noteoff = fluid_synth_noteoff;
-    dl_fs_noteon = fluid_synth_noteon;
-    dl_fs_key_pressure = fluid_synth_key_pressure;
-    dl_fs_cc = fluid_synth_cc;
-    dl_fs_pitch_bend = fluid_synth_pitch_bend;
-    dl_fs_sysex = fluid_synth_sysex;
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth-3.dll");
 #else
     LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so");
+#endif
 
     if (!handle) {
+        // Handle the error on both platforms
+#ifdef _WIN32
+        fprintf(stderr, "Could not load MIDI synth library: error code %lu\n", GetLastError());
+#else
         fprintf(stderr, "Could not load MIDI synth library: %s\n", dlerror());
+#endif
         return;
     }
 
+#ifndef _WIN32
     dlerror();
+#endif
 
     ASSIGN_FUNCTION(handle, dl_new_fluid_settings, "new_fluid_settings");
     ASSIGN_FUNCTION(handle, dl_new_fluid_synth, "new_fluid_synth");
@@ -113,7 +114,6 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_fs_cc, "fluid_synth_cc");
     ASSIGN_FUNCTION(handle, dl_fs_pitch_bend, "fluid_synth_pitch_bend");
     ASSIGN_FUNCTION(handle, dl_fs_sysex, "fluid_synth_sysex");
-#endif
 
     fl_settings = dl_new_fluid_settings();
     fl_synth = dl_new_fluid_synth(fl_settings);
