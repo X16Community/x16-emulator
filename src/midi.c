@@ -8,7 +8,7 @@
 #ifdef _WIN32
     #include <windows.h>
     #define LIBRARY_TYPE HMODULE
-    #define LOAD_LIBRARY(name) LoadLibrary(name)
+    #define LOAD_LIBRARY(name) LoadLibraryEx(name, NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR)
     #define GET_FUNCTION(lib, name) GetProcAddress(lib, name)
     #define CLOSE_LIBRARY(lib) FreeLibrary(lib)
 #else
@@ -81,13 +81,11 @@ static fluid_synth_sysex_f_t dl_fs_sysex;
 void midi_init()
 {
 
-    LIBRARY_TYPE handle = LOAD_LIBRARY(
 #ifdef _WIN32
-        "libfluidsynth-3.dll"
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth-3.dll")
 #else
-        "libfluidsynth.so"
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so")
 #endif
-    );
 
     if (!handle) {
         // Handle the error on both platforms
@@ -98,6 +96,10 @@ void midi_init()
 #endif
         return;
     }
+
+#ifndef _WIN32
+    dlerror();
+#endif
 
     ASSIGN_FUNCTION(handle, dl_new_fluid_settings, "new_fluid_settings");
     ASSIGN_FUNCTION(handle, dl_new_fluid_synth, "new_fluid_synth");
