@@ -20,7 +20,7 @@
 #endif
 
 #define ASSIGN_FUNCTION(lib, var, name) {\
-    var = GET_FUNCTION(lib, name);\
+    (void *)var = (void *)GET_FUNCTION(lib, name);\
     if (!var) { fprintf(stderr, "Unable to find symbol for '%s'\n", name); CLOSE_LIBRARY(handle); return; }\
 }
 
@@ -30,17 +30,17 @@ enum MIDI_states {
     SYSEX,
 };
 
+static bool serial_dlab = false;
+static uint8_t serial_dll, serial_dlm, serial_spr;
+
+#ifndef __EMSCRIPTEN__
+
 static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
 
 static enum MIDI_states midi_state = NORMAL;
 static uint8_t midi_last_command = 0;
 static uint8_t midi_first_param;
-
-static bool serial_dlab = false;
-static uint8_t serial_dll, serial_dlm, serial_spr;
-
-#ifndef __EMSCRIPTEN__
 
 static bool midi_initialized = false;
 

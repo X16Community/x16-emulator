@@ -43,10 +43,6 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
-ifdef FLUIDSYNTH_INCLUDE
-	CFLAGS+=-I$(FLUIDSYNTH_INCLUDE)
-endif
-
 ifeq ($(MAC_STATIC),1)
 	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
 endif
