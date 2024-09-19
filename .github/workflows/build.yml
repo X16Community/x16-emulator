@@ -404,6 +404,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
+          find /opt/homebrew/include
           TRACE=1 MAC_STATIC=1 FLUIDSYNTH_INCLUDE=/opt/homebrew/include/fluid-synth LIBSDL_FILE=/opt/homebrew/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.

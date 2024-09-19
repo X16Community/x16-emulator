@@ -5,8 +5,6 @@
 #include "glue.h"
 #include "midi.h"
 
-#ifndef __EMSCRIPTEN__
-
 #ifdef _WIN32
     #include <windows.h>
     #define LIBRARY_TYPE HMODULE
@@ -32,14 +30,6 @@ enum MIDI_states {
     SYSEX,
 };
 
-static bool midi_initialized = false;
-
-static fluid_settings_t* fl_settings;
-//static fluid_midi_driver_t* fl_mdriver;
-static fluid_audio_driver_t* fl_adriver;
-static fluid_synth_t* fl_synth;
-static int fl_sf2id;
-
 static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
 
@@ -49,6 +39,16 @@ static uint8_t midi_first_param;
 
 static bool serial_dlab = false;
 static uint8_t serial_dll, serial_dlm, serial_spr;
+
+#ifndef __EMSCRIPTEN__
+
+static bool midi_initialized = false;
+
+static fluid_settings_t* fl_settings;
+//static fluid_midi_driver_t* fl_mdriver;
+static fluid_audio_driver_t* fl_adriver;
+static fluid_synth_t* fl_synth;
+static int fl_sf2id;
 
 typedef fluid_settings_t* (*new_fluid_settings_f_t)(void);
 typedef fluid_synth_t* (*new_fluid_synth_f_t)(fluid_settings_t*);
