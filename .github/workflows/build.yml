@@ -74,6 +74,7 @@ jobs:
           cp $(which libgcc_s_seh-1.dll) emu_binaries/.
           cp $(which libglib-2.0-0.dll) emu_binaries/.
           cp $(which libgmodule-2.0-0.dll) emu_binaries/.
+          cp $(which libportaudio.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
           cp makecart.exe emu_binaries/.
@@ -144,6 +145,7 @@ jobs:
           cp $(which libgcc_s_seh-1.dll) emu_binaries/.
           cp $(which libglib-2.0-0.dll) emu_binaries/.
           cp $(which libgmodule-2.0-0.dll) emu_binaries/.
+          cp $(which libportaudio.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
           cp makecart.exe emu_binaries/.
