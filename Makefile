@@ -26,8 +26,8 @@ ifndef NOLTO
 	LDFLAGS+=-flto
 endif
 
-ifdef ADDLINCLUDE
-	CFLAGS+=-I$(ADDLINCLUDE)
+ifdef ADDL_INCLUDE
+	CFLAGS+=-I$(ADDL_INCLUDE)
 endif
 
 X16_ODIR = build/x16emu
