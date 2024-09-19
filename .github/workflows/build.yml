@@ -40,7 +40,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2
+          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2 mingw-w64-x86_64-fluidsynth
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
@@ -103,7 +103,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: make git mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2
+          install: make git mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2 mingw-w64-i686-fluidsynth
           path-type: inherit
       - uses: actions/setup-python@v5
         with:
@@ -165,7 +165,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
+        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev libfluidsynth-dev
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
@@ -241,7 +241,7 @@ jobs:
           copy_artifact_path: emu_binaries
           commands: |
             apt-get update
-            apt-get install -y build-essential make libsdl2-dev file git
+            apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev
             TRACE=1 make V=1 -j3
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
@@ -301,7 +301,7 @@ jobs:
           copy_artifact_path: emu_binaries
           commands: |
             apt-get update
-            apt-get install -y build-essential make libsdl2-dev file git
+            apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev
             TRACE=1 make V=1 -j3
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
@@ -333,7 +333,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Dependencies
         run: | 
-          brew install make sdl2 
+          brew install make sdl2 fluid-synth
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
@@ -383,7 +383,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Dependencies
         run: | 
-          brew install make sdl2 
+          brew install make sdl2 fluid-synth
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'

@@ -42,6 +42,7 @@
 #include "wav_recorder.h"
 #include "testbench.h"
 #include "cartridge.h"
+#include "midi.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -556,6 +557,7 @@ main(int argc, char **argv)
 	char *rom_path = rom_path_data;
 	char *prg_path = NULL;
 	char *bas_path = NULL;
+	char *sf2_path = NULL;
 	char *sdcard_path = NULL;
 	bool run_test = false;
 	int test_number = 0;
@@ -628,6 +630,15 @@ main(int argc, char **argv)
 				usage();
 			}
 			prg_path = argv[0];
+			argc--;
+			argv++;
+		} else if (!strcmp(argv[0], "-sf2")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			sf2_path = argv[0];
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-run")) {
@@ -1086,6 +1097,11 @@ main(int argc, char **argv)
 #else
 		audio_buffers = 32;
 #endif
+	}
+
+	if (sf2_path) {
+		midi_init();
+		midi_load_sf2((uint8_t *)sf2_path);
 	}
 
 	if (cartridge_path) {
