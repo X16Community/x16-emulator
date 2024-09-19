@@ -71,6 +71,7 @@ jobs:
           cp $(which zlib1.dll) emu_binaries/.
           cp $(which libwinpthread-1.dll) emu_binaries/.
           cp $(which libfluidsynth-3.dll) emu_binaries/.
+          cp $(which libgcc_s_seh-1.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
           cp makecart.exe emu_binaries/.
@@ -138,6 +139,7 @@ jobs:
           cp $(which zlib1.dll) emu_binaries/.
           cp $(which libwinpthread-1.dll) emu_binaries/.
           cp $(which libfluidsynth-3.dll) emu_binaries/.
+          cp $(which libgcc_s_seh-1.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
           cp x16emu.exe emu_binaries/.
           cp makecart.exe emu_binaries/.
