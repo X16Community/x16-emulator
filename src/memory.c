@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <inttypes.h>
 #include "glue.h"
 #include "via.h"
 #include "memory.h"

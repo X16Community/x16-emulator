@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "memory.h"
 #include "cpu/fake6502.h"
 #include "glue.h"
