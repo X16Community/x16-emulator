@@ -48,14 +48,13 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
-	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
-endif
-
-ifeq ($(CROSS_COMPILE_WINDOWS),1)
+	LDFLAGS=-L$(HOMEBREW_LIB) libSDL2.a libfluidsynth.a -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+else ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
 	# this enables printf() to show, but also forces a console window
 	LDFLAGS+=-Wl,--subsystem,console
 	LDFLAGS+=-static-libstdc++ -static-libgcc
+	LDFLAGS+=libSDL2.a libfluidsynth.a
 ifeq ($(TARGET_CPU),x86)
 	CC=i686-w64-mingw32-gcc
 	CXX=i686-w64-mingw32-g++
@@ -63,12 +62,13 @@ else
 	CC=x86_64-w64-mingw32-gcc
 	CXX=x86_64-w64-mingw32-g++
 endif
+else # Not Mac, not Windows, probably Linux
+	# Link static if possible, otherwise fall back to dynamic
+	LDFLAGS+=$(shell $(CC) -static -lfluidsynth &>/dev/null && /bin/echo "-Wl,-Bstatic -lfluidsynth -Wl,-Bdynamic" || /bin/echo "-lfluidsynth")
 endif
 
 ifdef TARGET_WIN32
 	LDFLAGS+=-ldwmapi
-else
-	LDFLAGS+=-ldl
 endif
 
 ifdef EMSCRIPTEN

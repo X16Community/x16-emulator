@@ -394,7 +394,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
+          TRACE=1 MAC_STATIC=1 HOMEBREW_LIB=/usr/local/lib make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
           cp x16emu emu_binaries/.
@@ -444,7 +444,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 MAC_STATIC=1 ADDL_INCLUDE=$(dirname $(find /opt/homebrew/Cellar/fluid-synth -name fluidsynth.h)) LIBSDL_FILE=/opt/homebrew/Cellar/sdl2/*/lib/libSDL2.a make V=1 -j3
+          TRACE=1 MAC_STATIC=1 ADDL_INCLUDE=/opt/homebrew/include HOMEBREW_LIB=/opt/homebew/lib make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
           cp x16emu emu_binaries/.
