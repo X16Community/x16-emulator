@@ -48,7 +48,7 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
-	LDFLAGS=$(shell for i in $$(brew deps --tree --installed fluid-synth | awk '{print $$NF}'); do brew list "$$i" | grep '.a$') $(HOMEBREW_LIB)/libSDL2.a -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+	LDFLAGS=$(shell for i in $$(brew deps --tree --installed fluid-synth | awk '{print $$NF}'); do brew list "$$i" | grep '.a$$') $(HOMEBREW_LIB)/libSDL2.a -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
 else ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
 	# this enables printf() to show, but also forces a console window
