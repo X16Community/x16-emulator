@@ -64,7 +64,7 @@ else
 endif
 else # Not Mac, not Windows, probably Linux
 	# Link static if possible, otherwise fall back to dynamic
-	LDFLAGS+=$(shell $(CC) -static -lfluidsynth &>/dev/null && /bin/echo "-Wl,-Bstatic -lfluidsynth -Wl,-Bdynamic" || /bin/echo "-lfluidsynth")
+	LDFLUID=$(shell $(CC) -static -lfluidsynth &>/dev/null && /bin/echo "-Wl,-Bstatic -lfluidsynth -Wl,-Bdynamic" || /bin/echo "-lfluidsynth")
 endif
 
 ifdef TARGET_WIN32
@@ -99,7 +99,7 @@ MAKECART_DEPS := $(MAKECART_OBJS:.o=.d)
 all: x16emu makecart
 
 x16emu: $(X16_OBJS)
-	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS)
+	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS) $(LDFLUID)
 
 $(X16_ODIR)/%.o: $(X16_SDIR)/%.c
 	@mkdir -p $$(dirname $@)

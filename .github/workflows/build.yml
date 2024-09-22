@@ -223,6 +223,8 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
+          dpkg-query -L libfluidsynth-dev
+          dpkg-query -L libfluidsynth2
           TRACE=1 make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
