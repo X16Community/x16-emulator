@@ -205,13 +205,23 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev libfluidsynth-dev
+        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev cmake
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
           gh run download -R X16Community/x16-rom -n "ROM Image" --dir latest_rom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull down and build FluidSynth
+        run: |
+          sudo apt-get build-dep fluidsynth --no-install-recommends
+          git clone https://github.com/FluidSynth/fluidsynth.git
+          cd fluidsynth
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=0
+          make libfluidsynth
+          sudo make install
       - name: Fetch latest release ROM
         if: startsWith(github.ref, 'refs/tags/r')
         run: |
@@ -223,8 +233,6 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          dpkg-query -L libfluidsynth-dev
-          dpkg-query -L libfluidsynth2
           TRACE=1 make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
