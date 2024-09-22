@@ -214,7 +214,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull down and build FluidSynth
         run: |
-          sudo apt-get build-dep fluidsynth --no-install-recommends
+          sudo apt-get build-dep fluidsynth2 --no-install-recommends
           git clone https://github.com/FluidSynth/fluidsynth.git
           cd fluidsynth
           mkdir build
