@@ -48,13 +48,13 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
-	LDFLAGS=$(shell for i in $$(brew deps --tree --installed fluid-synth | awk '{print $$NF}'); do brew list "$$i" | grep '\.a$$'; done) $(HOMEBREW_LIB)/libSDL2.a -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+	LDFLAGS+=$(HOMEBREW_LIB)/libSDL2.a -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+	LDEMU=-ldl -Wl,-rpath,$(HOMEBREW_LIB)
 else ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
 	# this enables printf() to show, but also forces a console window
 	LDFLAGS+=-Wl,--subsystem,console
 	LDFLAGS+=-static-libstdc++ -static-libgcc
-	LDFLAGS+=-Wl,-Bstatic -lSDL2 -lfluidsynth -Wl,-Bdynamic
 ifeq ($(TARGET_CPU),x86)
 	CC=i686-w64-mingw32-gcc
 	CXX=i686-w64-mingw32-g++
@@ -63,8 +63,7 @@ else
 	CXX=x86_64-w64-mingw32-g++
 endif
 else # Not Mac, not Windows, probably Linux
-	# Link static if possible, otherwise fall back to dynamic
-	LDFLUID=$(shell $(CC) -static -lfluidsynth &>/dev/null && /bin/echo "-Wl,-Bstatic -lfluidsynth -Wl,-Bdynamic" || /bin/echo "-lfluidsynth")
+	LDEMU=-ldl
 endif
 
 ifdef TARGET_WIN32
@@ -99,7 +98,7 @@ MAKECART_DEPS := $(MAKECART_OBJS:.o=.d)
 all: x16emu makecart
 
 x16emu: $(X16_OBJS)
-	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS) $(LDFLUID)
+	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS) $(LDEMU)
 
 $(X16_ODIR)/%.o: $(X16_SDIR)/%.c
 	@mkdir -p $$(dirname $@)

@@ -50,11 +50,75 @@ static fluid_audio_driver_t* fl_adriver;
 static fluid_synth_t* fl_synth;
 static int fl_sf2id;
 
+typedef fluid_settings_t* (*new_fluid_settings_f_t)(void);
+typedef fluid_synth_t* (*new_fluid_synth_f_t)(fluid_settings_t*);
+typedef fluid_audio_driver_t* (*new_fluid_audio_driver_f_t)(fluid_settings_t*, fluid_synth_t*);
+typedef int (*fluid_synth_sfload_f_t)(fluid_synth_t*,const char *,int);
+typedef int (*fluid_synth_program_change_f_t)(fluid_synth_t*, int, int);
+typedef int (*fluid_synth_channel_pressure_f_t)(fluid_synth_t*, int, int);
+typedef int (*fluid_synth_system_reset_f_t)(fluid_synth_t*);
+typedef int (*fluid_synth_noteoff_f_t)(fluid_synth_t*, int, int);
+typedef int (*fluid_synth_noteon_f_t)(fluid_synth_t*, int, int, int);
+typedef int (*fluid_synth_key_pressure_f_t)(fluid_synth_t*, int, int, int);
+typedef int (*fluid_synth_cc_f_t)(fluid_synth_t*, int, int, int);
+typedef int (*fluid_synth_pitch_bend_f_t)(fluid_synth_t*, int, int);
+typedef int (*fluid_synth_sysex_f_t)(fluid_synth_t*, const char*, int, char*, int*, int*, int);
+
+static new_fluid_settings_f_t dl_new_fluid_settings;
+static new_fluid_synth_f_t dl_new_fluid_synth;
+static new_fluid_audio_driver_f_t dl_new_fluid_audio_driver;
+static fluid_synth_sfload_f_t dl_fs_sfload;
+static fluid_synth_program_change_f_t dl_fs_program_change;
+static fluid_synth_channel_pressure_f_t dl_fs_channel_pressure;
+static fluid_synth_system_reset_f_t dl_fs_system_reset;
+static fluid_synth_noteoff_f_t dl_fs_noteoff;
+static fluid_synth_noteon_f_t dl_fs_noteon;
+static fluid_synth_key_pressure_f_t dl_fs_key_pressure;
+static fluid_synth_cc_f_t dl_fs_cc;
+static fluid_synth_pitch_bend_f_t dl_fs_pitch_bend;
+static fluid_synth_sysex_f_t dl_fs_sysex;
+
 void midi_init()
 {
-    fl_settings = new_fluid_settings();
-    fl_synth = new_fluid_synth(fl_settings);
-    fl_adriver = new_fluid_audio_driver(fl_settings, fl_synth);
+#ifdef _WIN32
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth-3.dll");
+#elif __APPLE__
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.dylib");
+#else
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so");
+#endif
+
+    if (!handle) {
+        // Handle the error on both platforms
+#ifdef _WIN32
+        fprintf(stderr, "Could not load MIDI synth library: error code %lu\n", GetLastError());
+#else
+        fprintf(stderr, "Could not load MIDI synth library: %s\n", dlerror());
+#endif
+        return;
+    }
+
+#ifndef _WIN32
+    dlerror();
+#endif
+
+    ASSIGN_FUNCTION(handle, dl_new_fluid_settings, "new_fluid_settings");
+    ASSIGN_FUNCTION(handle, dl_new_fluid_synth, "new_fluid_synth");
+    ASSIGN_FUNCTION(handle, dl_new_fluid_audio_driver, "new_fluid_audio_driver");
+    ASSIGN_FUNCTION(handle, dl_fs_sfload, "fluid_synth_sfload");
+    ASSIGN_FUNCTION(handle, dl_fs_program_change, "fluid_synth_program_change");
+    ASSIGN_FUNCTION(handle, dl_fs_channel_pressure, "fluid_synth_channel_pressure");
+    ASSIGN_FUNCTION(handle, dl_fs_system_reset, "fluid_synth_system_reset");
+    ASSIGN_FUNCTION(handle, dl_fs_noteoff, "fluid_synth_noteoff");
+    ASSIGN_FUNCTION(handle, dl_fs_noteon, "fluid_synth_noteon");
+    ASSIGN_FUNCTION(handle, dl_fs_key_pressure, "fluid_synth_key_pressure");
+    ASSIGN_FUNCTION(handle, dl_fs_cc, "fluid_synth_cc");
+    ASSIGN_FUNCTION(handle, dl_fs_pitch_bend, "fluid_synth_pitch_bend");
+    ASSIGN_FUNCTION(handle, dl_fs_sysex, "fluid_synth_sysex");
+
+    fl_settings = dl_new_fluid_settings();
+    fl_synth = dl_new_fluid_synth(fl_settings);
+    fl_adriver = dl_new_fluid_audio_driver(fl_settings, fl_synth);
 
     midi_initialized = true;
     printf("Initialized MIDI synth.\n");
@@ -63,7 +127,7 @@ void midi_init()
 void midi_load_sf2(uint8_t* filename)
 {
     if (!midi_initialized) return;
-    fl_sf2id = fluid_synth_sfload(fl_synth, (const char *)filename, true);
+    fl_sf2id = dl_fs_sfload(fl_synth, (const char *)filename, true);
     if (fl_sf2id == FLUID_FAILED) {
         printf("Unable to load soundfont.\n");
     }
@@ -79,9 +143,9 @@ void midi_byte(uint8_t b)
         case NORMAL:
             if (b < 0x80) {
                 if ((midi_last_command & 0xf0) == 0xc0) { // patch change
-                    fluid_synth_program_change(fl_synth, midi_last_command & 0xf, b);
+                    dl_fs_program_change(fl_synth, midi_last_command & 0xf, b);
                 } else if ((midi_last_command & 0xf0) == 0xd0) { // channel pressure
-                    fluid_synth_channel_pressure(fl_synth, midi_last_command & 0xf, b);
+                    dl_fs_channel_pressure(fl_synth, midi_last_command & 0xf, b);
                 } else if (midi_last_command >= 0x80) { // two-param command
                     midi_first_param = b;
                     midi_state = PARAM;
@@ -93,7 +157,7 @@ void midi_byte(uint8_t b)
                     sysex_bufptr = 0;
                     midi_state = SYSEX;
                 } else if (b == 0xff) {
-                    fluid_synth_system_reset(fl_synth);
+                    dl_fs_system_reset(fl_synth);
                     midi_last_command = 0;
                 }
             }
@@ -101,23 +165,23 @@ void midi_byte(uint8_t b)
         case PARAM:
             switch (midi_last_command & 0xf0) {
                 case 0x80: // note off
-                    fluid_synth_noteoff(fl_synth, midi_last_command & 0xf, midi_first_param); // no release velocity
+                    dl_fs_noteoff(fl_synth, midi_last_command & 0xf, midi_first_param); // no release velocity
                     break;
                 case 0x90: // note on
                     if (b == 0) {
-                        fluid_synth_noteoff(fl_synth, midi_last_command & 0xf, midi_first_param);
+                        dl_fs_noteoff(fl_synth, midi_last_command & 0xf, midi_first_param);
                     } else {
-                        fluid_synth_noteon(fl_synth, midi_last_command & 0xf, midi_first_param, b);
+                        dl_fs_noteon(fl_synth, midi_last_command & 0xf, midi_first_param, b);
                     }
                     break;
                 case 0xa0: // aftertouch
-                    fluid_synth_key_pressure(fl_synth, midi_last_command & 0xf, midi_first_param, b);
+                    dl_fs_key_pressure(fl_synth, midi_last_command & 0xf, midi_first_param, b);
                     break;
                 case 0xb0: // controller
-                    fluid_synth_cc(fl_synth, midi_last_command & 0xf, midi_first_param, b);
+                    dl_fs_cc(fl_synth, midi_last_command & 0xf, midi_first_param, b);
                     break;
                 case 0xe0: // pitch bend
-                    fluid_synth_pitch_bend(fl_synth, midi_last_command & 0xf, ((uint16_t)midi_first_param) | (uint16_t)b << 7);
+                    dl_fs_pitch_bend(fl_synth, midi_last_command & 0xf, ((uint16_t)midi_first_param) | (uint16_t)b << 7);
                     break;
             }
             midi_state = NORMAL;
@@ -125,7 +189,7 @@ void midi_byte(uint8_t b)
         case SYSEX:
             if (b == 0xf7) {
                 sysex_buffer[sysex_bufptr] = 0;
-                fluid_synth_sysex(fl_synth, (const char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
+                dl_fs_sysex(fl_synth, (const char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
                 midi_state = NORMAL;
             } else {
                 sysex_buffer[sysex_bufptr++] = b;
