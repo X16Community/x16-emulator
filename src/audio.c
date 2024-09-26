@@ -292,8 +292,8 @@ audio_render()
 		// Don't resample VERA outputs if the host sample rate is as desired
 		if (host_sample_rate == AUDIO_SAMPLERATE) {
 			pos = (vera_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
-			vera_out_l = ((int32_t)psg_buf[pos] + pcm_buf[pos]) << 14;
-			vera_out_r = ((int32_t)psg_buf[pos + 1] + pcm_buf[pos + 1]) << 14;
+			vera_out_l = ((uint32_t)psg_buf[pos] + pcm_buf[pos]) << 14;
+			vera_out_r = ((uint32_t)psg_buf[pos + 1] + pcm_buf[pos + 1]) << 14;
 		} else {
 			filter_idx = (vera_samp_pos_rd >> (SAMP_POS_FRAC_BITS - 8)) & 0xff;
 			pos = (vera_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;

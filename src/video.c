@@ -838,8 +838,8 @@ render_layer_line_tile(uint8_t layer, uint16_t y)
 	const int     eff_y               = calc_layer_eff_y(props0, y);
 	const uint8_t yy                  = eff_y & props->tileh_max;
 	const uint8_t yy_flip             = yy ^ props->tileh_max;
-	const uint32_t y_add              = (yy << (props->tilew_log2 + props->color_depth - 3));
-	const uint32_t y_add_flip         = (yy_flip << (props->tilew_log2 + props->color_depth - 3));
+	const uint32_t y_add              = (yy << ((props->tilew_log2 + props->color_depth - 3) & 31));
+	const uint32_t y_add_flip         = (yy_flip << ((props->tilew_log2 + props->color_depth - 3) & 31));
 
 	const uint32_t map_addr_begin = calc_layer_map_addr_base2(props, props->min_eff_x, eff_y);
 	const uint32_t map_addr_end   = calc_layer_map_addr_base2(props, props->max_eff_x, eff_y);
