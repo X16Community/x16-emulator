@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include "sdcard.h"
 #include "files.h"
 

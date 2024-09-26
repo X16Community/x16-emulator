@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-#include <Windows.h>
+#include <windows.h>
 #include <dwmapi.h>
 
 void video_win32_set_rounded_corners(SDL_Window *window)
