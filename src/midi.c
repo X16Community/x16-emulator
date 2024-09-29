@@ -120,6 +120,7 @@ struct midi_serial_regs
 #undef LOW_HIGH_UNION
 
 struct midi_serial_regs mregs[2];
+static bool serial_midi_mutexes_initialized = false;
 
 #ifndef __EMSCRIPTEN__
 
@@ -131,7 +132,6 @@ static uint8_t midi_last_command = 0;
 static uint8_t midi_first_param;
 
 static bool midi_initialized = false;
-static bool serial_midi_mutexes_initialized = false;
 
 static fluid_settings_t* fl_settings;
 //static fluid_midi_driver_t* fl_mdriver;

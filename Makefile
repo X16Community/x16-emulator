@@ -18,7 +18,7 @@ endif
 
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
-LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
+LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -pthread
 
 # build with link time optimization
 ifndef NOLTO
