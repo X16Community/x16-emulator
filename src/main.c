@@ -333,6 +333,7 @@ machine_reset()
 	video_reset();
 	mouse_state_init();
 	reset6502(regs.is65c816);
+	midi_serial_init();
 }
 
 void
@@ -1602,6 +1603,8 @@ emulator_loop(void *param)
 		if (!headless) {
 			audio_step(clocks);
 		}
+
+		midi_serial_step(clocks);
 
 		if (!headless && new_frame) {
 			if (nvram_dirty && nvram_path) {
