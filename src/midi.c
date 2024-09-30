@@ -305,7 +305,11 @@ void midi_byte(uint8_t b)
 }
 
 void midi_synth_render(int16_t* buf, int len) {
-    dl_fs_write_s16(fl_synth, len, buf, 0, 2, buf, 1, 2);
+    if (midi_initialized) {
+        dl_fs_write_s16(fl_synth, len, buf, 0, 2, buf, 1, 2);
+    } else {
+        memset(buf, 0, len * 2 * sizeof(int16_t));
+    }
 }
 
 #else
