@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include "glue.h"
 #include "midi.h"
+#include "audio.h"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -135,14 +136,15 @@ static bool midi_initialized = false;
 
 static fluid_settings_t* fl_settings;
 //static fluid_midi_driver_t* fl_mdriver;
-static fluid_audio_driver_t* fl_adriver;
+//static fluid_audio_driver_t* fl_adriver;
 static fluid_synth_t* fl_synth;
 static int fl_sf2id;
 
 typedef fluid_settings_t* (*new_fluid_settings_f_t)(void);
 typedef fluid_synth_t* (*new_fluid_synth_f_t)(fluid_settings_t*);
 typedef fluid_audio_driver_t* (*new_fluid_audio_driver_f_t)(fluid_settings_t*, fluid_synth_t*);
-typedef int (*fluid_synth_sfload_f_t)(fluid_synth_t*,const char *,int);
+typedef int (*fluid_settings_setnum_f_t)(fluid_settings_t*,const char *, double);
+typedef int (*fluid_synth_sfload_f_t)(fluid_synth_t*, const char *, int);
 typedef int (*fluid_synth_program_change_f_t)(fluid_synth_t*, int, int);
 typedef int (*fluid_synth_channel_pressure_f_t)(fluid_synth_t*, int, int);
 typedef int (*fluid_synth_system_reset_f_t)(fluid_synth_t*);
@@ -152,10 +154,12 @@ typedef int (*fluid_synth_key_pressure_f_t)(fluid_synth_t*, int, int, int);
 typedef int (*fluid_synth_cc_f_t)(fluid_synth_t*, int, int, int);
 typedef int (*fluid_synth_pitch_bend_f_t)(fluid_synth_t*, int, int);
 typedef int (*fluid_synth_sysex_f_t)(fluid_synth_t*, const char*, int, char*, int*, int*, int);
+typedef int (*fluid_synth_write_s16_f_t)(fluid_synth_t*, int, void*, int, int, void*, int, int);
 
 static new_fluid_settings_f_t dl_new_fluid_settings;
 static new_fluid_synth_f_t dl_new_fluid_synth;
 static new_fluid_audio_driver_f_t dl_new_fluid_audio_driver;
+static fluid_settings_setnum_f_t dl_fluid_settings_setnum;
 static fluid_synth_sfload_f_t dl_fs_sfload;
 static fluid_synth_program_change_f_t dl_fs_program_change;
 static fluid_synth_channel_pressure_f_t dl_fs_channel_pressure;
@@ -166,6 +170,7 @@ static fluid_synth_key_pressure_f_t dl_fs_key_pressure;
 static fluid_synth_cc_f_t dl_fs_cc;
 static fluid_synth_pitch_bend_f_t dl_fs_pitch_bend;
 static fluid_synth_sysex_f_t dl_fs_sysex;
+static fluid_synth_write_s16_f_t dl_fs_write_s16;
 
 void midi_init()
 {
@@ -198,6 +203,7 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_new_fluid_settings, "new_fluid_settings");
     ASSIGN_FUNCTION(handle, dl_new_fluid_synth, "new_fluid_synth");
     ASSIGN_FUNCTION(handle, dl_new_fluid_audio_driver, "new_fluid_audio_driver");
+    ASSIGN_FUNCTION(handle, dl_fluid_settings_setnum, "fluid_settings_setnum");
     ASSIGN_FUNCTION(handle, dl_fs_sfload, "fluid_synth_sfload");
     ASSIGN_FUNCTION(handle, dl_fs_program_change, "fluid_synth_program_change");
     ASSIGN_FUNCTION(handle, dl_fs_channel_pressure, "fluid_synth_channel_pressure");
@@ -208,10 +214,11 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_fs_cc, "fluid_synth_cc");
     ASSIGN_FUNCTION(handle, dl_fs_pitch_bend, "fluid_synth_pitch_bend");
     ASSIGN_FUNCTION(handle, dl_fs_sysex, "fluid_synth_sysex");
+    ASSIGN_FUNCTION(handle, dl_fs_write_s16, "fluid_synth_write_s16");
 
     fl_settings = dl_new_fluid_settings();
+    dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", AUDIO_SAMPLERATE);
     fl_synth = dl_new_fluid_synth(fl_settings);
-    fl_adriver = dl_new_fluid_audio_driver(fl_settings, fl_synth);
 
     midi_initialized = true;
     printf("Initialized MIDI synth.\n");
@@ -297,6 +304,10 @@ void midi_byte(uint8_t b)
     }
 }
 
+void midi_synth_render(int16_t* buf, int len) {
+    dl_fs_write_s16(fl_synth, len, buf, 0, 2, buf, 1, 2);
+}
+
 #else
 void midi_load_sf2(uint8_t* filename)
 {
@@ -311,6 +322,11 @@ void midi_init()
 void midi_byte(uint8_t b)
 {
     // no-op
+}
+
+void midi_synth_render(int16_t* buf, int len) {
+    // no synth, return zeroed buffer
+    memset(buf, 0, len * 2 * sizeof(int16_t));
 }
 
 #endif

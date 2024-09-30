@@ -8,6 +8,7 @@
 #include "vera_pcm.h"
 #include "wav_recorder.h"
 #include "ymglue.h"
+#include "midi.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +24,7 @@
 
 #define VERA_SAMP_CLKS_PER_CPU_CLK ((25000000ULL << SAMP_POS_FRAC_BITS) / 512 / MHZ / 1000000)
 #define YM_SAMP_CLKS_PER_CPU_CLK ((3579545ULL << SAMP_POS_FRAC_BITS) / 64 / MHZ / 1000000)
+#define FS_SAMP_CLKS_PER_CPU_CLK VERA_SAMP_CLKS_PER_CPU_CLK
 #define SAMPLE_BYTES (2 * sizeof(int16_t))
 #define SAMP_POS_MASK (SAMPLES_PER_BUFFER - 1)
 #define SAMP_POS_MASK_FRAC (((uint32_t)SAMPLES_PER_BUFFER << SAMP_POS_FRAC_BITS) - 1)
@@ -75,13 +77,18 @@ static uint32_t vera_samp_pos_hd = 0;
 static uint32_t ym_samp_pos_rd = 0;
 static uint32_t ym_samp_pos_wr = 0;
 static uint32_t ym_samp_pos_hd = 0;
+static uint32_t fs_samp_pos_rd = 0;
+static uint32_t fs_samp_pos_wr = 0;
+static uint32_t fs_samp_pos_hd = 0;
 static uint32_t vera_samps_per_host_samps = 0;
 static uint32_t ym_samps_per_host_samps = 0;
+static uint32_t fs_samps_per_host_samps = 0;
 static uint32_t limiter_amp = 0;
 
 static int16_t psg_buf[2 * SAMPLES_PER_BUFFER];
 static int16_t pcm_buf[2 * SAMPLES_PER_BUFFER];
 static int16_t ym_buf[2 * SAMPLES_PER_BUFFER];
+static int16_t fs_buf[2 * SAMPLES_PER_BUFFER];
 
 uint32_t host_sample_rate = 0;
 
@@ -181,17 +188,22 @@ audio_init(const char *dev_name, int num_audio_buffers)
 	host_sample_rate = obtained.freq;
 	vera_samps_per_host_samps = ((25000000ULL << SAMP_POS_FRAC_BITS) / 512 / host_sample_rate);
 	ym_samps_per_host_samps = ((3579545ULL << SAMP_POS_FRAC_BITS) / 64 / host_sample_rate);
+	fs_samps_per_host_samps = vera_samps_per_host_samps;
 	vera_samp_pos_rd = 0;
 	vera_samp_pos_wr = 0;
 	vera_samp_pos_hd = 0;
 	ym_samp_pos_rd = 0;
 	ym_samp_pos_wr = 0;
 	ym_samp_pos_hd = 0;
+	fs_samp_pos_rd = 0;
+	fs_samp_pos_wr = 0;
+	fs_samp_pos_hd = 0;
 	limiter_amp = (1 << 16);
 
 	psg_buf[0] = psg_buf[1] = 0;
 	pcm_buf[0] = pcm_buf[1] = 0;
 	ym_buf[0] = ym_buf[1] = 0;
+	fs_buf[0] = fs_buf[1] = 0;
 
 	// Start playback
 	SDL_PauseAudioDevice(audio_dev, 0);
@@ -228,6 +240,7 @@ audio_step(int cpu_clocks)
 		uint32_t max_cpu_clks = SDL_min(cpu_clocks, max_cpu_clks_ym);
 		vera_samp_pos_hd = (vera_samp_pos_hd + max_cpu_clks * VERA_SAMP_CLKS_PER_CPU_CLK) & SAMP_POS_MASK_FRAC;
 		ym_samp_pos_hd = (ym_samp_pos_hd + max_cpu_clks * YM_SAMP_CLKS_PER_CPU_CLK) & SAMP_POS_MASK_FRAC;
+		fs_samp_pos_hd = (fs_samp_pos_hd + max_cpu_clks * FS_SAMP_CLKS_PER_CPU_CLK) & SAMP_POS_MASK_FRAC;
 		cpu_clocks -= max_cpu_clks;
 		if (cpu_clocks > 0) audio_render();
 	}
@@ -271,16 +284,31 @@ audio_render()
 		YM_stream_update((uint16_t *)&ym_buf[pos * 2], len);
 	}
 
+	pos = (fs_samp_pos_wr + 1) & SAMP_POS_MASK;
+	len = ((fs_samp_pos_hd >> SAMP_POS_FRAC_BITS) - fs_samp_pos_wr) & SAMP_POS_MASK;
+	fs_samp_pos_wr = fs_samp_pos_hd >> SAMP_POS_FRAC_BITS;
+	if ((pos + len) > SAMPLES_PER_BUFFER) {
+		midi_synth_render(&fs_buf[pos * 2], SAMPLES_PER_BUFFER - pos);
+		len -= SAMPLES_PER_BUFFER - pos;
+		pos = 0;
+	}
+	if (len > 0) {
+		midi_synth_render(&fs_buf[pos * 2], len);
+	}
+
 	uint32_t wridx_old = wridx;
 	uint32_t len_vera = (vera_samp_pos_hd - vera_samp_pos_rd) & SAMP_POS_MASK_FRAC;
 	uint32_t len_ym = (ym_samp_pos_hd - ym_samp_pos_rd) & SAMP_POS_MASK_FRAC;
-	if (len_vera < (4 << SAMP_POS_FRAC_BITS) || len_ym < (4 << SAMP_POS_FRAC_BITS)) {
+	uint32_t len_fs = (fs_samp_pos_hd - fs_samp_pos_rd) & SAMP_POS_MASK_FRAC;
+	if (len_vera < (4 << SAMP_POS_FRAC_BITS) || len_ym < (4 << SAMP_POS_FRAC_BITS) || len_fs < (4 << SAMP_POS_FRAC_BITS)) {
 		// not enough samples yet, at least 4 are needed for the filter
 		return;
 	}
 	len_vera = (len_vera - (4 << SAMP_POS_FRAC_BITS)) / vera_samps_per_host_samps;
 	len_ym = (len_ym - (4 << SAMP_POS_FRAC_BITS)) / ym_samps_per_host_samps;
+	len_fs = (len_fs - (4 << SAMP_POS_FRAC_BITS)) / fs_samps_per_host_samps;
 	len = SDL_min(len_vera, len_ym);
+	len = SDL_min(len, len_fs);
 	SDL_LockAudioDevice(audio_dev);
 	for (int i = 0; i < len; i++) {
 		int32_t samp[8];
@@ -289,6 +317,8 @@ audio_render()
 		int32_t vera_out_r = 0;
 		int32_t ym_out_l = 0;
 		int32_t ym_out_r = 0;
+		int32_t fs_out_l = 0;
+		int32_t fs_out_r = 0;
 		// Don't resample VERA outputs if the host sample rate is as desired
 		if (host_sample_rate == AUDIO_SAMPLERATE) {
 			pos = (vera_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
@@ -326,11 +356,33 @@ audio_render()
 		ym_out_r += samp[5] * filter[255 - filter_idx];
 		ym_out_l += samp[6] * filter[511 - filter_idx];
 		ym_out_r += samp[7] * filter[511 - filter_idx];
-		// Mixing is according to the Developer Board
+		// Don't resample MIDI synth outputs if the host sample rate matches it
+		if (host_sample_rate == AUDIO_SAMPLERATE) {
+			pos = (fs_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
+			fs_out_l = (uint32_t)fs_buf[pos] << 14;
+			fs_out_r = (uint32_t)fs_buf[pos + 1] << 14;
+		} else {
+			filter_idx = (fs_samp_pos_rd >> (SAMP_POS_FRAC_BITS - 8)) & 0xff;
+			pos = (fs_samp_pos_rd >> SAMP_POS_FRAC_BITS) * 2;
+			for (int j = 0; j < 8; j += 2) {
+				samp[j] = fs_buf[pos];
+				samp[j + 1] = fs_buf[pos + 1];
+				pos = (pos + 2) & (SAMP_POS_MASK * 2);
+			}
+			fs_out_l += samp[0] * filter[256 + filter_idx];
+			fs_out_r += samp[1] * filter[256 + filter_idx];
+			fs_out_l += samp[2] * filter[  0 + filter_idx];
+			fs_out_r += samp[3] * filter[  0 + filter_idx];
+			fs_out_l += samp[4] * filter[255 - filter_idx];
+			fs_out_r += samp[5] * filter[255 - filter_idx];
+			fs_out_l += samp[6] * filter[511 - filter_idx];
+			fs_out_r += samp[7] * filter[511 - filter_idx];
+		}
+		// VERA+YM mixing is according to the Developer Board
 		// Loudest single PSG channel is 1/8 times the max output
-		// mix = (psg + pcm) * 2 + ym
-		int32_t mix_l = (vera_out_l >> 13) + (ym_out_l >> 15);
-		int32_t mix_r = (vera_out_r >> 13) + (ym_out_r >> 15);
+		// mix = (psg + pcm) * 2 + ym + fs
+		int32_t mix_l = (vera_out_l >> 13) + (ym_out_l >> 15) + (fs_out_l >> 13);
+		int32_t mix_r = (vera_out_r >> 13) + (ym_out_r >> 15) + (fs_out_r >> 13);
 		uint32_t amp = SDL_max(SDL_abs(mix_l), SDL_abs(mix_r));
 		if (amp > 32767) {
 			uint32_t limiter_amp_new = (32767 << 16) / amp;
@@ -341,6 +393,7 @@ audio_render()
 		if (limiter_amp < (1 << 16)) limiter_amp++;
 		vera_samp_pos_rd = (vera_samp_pos_rd + vera_samps_per_host_samps) & SAMP_POS_MASK_FRAC;
 		ym_samp_pos_rd = (ym_samp_pos_rd + ym_samps_per_host_samps) & SAMP_POS_MASK_FRAC;
+		fs_samp_pos_rd = (fs_samp_pos_rd + fs_samps_per_host_samps) & SAMP_POS_MASK_FRAC;
 		if (wridx == buffer_size) {
 			wav_recorder_process(&buffer[wridx_old], (buffer_size - wridx_old) / 2);
 			wridx = 0;
@@ -367,6 +420,10 @@ audio_render()
 	skip = len_ym - len;
 	if (skip > 1) {
 		ym_samp_pos_rd = (ym_samp_pos_rd + ym_samps_per_host_samps) & SAMP_POS_MASK_FRAC;
+	}
+	skip = len_fs - len;
+	if (skip > 1) {
+		fs_samp_pos_rd = (fs_samp_pos_rd + fs_samps_per_host_samps) & SAMP_POS_MASK_FRAC;
 	}
 }
 
