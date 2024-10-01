@@ -361,6 +361,93 @@ void midi_synth_render(int16_t* buf, int len)
     }
 }
 
+void midi_event_enqueue_byte(struct midi_serial_regs* mrp, uint8_t val)
+{
+    mrp->in_midi_last_command = 0;
+    if (mrp->mfsz >= 256) return;
+    mrp->midi_event_fifo[mrp->mfsz++] = val;
+}
+
+void midi_event_enqueue_short(struct midi_serial_regs* mrp, uint8_t cmd, uint8_t val)
+{
+    if (mrp->mfsz >= 255) {
+        mrp->in_midi_last_command = 0;
+        return;
+    }
+    if (mrp->in_midi_last_command != cmd) {
+        mrp->midi_event_fifo[mrp->mfsz++] = cmd;
+        mrp->in_midi_last_command = cmd;
+    }
+    mrp->midi_event_fifo[mrp->mfsz++] = val;
+}
+
+void midi_event_enqueue_normal(struct midi_serial_regs* mrp, uint8_t cmd, uint8_t key, uint8_t val)
+{
+    if (mrp->mfsz >= 254) {
+        mrp->in_midi_last_command = 0;
+        return;
+    }
+    if (mrp->in_midi_last_command != cmd) {
+        mrp->midi_event_fifo[mrp->mfsz++] = cmd;
+        mrp->in_midi_last_command = cmd;
+    }
+    mrp->midi_event_fifo[mrp->mfsz++] = key;
+    mrp->midi_event_fifo[mrp->mfsz++] = val;
+}
+
+int handle_midi_event(void* data, fluid_midi_event_t* event)
+{
+    struct midi_serial_regs* mrp = (struct midi_serial_regs*)data;
+    pthread_mutex_lock(&mrp->fifo_mutex);
+
+    uint8_t type = dl_fluid_midi_event_get_type(event);
+    uint8_t chan = dl_fluid_midi_event_get_channel(event);
+    uint8_t cmd = type | chan;
+    uint8_t key, val;
+
+    switch (type) {
+        case NOTE_OFF:
+        case NOTE_ON:
+            key = dl_fluid_midi_event_get_key(event);
+            val = dl_fluid_midi_event_get_velocity(event);
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case KEY_PRESSURE:
+            key = dl_fluid_midi_event_get_key(event);
+            val = dl_fluid_midi_event_get_value(event);
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case CONTROL_CHANGE:
+            key = dl_fluid_midi_event_get_control(event);
+            val = dl_fluid_midi_event_get_value(event);
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case PITCH_BEND:
+            key = dl_fluid_midi_event_get_pitch(event) & 0x7f;
+            val = (dl_fluid_midi_event_get_pitch(event) >> 7) & 0x7f;
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case PROGRAM_CHANGE:
+        case CHANNEL_PRESSURE:
+            val = dl_fluid_midi_event_get_program(event);
+            midi_event_enqueue_short(mrp, cmd, val);
+            break;
+        case MIDI_SYNC:
+        case MIDI_TUNE_REQUEST:
+        case MIDI_START:
+        case MIDI_CONTINUE:
+        case MIDI_STOP:
+        case MIDI_ACTIVE_SENSING:
+        case MIDI_SYSTEM_RESET:
+            midi_event_enqueue_byte(mrp, type);
+            break;
+    }
+
+    pthread_mutex_unlock(&mrp->fifo_mutex);
+    return FLUID_OK;
+}
+
+
 #else
 void midi_load_sf2(uint8_t* filename)
 {
@@ -826,90 +913,4 @@ void midi_serial_write(uint8_t reg, uint8_t val)
             mregs[sel].scratch = val;
             break;
     }
-}
-
-void midi_event_enqueue_byte(struct midi_serial_regs* mrp, uint8_t val)
-{
-    if (mrp->mfsz >= 256) return;
-    mrp->midi_event_fifo[mrp->mfsz++] = val;
-    mrp->in_midi_last_command = 0;
-}
-
-void midi_event_enqueue_short(struct midi_serial_regs* mrp, uint8_t cmd, uint8_t val)
-{
-    if (mrp->mfsz >= 255) {
-        mrp->in_midi_last_command = 0;
-        return;
-    }
-    if (mrp->in_midi_last_command != cmd) {
-        mrp->midi_event_fifo[mrp->mfsz++] = cmd;
-        mrp->in_midi_last_command = cmd;
-    }
-    mrp->midi_event_fifo[mrp->mfsz++] = val;
-}
-
-void midi_event_enqueue_normal(struct midi_serial_regs* mrp, uint8_t cmd, uint8_t key, uint8_t val)
-{
-    if (mrp->mfsz >= 254) {
-        mrp->in_midi_last_command = 0;
-        return;
-    }
-    if (mrp->in_midi_last_command != cmd) {
-        mrp->midi_event_fifo[mrp->mfsz++] = cmd;
-        mrp->in_midi_last_command = cmd;
-    }
-    mrp->midi_event_fifo[mrp->mfsz++] = key;
-    mrp->midi_event_fifo[mrp->mfsz++] = val;
-}
-
-int handle_midi_event(void* data, fluid_midi_event_t* event)
-{
-    struct midi_serial_regs* mrp = (struct midi_serial_regs*)data;
-    pthread_mutex_lock(&mrp->fifo_mutex);
-
-    uint8_t type = dl_fluid_midi_event_get_type(event);
-    uint8_t chan = dl_fluid_midi_event_get_channel(event);
-    uint8_t cmd = type | chan;
-    uint8_t key, val;
-
-    switch (type) {
-        case NOTE_OFF:
-        case NOTE_ON:
-            key = dl_fluid_midi_event_get_key(event);
-            val = dl_fluid_midi_event_get_velocity(event);
-            midi_event_enqueue_normal(mrp, cmd, key, val);
-            break;
-        case KEY_PRESSURE:
-            key = dl_fluid_midi_event_get_key(event);
-            val = dl_fluid_midi_event_get_value(event);
-            midi_event_enqueue_normal(mrp, cmd, key, val);
-            break;
-        case CONTROL_CHANGE:
-            key = dl_fluid_midi_event_get_control(event);
-            val = dl_fluid_midi_event_get_value(event);
-            midi_event_enqueue_normal(mrp, cmd, key, val);
-            break;
-        case PITCH_BEND:
-            key = dl_fluid_midi_event_get_pitch(event) & 0x7f;
-            val = (dl_fluid_midi_event_get_pitch(event) >> 7) & 0x7f;
-            midi_event_enqueue_normal(mrp, cmd, key, val);
-            break;
-        case PROGRAM_CHANGE:
-        case CHANNEL_PRESSURE:
-            val = dl_fluid_midi_event_get_program(event);
-            midi_event_enqueue_short(mrp, cmd, val);
-            break;
-        case MIDI_SYNC:
-        case MIDI_TUNE_REQUEST:
-        case MIDI_START:
-        case MIDI_CONTINUE:
-        case MIDI_STOP:
-        case MIDI_ACTIVE_SENSING:
-        case MIDI_SYSTEM_RESET:
-            midi_event_enqueue_byte(mrp, type);
-            break;
-    }
-
-    pthread_mutex_unlock(&mrp->fifo_mutex);
-    return FLUID_OK;
 }
