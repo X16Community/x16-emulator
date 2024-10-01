@@ -97,6 +97,7 @@ struct midi_serial_regs
     bool msr_dcd;
 
     uint8_t obyte_bits_remain;
+    uint8_t ibyte_bits_remain;
     uint8_t rx_timeout;
     bool rx_timeout_enabled;
 
@@ -114,6 +115,10 @@ struct midi_serial_regs
 
     time_t last_warning;
 
+    uint8_t midi_event_fifo[256];
+    int mfsz;
+    uint8_t in_midi_last_command;
+
     pthread_mutex_t fifo_mutex;
     pthread_mutexattr_t fifo_mutex_attr;
 };
@@ -129,13 +134,13 @@ static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
 
 static enum MIDI_states midi_state = NORMAL;
-static uint8_t midi_last_command = 0;
-static uint8_t midi_first_param;
+static uint8_t out_midi_last_command[2] = {0, 0};
+static uint8_t out_midi_first_param[2];
 
 static bool midi_initialized = false;
 
 static fluid_settings_t* fl_settings;
-//static fluid_midi_driver_t* fl_mdriver;
+static fluid_midi_driver_t* fl_mdriver;
 //static fluid_audio_driver_t* fl_adriver;
 static fluid_synth_t* fl_synth;
 static int fl_sf2id;
@@ -143,7 +148,10 @@ static int fl_sf2id;
 typedef fluid_settings_t* (*new_fluid_settings_f_t)(void);
 typedef fluid_synth_t* (*new_fluid_synth_f_t)(fluid_settings_t*);
 typedef fluid_audio_driver_t* (*new_fluid_audio_driver_f_t)(fluid_settings_t*, fluid_synth_t*);
-typedef int (*fluid_settings_setnum_f_t)(fluid_settings_t*,const char *, double);
+typedef fluid_midi_driver_t* (*new_fluid_midi_driver_f_t)(fluid_settings_t*, handle_midi_event_func_t, void*);
+typedef int (*fluid_settings_setnum_f_t)(fluid_settings_t*,const char*, double);
+typedef int (*fluid_settings_setint_f_t)(fluid_settings_t*,const char*, int);
+typedef int (*fluid_settings_setstr_f_t)(fluid_settings_t*,const char*, const char*);
 typedef int (*fluid_synth_sfload_f_t)(fluid_synth_t*, const char *, int);
 typedef int (*fluid_synth_program_change_f_t)(fluid_synth_t*, int, int);
 typedef int (*fluid_synth_channel_pressure_f_t)(fluid_synth_t*, int, int);
@@ -155,11 +163,24 @@ typedef int (*fluid_synth_cc_f_t)(fluid_synth_t*, int, int, int);
 typedef int (*fluid_synth_pitch_bend_f_t)(fluid_synth_t*, int, int);
 typedef int (*fluid_synth_sysex_f_t)(fluid_synth_t*, const char*, int, char*, int*, int*, int);
 typedef int (*fluid_synth_write_s16_f_t)(fluid_synth_t*, int, void*, int, int, void*, int, int);
+typedef int (*fluid_midi_event_get_channel_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_control_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_key_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_lyrics_f_t)(const fluid_midi_event_t*, void**, int*);
+typedef int (*fluid_midi_event_get_pitch_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_program_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_text_f_t)(const fluid_midi_event_t*, void**, int*);
+typedef int (*fluid_midi_event_get_type_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_value_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_get_velocity_f_t)(const fluid_midi_event_t*);
 
 static new_fluid_settings_f_t dl_new_fluid_settings;
 static new_fluid_synth_f_t dl_new_fluid_synth;
 static new_fluid_audio_driver_f_t dl_new_fluid_audio_driver;
+static new_fluid_midi_driver_f_t dl_new_fluid_midi_driver;
 static fluid_settings_setnum_f_t dl_fluid_settings_setnum;
+static fluid_settings_setint_f_t dl_fluid_settings_setint;
+static fluid_settings_setstr_f_t dl_fluid_settings_setstr;
 static fluid_synth_sfload_f_t dl_fs_sfload;
 static fluid_synth_program_change_f_t dl_fs_program_change;
 static fluid_synth_channel_pressure_f_t dl_fs_channel_pressure;
@@ -171,6 +192,17 @@ static fluid_synth_cc_f_t dl_fs_cc;
 static fluid_synth_pitch_bend_f_t dl_fs_pitch_bend;
 static fluid_synth_sysex_f_t dl_fs_sysex;
 static fluid_synth_write_s16_f_t dl_fs_write_s16;
+static fluid_midi_event_get_channel_f_t dl_fluid_midi_event_get_channel;
+static fluid_midi_event_get_control_f_t dl_fluid_midi_event_get_control;
+static fluid_midi_event_get_key_f_t dl_fluid_midi_event_get_key;
+static fluid_midi_event_get_lyrics_f_t dl_fluid_midi_event_get_lyrics;
+static fluid_midi_event_get_pitch_f_t dl_fluid_midi_event_get_pitch;
+static fluid_midi_event_get_program_f_t dl_fluid_midi_event_get_program;
+static fluid_midi_event_get_text_f_t dl_fluid_midi_event_get_text;
+static fluid_midi_event_get_type_f_t dl_fluid_midi_event_get_type;
+static fluid_midi_event_get_value_f_t dl_fluid_midi_event_get_value;
+static fluid_midi_event_get_velocity_f_t dl_fluid_midi_event_get_velocity;
+
 
 void midi_init()
 {
@@ -203,7 +235,10 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_new_fluid_settings, "new_fluid_settings");
     ASSIGN_FUNCTION(handle, dl_new_fluid_synth, "new_fluid_synth");
     ASSIGN_FUNCTION(handle, dl_new_fluid_audio_driver, "new_fluid_audio_driver");
+    ASSIGN_FUNCTION(handle, dl_new_fluid_midi_driver, "new_fluid_midi_driver");
     ASSIGN_FUNCTION(handle, dl_fluid_settings_setnum, "fluid_settings_setnum");
+    ASSIGN_FUNCTION(handle, dl_fluid_settings_setint, "fluid_settings_setint");
+    ASSIGN_FUNCTION(handle, dl_fluid_settings_setstr, "fluid_settings_setstr");
     ASSIGN_FUNCTION(handle, dl_fs_sfload, "fluid_synth_sfload");
     ASSIGN_FUNCTION(handle, dl_fs_program_change, "fluid_synth_program_change");
     ASSIGN_FUNCTION(handle, dl_fs_channel_pressure, "fluid_synth_channel_pressure");
@@ -215,10 +250,22 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_fs_pitch_bend, "fluid_synth_pitch_bend");
     ASSIGN_FUNCTION(handle, dl_fs_sysex, "fluid_synth_sysex");
     ASSIGN_FUNCTION(handle, dl_fs_write_s16, "fluid_synth_write_s16");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_channel, "fluid_midi_event_get_channel");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_control, "fluid_midi_event_get_control");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_key, "fluid_midi_event_get_key");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_lyrics, "fluid_midi_event_get_lyrics");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_pitch, "fluid_midi_event_get_pitch");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_program, "fluid_midi_event_get_program");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_text, "fluid_midi_event_get_text");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_type, "fluid_midi_event_get_type");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_value, "fluid_midi_event_get_value");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_velocity, "fluid_midi_event_get_velocity");
 
     fl_settings = dl_new_fluid_settings();
     dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", AUDIO_SAMPLERATE);
+    dl_fluid_settings_setint(fl_settings, "midi.autoconnect", 1);
     fl_synth = dl_new_fluid_synth(fl_settings);
+    fl_mdriver = dl_new_fluid_midi_driver(fl_settings, handle_midi_event, &mregs[0]);
 
     midi_initialized = true;
     printf("Initialized MIDI synth.\n");
@@ -235,63 +282,64 @@ void midi_load_sf2(uint8_t* filename)
 
 // Receive a byte from client
 // Store state, or dispatch event
-void midi_byte(uint8_t b)
+void midi_byte_out(uint8_t sel, uint8_t b)
 {
     if (!midi_initialized) return;
     switch (midi_state) {
         case NORMAL:
             if (b < 0x80) {
-                if ((midi_last_command & 0xf0) == 0xc0) { // patch change
-                    dl_fs_program_change(fl_synth, midi_last_command & 0xf, b);
-                } else if ((midi_last_command & 0xf0) == 0xd0) { // channel pressure
-                    dl_fs_channel_pressure(fl_synth, midi_last_command & 0xf, b);
-                } else if (midi_last_command >= 0x80) { // two-param command
-                    midi_first_param = b;
+                if ((out_midi_last_command[sel] & 0xf0) == 0xc0) { // patch change
+                    dl_fs_program_change(fl_synth, out_midi_last_command[sel] & 0xf, b);
+                } else if ((out_midi_last_command[sel] & 0xf0) == 0xd0) { // channel pressure
+                    dl_fs_channel_pressure(fl_synth, out_midi_last_command[sel] & 0xf, b);
+                } else if (out_midi_last_command[sel] >= 0x80) { // two-param command
+                    out_midi_first_param[sel] = b;
                     midi_state = PARAM;
                 }
             } else {
                 if (b < 0xf0) {
-                    midi_last_command = b;
+                    out_midi_last_command[sel] = b;
                 } else if (b == 0xf0) {
                     sysex_bufptr = 0;
                     midi_state = SYSEX;
                 } else if (b == 0xff) {
                     dl_fs_system_reset(fl_synth);
-                    midi_last_command = 0;
+                    out_midi_last_command[sel] = 0;
                 }
             }
             break;
         case PARAM:
-            switch (midi_last_command & 0xf0) {
+            switch (out_midi_last_command[sel] & 0xf0) {
                 case 0x80: // note off
-                    dl_fs_noteoff(fl_synth, midi_last_command & 0xf, midi_first_param); // no release velocity
+                    dl_fs_noteoff(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel]); // no release velocity
                     break;
                 case 0x90: // note on
                     if (b == 0) {
-                        dl_fs_noteoff(fl_synth, midi_last_command & 0xf, midi_first_param);
+                        dl_fs_noteoff(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel]);
                     } else {
-                        dl_fs_noteon(fl_synth, midi_last_command & 0xf, midi_first_param, b);
+                        dl_fs_noteon(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel], b);
                     }
                     break;
                 case 0xa0: // aftertouch
-                    dl_fs_key_pressure(fl_synth, midi_last_command & 0xf, midi_first_param, b);
+                    dl_fs_key_pressure(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel], b);
                     break;
                 case 0xb0: // controller
-                    dl_fs_cc(fl_synth, midi_last_command & 0xf, midi_first_param, b);
+                    dl_fs_cc(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel], b);
                     break;
                 case 0xe0: // pitch bend
-                    dl_fs_pitch_bend(fl_synth, midi_last_command & 0xf, ((uint16_t)midi_first_param) | (uint16_t)b << 7);
+                    dl_fs_pitch_bend(fl_synth, out_midi_last_command[sel] & 0xf, ((uint16_t)out_midi_first_param[sel]) | (uint16_t)b << 7);
                     break;
             }
             midi_state = NORMAL;
             break;
         case SYSEX:
-            if (b == 0xf7) {
+            if (b & 0x80) { // any command byte can terminate a SYSEX, not just 0xf7
                 if (sysex_bufptr < (sizeof(sysex_buffer) / sizeof(sysex_buffer[0]))-1) { // only if buffer didn't fill
                     sysex_buffer[sysex_bufptr] = 0;
                     dl_fs_sysex(fl_synth, (const char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
                 }
                 midi_state = NORMAL;
+                return midi_byte_out(sel, b);
             } else {
                 sysex_buffer[sysex_bufptr] = b;
                 // we can't do much about a runaway sysex other than continue to absorb it
@@ -304,7 +352,8 @@ void midi_byte(uint8_t b)
     }
 }
 
-void midi_synth_render(int16_t* buf, int len) {
+void midi_synth_render(int16_t* buf, int len)
+{
     if (midi_initialized) {
         dl_fs_write_s16(fl_synth, len, buf, 0, 2, buf, 1, 2);
     } else {
@@ -323,12 +372,13 @@ void midi_init()
     fprintf(stderr, "No FluidSynth support.\n");
 }
 
-void midi_byte(uint8_t b)
+void midi_byte_out(uint8_t sel, uint8_t b)
 {
     // no-op
 }
 
-void midi_synth_render(int16_t* buf, int len) {
+void midi_synth_render(int16_t* buf, int len)
+{
     // no synth, return zeroed buffer
     memset(buf, 0, len * 2 * sizeof(int16_t));
 }
@@ -387,12 +437,17 @@ void midi_serial_init()
         mregs[sel].thre_intr = false;
         mregs[sel].thre_bits_remain = 0;
 
+        mregs[sel].ibyte_bits_remain = 7;
+
         mregs[sel].ifsz = 0;
+        mregs[sel].ififo[0] = 0;
         mregs[sel].ofsz = 0;
         mregs[sel].clock = 0;
         mregs[sel].clockdec = 0;
         mregs[sel].last_warning = 0;
 
+        mregs[sel].mfsz = 0;
+        mregs[sel].in_midi_last_command = 0;
     }
 
     if (!serial_midi_mutexes_initialized) {
@@ -412,14 +467,13 @@ void midi_serial_step(int clocks)
         while (mregs[sel].clock < 0) {
             // process uart
             pthread_mutex_lock(&mregs[sel].fifo_mutex);
+
             if (mregs[sel].obyte_bits_remain > 0) {
                 mregs[sel].obyte_bits_remain--;
             }
             if (mregs[sel].ofsz > 0) {
                 if (mregs[sel].obyte_bits_remain == 0) {
-                    if (sel == 1) {
-                        midi_byte(mregs[sel].ofifo[0]);
-                    }
+                    midi_byte_out(sel, mregs[sel].ofifo[0]);
                     mregs[sel].ofsz--;
                     if (mregs[sel].ofsz > 0) {
                         for (i=0; i<mregs[sel].ofsz; i++) {
@@ -438,13 +492,67 @@ void midi_serial_step(int clocks)
                     }
                 }
             }
+
+            if (mregs[sel].rx_timeout > 0) {
+                mregs[sel].rx_timeout--;
+            }
+
+            if (mregs[sel].ibyte_bits_remain > 0 && mregs[sel].mfsz > 0) {
+                mregs[sel].ibyte_bits_remain--;
+            }
+            if (mregs[sel].ibyte_bits_remain == 0 && mregs[sel].mfsz > 0) {
+                if (mregs[sel].ifsz < (mregs[sel].fcr_fifo_enable ? 16 : 1)) {
+                    mregs[sel].ififo[mregs[sel].ifsz++] = mregs[sel].midi_event_fifo[0];
+                    mregs[sel].rx_timeout_enabled = true;
+                    mregs[sel].rx_timeout = 4 * (2 + mregs[sel].lcr_word_length_bits + mregs[sel].lcr_stb + mregs[sel].lcr_pen);
+                } else {
+                    mregs[sel].lsr_oe = true; // inbound FIFO overflow
+                    if (!mregs[sel].fcr_fifo_enable) {
+                        // RBR is overwritten by RSR in this mode
+                        // whenever overflow happens
+                        mregs[sel].ififo[mregs[sel].ifsz-1] = mregs[sel].midi_event_fifo[0];
+                    }
+                }
+                mregs[sel].mfsz--;
+                if (mregs[sel].mfsz > 0) {
+                    for (i=0; i<mregs[sel].mfsz; i++) {
+                        mregs[sel].midi_event_fifo[i] = mregs[sel].midi_event_fifo[i+1];
+                    }
+                }
+                mregs[sel].ibyte_bits_remain = 2 + mregs[sel].lcr_word_length_bits + mregs[sel].lcr_stb + mregs[sel].lcr_pen;
+            }
+
             pthread_mutex_unlock(&mregs[sel].fifo_mutex);
             mregs[sel].clock += 0x1000000LL;
         }
     }
 }
 
-void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val) {
+uint8_t midi_serial_dequeue_ibyte(uint8_t sel)
+{
+    pthread_mutex_lock(&mregs[sel].fifo_mutex);
+    uint8_t ret = mregs[sel].ififo[0];
+    uint8_t i;
+
+    if (mregs[sel].ifsz > 0) {
+        mregs[sel].ifsz--;
+        if (mregs[sel].ifsz == 0) {
+            mregs[sel].rx_timeout_enabled = false;
+        } else {
+            for (i=0; i<mregs[sel].ifsz; i++) {
+                mregs[sel].ififo[i] = mregs[sel].ififo[i+1];
+            }
+            mregs[sel].rx_timeout_enabled = true;
+            mregs[sel].rx_timeout = 4 * (2 + mregs[sel].lcr_word_length_bits + mregs[sel].lcr_stb + mregs[sel].lcr_pen);
+        }
+    }
+
+    pthread_mutex_unlock(&mregs[sel].fifo_mutex);
+    return ret;
+}
+
+void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val)
+{
     pthread_mutex_lock(&mregs[sel].fifo_mutex);
     if (mregs[sel].ofsz < (mregs[sel].fcr_fifo_enable ? 16 : 1)) {
         mregs[sel].ofifo[mregs[sel].ofsz] = val;
@@ -464,7 +572,8 @@ void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val) {
     pthread_mutex_unlock(&mregs[sel].fifo_mutex);
 }
 
-void midi_serial_iir_check(uint8_t sel) {
+void midi_serial_iir_check(uint8_t sel)
+{
     uint8_t fifoen = (uint8_t)mregs[sel].fcr_fifo_enable << 6 | (uint8_t)mregs[sel].fcr_fifo_enable << 7;
     if (mregs[sel].ier_elsi && (mregs[sel].lsr_oe || mregs[sel].lsr_pe || mregs[sel].lsr_fe || mregs[sel].lsr_bi)) {
         mregs[sel].iir = (0x06 | fifoen); // Receiver line status interrupt
@@ -492,7 +601,11 @@ uint8_t midi_serial_read(uint8_t reg, bool debugOn)
             if (mregs[sel].lcr_dlab) {
                 return mregs[sel].dll;
             } else {
-                // TODO: RHR
+                if (debugOn) {
+                    return mregs[sel].ififo[0];
+                } else {
+                    return midi_serial_dequeue_ibyte(sel);
+                }
             }
             break;
         case 0x1:
@@ -579,6 +692,8 @@ void midi_serial_calculate_clk(uint8_t sel)
 
 void midi_serial_write(uint8_t reg, uint8_t val)
 {
+    time_t now = time(NULL);
+
     //printf("midi_serial_write %d %d\n", reg, val);
     uint8_t sel = (reg & 8) >> 3;
     switch (reg & 7) {
@@ -587,8 +702,8 @@ void midi_serial_write(uint8_t reg, uint8_t val)
                 mregs[sel].dll = val;
                 midi_serial_calculate_clk(sel);
             } else {
-                if (mregs[sel].lcr_word_length_bits != 8 || mregs[sel].lcr_stb || mregs[sel].lcr_pen || mregs[sel].lcr_eps || mregs[sel].lcr_stick || mregs[sel].lcr_break) {
-                    if (mregs[sel].last_warning + 60 < time(NULL)) {
+                if (mregs[sel].lcr_word_length_bits != 8 || mregs[sel].lcr_stb || mregs[sel].lcr_pen) {
+                    if (mregs[sel].last_warning + 60 < now) {
                         unsigned char par = 'N';
                         if (mregs[sel].lcr_pen) {
                             switch ((uint8_t)(mregs[sel].lcr_eps << 1) | (uint8_t)mregs[sel].lcr_stick) {
@@ -607,11 +722,14 @@ void midi_serial_write(uint8_t reg, uint8_t val)
                             }
                         }
                         fprintf(stderr, "Serial MIDI: Warning: improper LCR %d%c%d for UART %d, must be set to 8N1.\n", mregs[sel].lcr_word_length_bits, par, 1+(uint8_t)mregs[sel].lcr_stb, sel);
-                        mregs[sel].last_warning = time(NULL);
+                        mregs[sel].last_warning = now;
                     }
-                } else if (mregs[sel].dl != 32 && mregs[sel].last_warning + 60 < time(NULL)) {
+                } else if (mregs[sel].lcr_break && mregs[sel].last_warning + 60 < now) {
+                    fprintf(stderr, "Serial MIDI: Warning: break improperly set for UART %d.\n", sel);
+                    mregs[sel].last_warning = now;
+                } else if (mregs[sel].dl != 32 && mregs[sel].last_warning + 60 < now) {
                     fprintf(stderr, "Serial MIDI: Warning: improper divisor %d for UART %d, must be set to 32 for standard MIDI bitrate.\n", mregs[sel].dl, sel);
-                    mregs[sel].last_warning = time(NULL);
+                    mregs[sel].last_warning = now;
                 } else {
                     midi_serial_enqueue_obyte(sel, val);
                 }
@@ -668,6 +786,9 @@ void midi_serial_write(uint8_t reg, uint8_t val)
             mregs[sel].lcr_stick = !!(val & 0x20);
             mregs[sel].lcr_break = !!(val & 0x40);
             mregs[sel].lcr_dlab = !!(val & 0x80);
+            if (mregs[sel].mfsz == 0) {
+                mregs[sel].ibyte_bits_remain = 2 + mregs[sel].lcr_word_length_bits + mregs[sel].lcr_stb + mregs[sel].lcr_pen;
+            }
             break;
         case 0x4:
             mregs[sel].mcr_dtr = !!(val & 0x01);
@@ -707,3 +828,88 @@ void midi_serial_write(uint8_t reg, uint8_t val)
     }
 }
 
+void midi_event_enqueue_byte(struct midi_serial_regs* mrp, uint8_t val)
+{
+    if (mrp->mfsz >= 256) return;
+    mrp->midi_event_fifo[mrp->mfsz++] = val;
+    mrp->in_midi_last_command = 0;
+}
+
+void midi_event_enqueue_short(struct midi_serial_regs* mrp, uint8_t cmd, uint8_t val)
+{
+    if (mrp->mfsz >= 255) {
+        mrp->in_midi_last_command = 0;
+        return;
+    }
+    if (mrp->in_midi_last_command != cmd) {
+        mrp->midi_event_fifo[mrp->mfsz++] = cmd;
+        mrp->in_midi_last_command = cmd;
+    }
+    mrp->midi_event_fifo[mrp->mfsz++] = val;
+}
+
+void midi_event_enqueue_normal(struct midi_serial_regs* mrp, uint8_t cmd, uint8_t key, uint8_t val)
+{
+    if (mrp->mfsz >= 254) {
+        mrp->in_midi_last_command = 0;
+        return;
+    }
+    if (mrp->in_midi_last_command != cmd) {
+        mrp->midi_event_fifo[mrp->mfsz++] = cmd;
+        mrp->in_midi_last_command = cmd;
+    }
+    mrp->midi_event_fifo[mrp->mfsz++] = key;
+    mrp->midi_event_fifo[mrp->mfsz++] = val;
+}
+
+int handle_midi_event(void* data, fluid_midi_event_t* event)
+{
+    struct midi_serial_regs* mrp = (struct midi_serial_regs*)data;
+    pthread_mutex_lock(&mrp->fifo_mutex);
+
+    uint8_t type = dl_fluid_midi_event_get_type(event);
+    uint8_t chan = dl_fluid_midi_event_get_channel(event);
+    uint8_t cmd = type | chan;
+    uint8_t key, val;
+
+    switch (type) {
+        case NOTE_OFF:
+        case NOTE_ON:
+            key = dl_fluid_midi_event_get_key(event);
+            val = dl_fluid_midi_event_get_velocity(event);
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case KEY_PRESSURE:
+            key = dl_fluid_midi_event_get_key(event);
+            val = dl_fluid_midi_event_get_value(event);
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case CONTROL_CHANGE:
+            key = dl_fluid_midi_event_get_control(event);
+            val = dl_fluid_midi_event_get_value(event);
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case PITCH_BEND:
+            key = dl_fluid_midi_event_get_pitch(event) & 0x7f;
+            val = (dl_fluid_midi_event_get_pitch(event) >> 7) & 0x7f;
+            midi_event_enqueue_normal(mrp, cmd, key, val);
+            break;
+        case PROGRAM_CHANGE:
+        case CHANNEL_PRESSURE:
+            val = dl_fluid_midi_event_get_program(event);
+            midi_event_enqueue_short(mrp, cmd, val);
+            break;
+        case MIDI_SYNC:
+        case MIDI_TUNE_REQUEST:
+        case MIDI_START:
+        case MIDI_CONTINUE:
+        case MIDI_STOP:
+        case MIDI_ACTIVE_SENSING:
+        case MIDI_SYSTEM_RESET:
+            midi_event_enqueue_byte(mrp, type);
+            break;
+    }
+
+    pthread_mutex_unlock(&mrp->fifo_mutex);
+    return FLUID_OK;
+}
