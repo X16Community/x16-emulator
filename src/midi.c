@@ -128,10 +128,11 @@ struct midi_serial_regs
 struct midi_serial_regs mregs[2];
 static bool serial_midi_mutexes_initialized = false;
 
+void midi_serial_iir_check(uint8_t sel);
+
 #ifndef __EMSCRIPTEN__
 
 int handle_midi_event(void* data, fluid_midi_event_t* event);
-void midi_serial_iir_check(uint8_t sel);
 
 static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
