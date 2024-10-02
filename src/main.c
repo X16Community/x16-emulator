@@ -131,6 +131,9 @@ bool enable_midline = false;
 bool ym2151_irq_support = false;
 char *cartridge_path = NULL;
 
+bool has_midi_card = false;
+uint16_t midi_card_addr;
+
 bool using_hostfs = true;
 
 uint8_t MHZ = 8;
@@ -528,6 +531,12 @@ usage()
 	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 	printf("-longpwron\n");
 	printf("\tSimulate a long press of the power button at system power-on.\n");
+	printf("-midicard [<address>]\n");
+	printf("\tInstall a serial MIDI card at the specified address, or at $9F60 by default.\n");
+	printf("\tThe -sf2 option must be specified along with this option.\n");
+	printf("-sf2 <SoundFont filename>\n");
+	printf("\tInitialize MIDI synth with the specified SoundFont.\n");
+	printf("\tThe -midicard option must be specified along with this option.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -633,6 +642,18 @@ main(int argc, char **argv)
 			prg_path = argv[0];
 			argc--;
 			argv++;
+		} else if (!strcmp(argv[0], "-midicard")) {
+			argc--;
+			argv++;
+			has_midi_card = true;
+			if (argc && argv[0][0] != '-') {
+				midi_card_addr = 0x9f00 | ((uint16_t)strtol(argv[0], NULL, 16) & 0xff);
+				midi_card_addr &= 0xfff0;
+				argc--;
+				argv++;
+			} else {
+				midi_card_addr = 0x9f60;
+			}
 		} else if (!strcmp(argv[0], "-sf2")) {
 			argc--;
 			argv++;
@@ -1100,9 +1121,16 @@ main(int argc, char **argv)
 #endif
 	}
 
-	if (sf2_path) {
-		midi_init();
-		midi_load_sf2((uint8_t *)sf2_path);
+	if (sf2_path && has_midi_card) {
+		if (midi_card_addr < 0x9f60) {
+			fprintf(stderr, "Warning: Serial MIDI card address must be in the range of 9F60-9FF0\n");
+		} else {
+			midi_init();
+			midi_load_sf2((uint8_t *)sf2_path);
+		}
+	} else if (sf2_path || has_midi_card) {
+		fprintf(stderr, "Warning: -sf2 and -midicard must be specified together in order to enable the MIDI synth.\n");
+		has_midi_card = false;
 	}
 
 	if (cartridge_path) {
@@ -1634,7 +1662,7 @@ emulator_loop(void *param)
 			audio_render();
 		}
 
-		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq())) {
+		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq()) || (has_midi_card && midi_serial_irq())) {
 //			printf("IRQ!\n");
 			irq6502();
 		}

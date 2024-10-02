@@ -131,6 +131,7 @@ static bool serial_midi_mutexes_initialized = false;
 #ifndef __EMSCRIPTEN__
 
 int handle_midi_event(void* data, fluid_midi_event_t* event);
+void midi_serial_iir_check(uint8_t sel);
 
 static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
@@ -143,7 +144,6 @@ static bool midi_initialized = false;
 
 static fluid_settings_t* fl_settings;
 static fluid_midi_driver_t* fl_mdriver;
-//static fluid_audio_driver_t* fl_adriver;
 static fluid_synth_t* fl_synth;
 static int fl_sf2id;
 
@@ -270,7 +270,7 @@ void midi_init()
     fl_mdriver = dl_new_fluid_midi_driver(fl_settings, handle_midi_event, &mregs[0]);
 
     midi_initialized = true;
-    printf("Initialized MIDI synth.\n");
+    fprintf(stderr, "Initialized MIDI synth at $%04X.\n", midi_card_addr);
 }
 
 void midi_load_sf2(uint8_t* filename)
@@ -278,7 +278,7 @@ void midi_load_sf2(uint8_t* filename)
     if (!midi_initialized) return;
     fl_sf2id = dl_fs_sfload(fl_synth, (const char *)filename, true);
     if (fl_sf2id == FLUID_FAILED) {
-        printf("Unable to load soundfont.\n");
+        fprintf(stderr, "Unable to load soundfont.\n");
     }
 }
 
@@ -365,7 +365,6 @@ void midi_synth_render(int16_t* buf, int len)
 
 void midi_event_enqueue_byte(struct midi_serial_regs* mrp, uint8_t val)
 {
-    mrp->in_midi_last_command = 0;
     if (mrp->mfsz >= 256) return;
     mrp->midi_event_fifo[mrp->mfsz++] = val;
 }
@@ -434,8 +433,17 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
             val = dl_fluid_midi_event_get_program(event);
             midi_event_enqueue_short(mrp, cmd, val);
             break;
-        case MIDI_SYNC:
+        case MIDI_TIME_CODE:
+            val = dl_fluid_midi_event_get_value(event);
+            midi_event_enqueue_short(mrp, type, val);
+            mrp->in_midi_last_command = 0;
+            break;
         case MIDI_TUNE_REQUEST:
+            midi_event_enqueue_byte(mrp, type);
+            mrp->in_midi_last_command = 0;
+            break;
+        case MIDI_SYNC:
+        case MIDI_TICK:
         case MIDI_START:
         case MIDI_CONTINUE:
         case MIDI_STOP:
@@ -614,6 +622,7 @@ void midi_serial_step(int clocks)
             pthread_mutex_unlock(&mregs[sel].fifo_mutex);
             mregs[sel].clock += 0x1000000LL;
         }
+        midi_serial_iir_check(sel);
     }
 }
 
@@ -915,4 +924,11 @@ void midi_serial_write(uint8_t reg, uint8_t val)
             mregs[sel].scratch = val;
             break;
     }
+}
+
+bool midi_serial_irq(void)
+{
+    bool uart0int = (mregs[0].iir & 1) == 0 && mregs[0].mcr_out2;
+    bool uart1int = (mregs[1].iir & 1) == 0 && mregs[1].mcr_out2;
+    return (uart0int | uart1int);
 }
