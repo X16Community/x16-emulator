@@ -559,6 +559,26 @@ void midi_serial_init()
     }
 }
 
+void midi_serial_iir_check(uint8_t sel)
+{
+    uint8_t fifoen = (uint8_t)mregs[sel].fcr_fifo_enable << 6 | (uint8_t)mregs[sel].fcr_fifo_enable << 7;
+    if (mregs[sel].ier_elsi && (mregs[sel].lsr_oe || mregs[sel].lsr_pe || mregs[sel].lsr_fe || mregs[sel].lsr_bi)) {
+        mregs[sel].iir = (0x06 | fifoen); // Receiver line status interrupt
+    } else if (mregs[sel].ier_erbi && !mregs[sel].fcr_fifo_enable && mregs[sel].ifsz > 0) {
+        mregs[sel].iir = (0x04 | fifoen); // Received data available interrupt (16450 mode)
+    } else if (mregs[sel].ier_erbi && mregs[sel].fcr_fifo_enable && mregs[sel].ifsz >= mregs[sel].fcr_ififo_trigger_level_bytes) {
+        mregs[sel].iir = (0x04 | fifoen); // Received data available interrupt (16550 mode)
+    } else if (mregs[sel].ier_erbi && mregs[sel].fcr_fifo_enable && mregs[sel].ifsz > 0 && mregs[sel].rx_timeout_enabled && mregs[sel].rx_timeout == 0) {
+        mregs[sel].iir = (0x0c | fifoen); // Received data available interrupt (timeout, 16550 mode)
+    } else if (mregs[sel].ier_etbei && mregs[sel].thre_intr) {
+        mregs[sel].iir = (0x02 | fifoen); // Transmitter holding register empty interrupt
+    } else if (mregs[sel].ier_edssi && ((!mregs[sel].mcr_afe && mregs[sel].msr_dcts) || mregs[sel].msr_ddcd || mregs[sel].msr_ddsr || mregs[sel].msr_teri)) {
+        mregs[sel].iir = (0x00 | fifoen); // Modem status register interrupt
+    } else {
+        mregs[sel].iir = (0x01 | fifoen); // no interrupt waiting
+    }
+}
+
 void midi_serial_step(int clocks)
 {
     uint8_t sel, i;
@@ -624,8 +644,8 @@ void midi_serial_step(int clocks)
 
             pthread_mutex_unlock(&mregs[sel].fifo_mutex);
             mregs[sel].clock += 0x1000000LL;
+            midi_serial_iir_check(sel);
         }
-        midi_serial_iir_check(sel);
     }
 }
 
@@ -646,6 +666,7 @@ uint8_t midi_serial_dequeue_ibyte(uint8_t sel)
             mregs[sel].rx_timeout_enabled = true;
             mregs[sel].rx_timeout = 4 * (2 + mregs[sel].lcr_word_length_bits + mregs[sel].lcr_stb + mregs[sel].lcr_pen);
         }
+        midi_serial_iir_check(sel);
     }
 
     pthread_mutex_unlock(&mregs[sel].fifo_mutex);
@@ -670,27 +691,8 @@ void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val)
     } else {
         printf("TX Overflow\n");
     }
+    midi_serial_iir_check(sel);
     pthread_mutex_unlock(&mregs[sel].fifo_mutex);
-}
-
-void midi_serial_iir_check(uint8_t sel)
-{
-    uint8_t fifoen = (uint8_t)mregs[sel].fcr_fifo_enable << 6 | (uint8_t)mregs[sel].fcr_fifo_enable << 7;
-    if (mregs[sel].ier_elsi && (mregs[sel].lsr_oe || mregs[sel].lsr_pe || mregs[sel].lsr_fe || mregs[sel].lsr_bi)) {
-        mregs[sel].iir = (0x06 | fifoen); // Receiver line status interrupt
-    } else if (mregs[sel].ier_erbi && !mregs[sel].fcr_fifo_enable && mregs[sel].ifsz > 0) {
-        mregs[sel].iir = (0x04 | fifoen); // Received data available interrupt (16450 mode)
-    } else if (mregs[sel].ier_erbi && mregs[sel].fcr_fifo_enable && mregs[sel].ifsz >= mregs[sel].fcr_ififo_trigger_level_bytes) {
-        mregs[sel].iir = (0x04 | fifoen); // Received data available interrupt (16550 mode)
-    } else if (mregs[sel].ier_erbi && mregs[sel].fcr_fifo_enable && mregs[sel].ifsz > 0 && mregs[sel].rx_timeout_enabled && mregs[sel].rx_timeout == 0) {
-        mregs[sel].iir = (0x0c | fifoen); // Received data available interrupt (timeout, 16550 mode)
-    } else if (mregs[sel].ier_etbei && mregs[sel].thre_intr) {
-        mregs[sel].iir = (0x02 | fifoen); // Transmitter holding register empty interrupt
-    } else if (mregs[sel].ier_edssi && ((!mregs[sel].mcr_afe && mregs[sel].msr_dcts) || mregs[sel].msr_ddcd || mregs[sel].msr_ddsr || mregs[sel].msr_teri)) {
-        mregs[sel].iir = (0x00 | fifoen); // Modem status register interrupt
-    } else {
-        mregs[sel].iir = (0x01 | fifoen); // no interrupt waiting
-    }
 }
 
 uint8_t midi_serial_read(uint8_t reg, bool debugOn)
