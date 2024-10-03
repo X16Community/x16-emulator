@@ -41,3 +41,5 @@ void midi_serial_write(uint8_t reg, uint8_t val);
 void midi_load_sf2(uint8_t* filename);
 void midi_synth_render(int16_t* buf, int len);
 bool midi_serial_irq(void);
+
+extern const char *fs_midi_input_device;

@@ -127,6 +127,7 @@ struct midi_serial_regs
 
 struct midi_serial_regs mregs[2];
 static bool serial_midi_mutexes_initialized = false;
+const char *fs_midi_input_device;
 
 void midi_serial_iir_check(uint8_t sel);
 
@@ -265,8 +266,18 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_velocity, "fluid_midi_event_get_velocity");
 
     fl_settings = dl_new_fluid_settings();
-    dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", AUDIO_SAMPLERATE);
-    dl_fluid_settings_setint(fl_settings, "midi.autoconnect", 1);
+    dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", 
+    AUDIO_SAMPLERATE);
+    dl_fluid_settings_setstr(fl_settings, "midi.portname", "Commander X16 Emulator");
+    if (fs_midi_input_device) {
+        dl_fluid_settings_setstr(fl_settings, "midi.winmidi.device", fs_midi_input_device);
+        dl_fluid_settings_setstr(fl_settings, "midi.alsa_seq.device", fs_midi_input_device);
+        dl_fluid_settings_setint(fl_settings, "midi.autoconnect", 0);
+    } else {
+        dl_fluid_settings_setstr(fl_settings, "midi.winmidi.device", "default");
+        dl_fluid_settings_setstr(fl_settings, "midi.alsa_seq.device", "default");
+        dl_fluid_settings_setint(fl_settings, "midi.autoconnect", 1);
+    }
     fl_synth = dl_new_fluid_synth(fl_settings);
     fl_mdriver = dl_new_fluid_midi_driver(fl_settings, handle_midi_event, &mregs[0]);
 
@@ -404,7 +415,7 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
 
     uint8_t type = dl_fluid_midi_event_get_type(event);
     uint8_t chan = dl_fluid_midi_event_get_channel(event);
-    uint8_t cmd = type | chan;
+    uint8_t cmd = (type < 0x80 || type >= 0xf0) ? type : (type | (chan & 0xf));
     uint8_t key, val;
 
     switch (type) {
@@ -454,7 +465,7 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
             break;
     }
 
-    fprintf(stderr, "Debug: MIDI IN: Type: %02X\n", type);
+    fprintf(stderr, "Debug: MIDI IN: Type: %02X Chan: %02X\n", type, chan);
 
     pthread_mutex_unlock(&mrp->fifo_mutex);
     return FLUID_OK;
