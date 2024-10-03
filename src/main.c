@@ -538,7 +538,7 @@ usage()
 	printf("\tInitialize MIDI synth with the specified SoundFont.\n");
 	printf("\tThe -midicard option must be specified along with this option.\n");
 	printf("-midi-in\n");
-	printf("\tConnect the system MIDI input devices to the input of the first UART.\n");
+	printf("\tConnect the system MIDI input devices to the input of the first UART\n");
 	printf("\tof the emulated MIDI card. The -midicard option is required for this\n");
 	printf("\toption to have any effect.\n");
 #ifdef TRACE
