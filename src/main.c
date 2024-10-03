@@ -670,7 +670,7 @@ main(int argc, char **argv)
 		} else if (!strcmp(argv[0], "-midi-in")) {
 			argc--;
 			argv++;
-			fs_midi_autoconnect = true;
+			fs_midi_in_connect = true;
 		} else if (!strcmp(argv[0], "-run")) {
 			argc--;
 			argv++;

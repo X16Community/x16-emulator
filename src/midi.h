@@ -42,4 +42,4 @@ void midi_load_sf2(uint8_t* filename);
 void midi_synth_render(int16_t* buf, int len);
 bool midi_serial_irq(void);
 
-extern bool fs_midi_autoconnect;
+extern bool fs_midi_in_connect;
