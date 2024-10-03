@@ -129,6 +129,7 @@ struct midi_serial_regs mregs[2];
 static bool serial_midi_mutexes_initialized = false;
 
 void midi_serial_iir_check(uint8_t sel);
+bool fs_midi_autoconnect = false;
 
 #ifndef __EMSCRIPTEN__
 
@@ -268,7 +269,7 @@ void midi_init()
     dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", 
     AUDIO_SAMPLERATE);
     dl_fluid_settings_setstr(fl_settings, "midi.portname", "Commander X16 Emulator");
-    dl_fluid_settings_setint(fl_settings, "midi.autoconnect", 1);
+    dl_fluid_settings_setint(fl_settings, "midi.autoconnect", fs_midi_autoconnect);
     fl_synth = dl_new_fluid_synth(fl_settings);
     fl_mdriver = dl_new_fluid_midi_driver(fl_settings, handle_midi_event, &mregs[0]);
 

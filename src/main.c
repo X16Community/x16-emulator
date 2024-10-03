@@ -537,6 +537,10 @@ usage()
 	printf("-sf2 <SoundFont filename>\n");
 	printf("\tInitialize MIDI synth with the specified SoundFont.\n");
 	printf("\tThe -midicard option must be specified along with this option.\n");
+	printf("-midi-in\n");
+	printf("\tConnect the system MIDI input devices to the input of the first UART.\n");
+	printf("\tof the emulated MIDI card. The -midicard option is required for this\n");
+	printf("\toption to have any effect.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -663,6 +667,10 @@ main(int argc, char **argv)
 			sf2_path = argv[0];
 			argc--;
 			argv++;
+		} else if (!strcmp(argv[0], "-midi-in")) {
+			argc--;
+			argv++;
+			fs_midi_autoconnect = true;
 		} else if (!strcmp(argv[0], "-run")) {
 			argc--;
 			argv++;
