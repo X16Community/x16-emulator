@@ -218,7 +218,7 @@ void midi_init()
 #elif __APPLE__
     LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.dylib");
 #else
-    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so");
+    LIBRARY_TYPE handle = LOAD_LIBRARY("libfluidsynth.so.3");
 #endif
 
     if (!handle) {
@@ -453,6 +453,8 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
             midi_event_enqueue_byte(mrp, type);
             break;
     }
+
+    fprintf(stderr, "Debug: MIDI IN: Type: %02X\n", type);
 
     pthread_mutex_unlock(&mrp->fifo_mutex);
     return FLUID_OK;
