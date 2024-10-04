@@ -177,6 +177,7 @@ typedef int (*fluid_midi_event_get_text_f_t)(const fluid_midi_event_t*, void**, 
 typedef int (*fluid_midi_event_get_type_f_t)(const fluid_midi_event_t*);
 typedef int (*fluid_midi_event_get_value_f_t)(const fluid_midi_event_t*);
 typedef int (*fluid_midi_event_get_velocity_f_t)(const fluid_midi_event_t*);
+typedef int (*fluid_midi_event_set_type_f_t)(fluid_midi_event_t*, int);
 
 static new_fluid_settings_f_t dl_new_fluid_settings;
 static new_fluid_synth_f_t dl_new_fluid_synth;
@@ -206,6 +207,7 @@ static fluid_midi_event_get_text_f_t dl_fluid_midi_event_get_text;
 static fluid_midi_event_get_type_f_t dl_fluid_midi_event_get_type;
 static fluid_midi_event_get_value_f_t dl_fluid_midi_event_get_value;
 static fluid_midi_event_get_velocity_f_t dl_fluid_midi_event_get_velocity;
+static fluid_midi_event_set_type_f_t dl_fluid_midi_event_set_type;
 
 
 void midi_init()
@@ -264,6 +266,7 @@ void midi_init()
     ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_type, "fluid_midi_event_get_type");
     ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_value, "fluid_midi_event_get_value");
     ASSIGN_FUNCTION(handle, dl_fluid_midi_event_get_velocity, "fluid_midi_event_get_velocity");
+    ASSIGN_FUNCTION(handle, dl_fluid_midi_event_set_type, "fluid_midi_event_set_type");
 
     fl_settings = dl_new_fluid_settings();
     dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", 
@@ -402,6 +405,21 @@ void midi_event_enqueue_normal(struct midi_serial_regs* mrp, uint8_t cmd, uint8_
     mrp->midi_event_fifo[mrp->mfsz++] = val;
 }
 
+void midi_event_enqueue_sysex(struct midi_serial_regs* mrp, uint8_t *bufptr, int buflen)
+{
+    int i;
+    if (mrp->mfsz >= 255 - (buflen + 2)) { // too full
+        mrp->in_midi_last_command = 0;
+        return;
+    }
+
+    mrp->midi_event_fifo[mrp->mfsz++] = 0xf0;
+    for (i = 0; i < buflen; i++) {
+        mrp->midi_event_fifo[mrp->mfsz++] = bufptr[i];
+    }
+    mrp->midi_event_fifo[mrp->mfsz++] = 0xf7;
+}
+
 int handle_midi_event(void* data, fluid_midi_event_t* event)
 {
     struct midi_serial_regs* mrp = (struct midi_serial_regs*)data;
@@ -411,6 +429,8 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
     uint8_t chan = dl_fluid_midi_event_get_channel(event);
     uint8_t cmd = (type < 0x80 || type >= 0xf0) ? type : (type | (chan & 0xf));
     uint8_t key, val;
+    uint8_t *bufptr;
+    int buflen;
 
     switch (type) {
         case NOTE_OFF:
@@ -457,9 +477,20 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
         case MIDI_SYSTEM_RESET:
             midi_event_enqueue_byte(mrp, type);
             break;
+        case MIDI_SYSEX:
+            dl_fluid_midi_event_set_type(event, MIDI_TEXT);
+            dl_fluid_midi_event_get_text(event, (void **)&bufptr, &buflen);
+            midi_event_enqueue_sysex(mrp, bufptr, buflen);
+            fprintf(stderr, "Debug: MIDI IN: Type: SysEx Chan: %02X\n", chan);
+            break;
+        case 0xF4:
+        case 0xF5:
+            midi_event_enqueue_byte(mrp, type);
+            mrp->in_midi_last_command = 0;
+            break;
     }
 
-    fprintf(stderr, "Debug: MIDI IN: Type: %02X Chan: %02X\n", type, chan);
+    //fprintf(stderr, "Debug: MIDI IN: Type: %02X Chan: %02X\n", type, chan);
 
     pthread_mutex_unlock(&mrp->fifo_mutex);
     return FLUID_OK;
@@ -694,7 +725,7 @@ void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val)
             mregs[sel].thre_bits_remain = 0;
         }
     } else {
-        printf("TX Overflow\n");
+        fprintf(stderr, "Serial MIDI: Warning: UART %d TX Overflow\n", sel);
     }
     midi_serial_iir_check(sel);
     pthread_mutex_unlock(&mregs[sel].fifo_mutex);

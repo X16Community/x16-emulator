@@ -11,6 +11,7 @@
 #define MIDI_UART_OSC_RATE_MHZ 16.0f
 #define MIDI_UART_PRIMARY_DIVIDER 16
 
+#define MIDI_TEXT 0x01
 #define NOTE_OFF 0x80
 #define NOTE_ON 0x90
 #define KEY_PRESSURE 0xa0
