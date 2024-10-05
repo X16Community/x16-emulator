@@ -408,8 +408,9 @@ void midi_event_enqueue_normal(struct midi_serial_regs* mrp, uint8_t cmd, uint8_
 void midi_event_enqueue_sysex(struct midi_serial_regs* mrp, uint8_t *bufptr, int buflen)
 {
     int i;
+
+    mrp->in_midi_last_command = 0;
     if (mrp->mfsz >= 255L - (buflen + 2)) { // too full
-        mrp->in_midi_last_command = 0;
         return;
     }
 
@@ -418,7 +419,6 @@ void midi_event_enqueue_sysex(struct midi_serial_regs* mrp, uint8_t *bufptr, int
         mrp->midi_event_fifo[mrp->mfsz++] = bufptr[i];
     }
     mrp->midi_event_fifo[mrp->mfsz++] = 0xf7;
-    mrp->in_midi_last_command = 0;
 }
 
 int handle_midi_event(void* data, fluid_midi_event_t* event)
@@ -482,9 +482,9 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
             break;
         case MIDI_SYSEX:
             dl_fluid_midi_event_set_type(event, MIDI_TEXT);
-            dl_fluid_midi_event_get_text(event, (void **)&bufptr, &buflen);
-            midi_event_enqueue_sysex(mrp, bufptr, buflen);
-            fprintf(stderr, "Debug: MIDI IN: Type: SysEx Chan: %02X\n", chan);
+            if (dl_fluid_midi_event_get_text(event, (void **)&bufptr, &buflen) == FLUID_OK && bufptr != NULL) {
+                midi_event_enqueue_sysex(mrp, bufptr, buflen);
+            }
             break;
     }
 
