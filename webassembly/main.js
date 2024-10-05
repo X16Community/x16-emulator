@@ -71,11 +71,20 @@ if (layouts.includes(lang)) {
 var url = new URL(window.location.href);
 var manifest_link = url.searchParams.get("manifest");
 var ram_val = url.searchParams.get("ram");
+var cpu_val = url.searchParams.get("cpu");
+var mhz_val = url.searchParams.get("mhz");
 
 var emuArguments = ['-keymap', lang, '-rtc'];
 
 if (ram_val) {
     emuArguments.push('-ram', ram_val);
+}
+if (cpu_val) {
+    if (cpu_val == 'c816')
+        emuArguments.push('-c816');
+}
+if (mhz_val) {
+    emuArguments.push('-mhz', mhz_val);
 }
 
 if (manifest_link) {
