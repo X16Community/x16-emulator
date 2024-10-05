@@ -20,12 +20,6 @@ CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/exter
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
 LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -pthread
 
-# build with link time optimization
-ifndef NOLTO
-	CFLAGS+=-flto
-	LDFLAGS+=-flto
-endif
-
 ifdef ADDL_INCLUDE
 	CFLAGS+=-I$(ADDL_INCLUDE)
 endif
@@ -48,7 +42,7 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
-	LDFLAGS+=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController -pthread
 	LDEMU=-ldl -Wl,-rpath,$(HOMEBREW_LIB)
 else ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
@@ -64,6 +58,12 @@ else
 endif
 else # Not Mac, not Windows, probably Linux
 	LDEMU=-ldl
+endif
+
+# build with link time optimization
+ifndef NOLTO
+	CFLAGS+=-flto
+	LDFLAGS+=-flto
 endif
 
 ifdef TARGET_WIN32
