@@ -65,7 +65,7 @@ jobs:
         run: |
           git reset --hard
           git diff
-          TRACE=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
+          TRACE=1 FLUIDSYNTH=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
           cp $(which zlib1.dll) emu_binaries/.
@@ -151,7 +151,7 @@ jobs:
         run: |
           git reset --hard
           git diff
-          TRACE=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
+          TRACE=1 FLUIDSYNTH=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
           cp $(which zlib1.dll) emu_binaries/.
@@ -227,7 +227,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 make V=1 -j3
+          TRACE=1 FLUIDSYNTH=1 make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
           cp x16emu emu_binaries/.
@@ -286,7 +286,7 @@ jobs:
           commands: |
             apt-get update
             apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev
-            TRACE=1 make V=1 -j3
+            TRACE=1 FLUIDSYNTH=1 make V=1 -j3
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
             cp x16emu emu_binaries/.
@@ -346,7 +346,7 @@ jobs:
           commands: |
             apt-get update
             apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev
-            TRACE=1 make V=1 -j3
+            TRACE=1 FLUIDSYNTH=1 make V=1 -j3
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
             cp x16emu emu_binaries/.
@@ -398,7 +398,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 MAC_STATIC=1 HOMEBREW_LIB=/usr/local/lib make V=1 -j3
+          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a HOMEBREW_LIB=/usr/local/lib make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
           cp x16emu emu_binaries/.
@@ -448,7 +448,7 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 MAC_STATIC=1 ADDL_INCLUDE=/opt/homebrew/include HOMEBREW_LIB=/opt/homebrew/lib make V=1 -j3
+          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/opt/homebrew/Cellar/sdl2/*/lib/libSDL2.a ADDL_INCLUDE=/opt/homebrew/include HOMEBREW_LIB=/opt/homebrew/lib FLUIDSYNTH=1 make V=1 -j3
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
           cp x16emu emu_binaries/.

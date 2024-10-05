@@ -48,7 +48,7 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
-	LDFLAGS+=$(HOMEBREW_LIB)/libSDL2.a -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
+	LDFLAGS+=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
 	LDEMU=-ldl -Wl,-rpath,$(HOMEBREW_LIB)
 else ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
@@ -77,11 +77,10 @@ ifdef EMSCRIPTEN
 	CFLAGS+=-s USE_ZLIB=1
 	X16_OUTPUT=x16emu.html
 	MAKECART_OUTPUT=makecart.html
-else
-	FLUIDSYNTH_TEST=$(shell /usr/bin/printf '\043include <fluidsynth.h>\nint main(){return 0;} ' | $(CC) -x c -Wall -O -o /dev/null > /dev/null 2>/dev/null - && echo $$?)
-ifeq ($(FLUIDSYNTH_TEST),0)
-	CFLAGS+=-DHAS_FLUIDSYNTH
 endif
+
+ifeq ($(FLUIDSYNTH),1)
+	CFLAGS+=-DHAS_FLUIDSYNTH
 endif
 
 _X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o iso_8859_15.o ymglue.o midi.o

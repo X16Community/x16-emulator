@@ -586,7 +586,8 @@ void no_fluidsynth_warning(void)
 		fprintf(stderr, "install the mingw-w64-i686-fluidsynth package before\n");
 		fprintf(stderr, "building x16emu.\n\n");
 #endif
-
+		fprintf(stderr, "Then build x16emu with FLUIDSYNTH=1. For example:\n");
+		fprintf(stderr, "FLUIDSYNTH=1 make\n");
 		already_warned = true;
 	}
 }
