@@ -78,7 +78,7 @@ ifdef EMSCRIPTEN
 	X16_OUTPUT=x16emu.html
 	MAKECART_OUTPUT=makecart.html
 else
-	FLUIDSYNTH_TEST=$(shell /usr/bin/printf '#include <fluidsynth.h>\nint main(){return 0;}' | $(CC) -x c -Wall -O -o /dev/null > /dev/null 2>/dev/null - && echo $$?)
+	FLUIDSYNTH_TEST=$(shell /usr/bin/printf '\043include <fluidsynth.h>\nint main(){return 0;} ' | $(CC) -x c -Wall -O -o /dev/null > /dev/null 2>/dev/null - && echo $$?)
 ifeq ($(FLUIDSYNTH_TEST),0)
 	CFLAGS+=-DHAS_FLUIDSYNTH
 endif
