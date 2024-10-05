@@ -562,6 +562,35 @@ usage_keymap()
 	exit(1);
 }
 
+void no_fluidsynth_warning(void)
+{
+	static bool already_warned;
+
+	if (!already_warned) {
+		fprintf(stderr, "\nWarning: x16emu was built without FluidSynth support,\n");
+		fprintf(stderr, "so the MIDI synth will be inoperative.\n\n");
+#if defined(__linux__)
+		fprintf(stderr, "To build x16emu with fluidsynth support, you distro may\n");
+		fprintf(stderr, "have a libfluidsynth-dev or fluidsynth-devel package that\n");
+		fprintf(stderr, "needs to be installed before building x16emu.\n\n");
+#elif defined(__APPLE__)
+		fprintf(stderr, "To build x16emu with fluidsynth support,\n");
+		fprintf(stderr, "install the homebrew package fluid-synth before\n");
+		fprintf(stderr, "building x16emu.\n\n");
+#elif defined(_WIN64)
+		fprintf(stderr, "To build x16emu with fluidsynth support under MSYS2,\n");
+		fprintf(stderr, "install the mingw-w64-x86_64-fluidsynth package before\n");
+		fprintf(stderr, "building x16emu.\n\n");
+#elif defined(_WIN32)
+		fprintf(stderr, "To build x16emu with fluidsynth support under MSYS2,\n");
+		fprintf(stderr, "install the mingw-w64-i686-fluidsynth package before\n");
+		fprintf(stderr, "building x16emu.\n\n");
+#endif
+
+		already_warned = true;
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -647,6 +676,9 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-midicard")) {
+#ifndef HAS_FLUIDSYNTH
+			no_fluidsynth_warning();
+#endif
 			argc--;
 			argv++;
 			has_midi_card = true;
@@ -659,6 +691,9 @@ main(int argc, char **argv)
 				midi_card_addr = 0x9f60;
 			}
 		} else if (!strcmp(argv[0], "-sf2")) {
+#ifndef HAS_FLUIDSYNTH
+			no_fluidsynth_warning();
+#endif
 			argc--;
 			argv++;
 			if (!argc || argv[0][0] == '-') {
@@ -668,6 +703,9 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-midi-in")) {
+#ifndef HAS_FLUIDSYNTH
+			no_fluidsynth_warning();
+#endif
 			argc--;
 			argv++;
 			fs_midi_in_connect = true;

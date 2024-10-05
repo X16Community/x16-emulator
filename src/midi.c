@@ -131,7 +131,7 @@ static bool serial_midi_mutexes_initialized = false;
 void midi_serial_iir_check(uint8_t sel);
 bool fs_midi_in_connect = false;
 
-#ifndef __EMSCRIPTEN__
+#ifdef HAS_FLUIDSYNTH
 
 int handle_midi_event(void* data, fluid_midi_event_t* event);
 
@@ -481,6 +481,12 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
             midi_event_enqueue_byte(mrp, type);
             break;
         case MIDI_SYSEX:
+            // FluidSynth doesn't offer a get_sysex function, but internally
+            // a text event is equivalent to a sysex event, in terms of what
+            // parts of the event structure are populated
+            //
+            // Unfortunately that means we have to fool it in order to
+            // access the data.
             dl_fluid_midi_event_set_type(event, MIDI_TEXT);
             if (dl_fluid_midi_event_get_text(event, (void **)&bufptr, &buflen) == FLUID_OK && bufptr != NULL) {
                 midi_event_enqueue_sysex(mrp, bufptr, buflen);

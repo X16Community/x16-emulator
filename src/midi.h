@@ -4,7 +4,7 @@
 
 #pragma once
 
-#ifndef __EMSCRIPTEN__
+#ifdef HAS_FLUIDSYNTH
 #include <fluidsynth.h>
 #endif
 
