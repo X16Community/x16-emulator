@@ -78,9 +78,8 @@ var emuArguments = ['-keymap', lang, '-rtc'];
 if (ram_val) {
     emuArguments.push('-ram', ram_val);
 }
-
 if (dbg_val != null) {
-    emuArguments.push('debug', dbg_val);
+    emuArguments.push('-debug', dbg_val);
 }
 
 if (manifest_link) {
