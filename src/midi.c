@@ -293,8 +293,11 @@ void midi_byte_out(uint8_t sel, uint8_t b)
                 } else if (b == 0xf0) {
                     sysex_bufptr = 0;
                     midi_state[sel] = MSTATE_SysEx;
+                    out_midi_last_command[sel] = 0;
                 } else if (b == 0xff) {
                     dl_fs_system_reset(fl_synth);
+                    out_midi_last_command[sel] = 0;
+                } else if (b < 0xf8) {
                     out_midi_last_command[sel] = 0;
                 }
             }
