@@ -117,7 +117,7 @@ int handle_midi_event(void* data, fluid_midi_event_t* event);
 static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
 
-static enum MIDI_states midi_state = MSTATE_Normal;
+static enum MIDI_states midi_state[2] = {MSTATE_Normal, MSTATE_Normal};
 static uint8_t out_midi_last_command[2] = {0, 0};
 static uint8_t out_midi_first_param[2];
 
@@ -250,6 +250,7 @@ void midi_init()
     fl_settings = dl_new_fluid_settings();
     dl_fluid_settings_setnum(fl_settings, "synth.sample-rate", 
     AUDIO_SAMPLERATE);
+    dl_fluid_settings_setnum(fl_settings, "synth.gain", FL_DEFAULT_GAIN);
     dl_fluid_settings_setstr(fl_settings, "midi.portname", "Commander X16 Emulator");
     dl_fluid_settings_setint(fl_settings, "midi.autoconnect", fs_midi_in_connect);
     fl_synth = dl_new_fluid_synth(fl_settings);
@@ -275,7 +276,7 @@ void midi_load_sf2(uint8_t* filename)
 void midi_byte_out(uint8_t sel, uint8_t b)
 {
     if (!midi_initialized) return;
-    switch (midi_state) {
+    switch (midi_state[sel]) {
         case MSTATE_Normal:
             if (b < 0x80) {
                 if ((out_midi_last_command[sel] & 0xf0) == 0xc0) { // patch change
@@ -284,14 +285,14 @@ void midi_byte_out(uint8_t sel, uint8_t b)
                     dl_fs_channel_pressure(fl_synth, out_midi_last_command[sel] & 0xf, b);
                 } else if (out_midi_last_command[sel] >= 0x80) { // two-param command
                     out_midi_first_param[sel] = b;
-                    midi_state = MSTATE_Param;
+                    midi_state[sel] = MSTATE_Param;
                 }
             } else {
                 if (b < 0xf0) {
                     out_midi_last_command[sel] = b;
                 } else if (b == 0xf0) {
                     sysex_bufptr = 0;
-                    midi_state = MSTATE_SysEx;
+                    midi_state[sel] = MSTATE_SysEx;
                 } else if (b == 0xff) {
                     dl_fs_system_reset(fl_synth);
                     out_midi_last_command[sel] = 0;
@@ -320,15 +321,19 @@ void midi_byte_out(uint8_t sel, uint8_t b)
                     dl_fs_pitch_bend(fl_synth, out_midi_last_command[sel] & 0xf, ((uint16_t)out_midi_first_param[sel]) | (uint16_t)b << 7);
                     break;
             }
-            midi_state = MSTATE_Normal;
+            midi_state[sel] = MSTATE_Normal;
             break;
         case MSTATE_SysEx:
             if (b & 0x80) { // any command byte can terminate a SYSEX, not just 0xf7
                 if (sysex_bufptr < (sizeof(sysex_buffer) / sizeof(sysex_buffer[0]))-1) { // only if buffer didn't fill
                     sysex_buffer[sysex_bufptr] = 0;
+                    // Handle Master Volume SysEx
+                    if (!strncmp((const char *)sysex_buffer, "\x7F\x7F\x04\x01\x00", sysex_bufptr-1)) {
+                        dl_fluid_settings_setnum(fl_settings, "synth.gain", FL_DEFAULT_GAIN*((float)sysex_buffer[sysex_bufptr-1]/127));
+                    }
                     dl_fs_sysex(fl_synth, (const char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
                 }
-                midi_state = MSTATE_Normal;
+                midi_state[sel] = MSTATE_Normal;
                 return midi_byte_out(sel, b);
             } else {
                 sysex_buffer[sysex_bufptr] = b;

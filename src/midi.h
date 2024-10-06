@@ -33,6 +33,7 @@
 #define FS_MIDI_ACTIVE_SENSING 0xfe
 #define FS_MIDI_SYSTEM_RESET 0xff
 
+#define FL_DEFAULT_GAIN 0.2f
 
 void midi_init(void);
 void midi_serial_init(void);
