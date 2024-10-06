@@ -12,7 +12,7 @@
     #include <windows.h>
     #define LIBRARY_TYPE HMODULE
     #define LOAD_LIBRARY(name) LoadLibrary(name)
-    #define GET_FUNCTION(lib, name) GetProcAddress(lib, name)
+    #define GET_FUNCTION(lib, name) (void *)GetProcAddress(lib, name)
     #define CLOSE_LIBRARY(lib) FreeLibrary(lib)
 #else
     #include <dlfcn.h>
@@ -23,14 +23,14 @@
 #endif
 
 #define ASSIGN_FUNCTION(lib, var, name) {\
-    var = (void *)GET_FUNCTION(lib, name);\
+    var = GET_FUNCTION(lib, name);\
     if (!var) { fprintf(stderr, "Unable to find symbol for '%s'\n", name); CLOSE_LIBRARY(handle); return; }\
 }
 
 enum MIDI_states {
-    NORMAL,
-    PARAM,
-    SYSEX,
+    MSTATE_Normal,
+    MSTATE_Param,
+    MSTATE_SysEx,
 };
 
 struct midi_serial_regs
@@ -117,7 +117,7 @@ int handle_midi_event(void* data, fluid_midi_event_t* event);
 static uint8_t sysex_buffer[1024];
 static int sysex_bufptr;
 
-static enum MIDI_states midi_state = NORMAL;
+static enum MIDI_states midi_state = MSTATE_Normal;
 static uint8_t out_midi_last_command[2] = {0, 0};
 static uint8_t out_midi_first_param[2];
 
@@ -276,7 +276,7 @@ void midi_byte_out(uint8_t sel, uint8_t b)
 {
     if (!midi_initialized) return;
     switch (midi_state) {
-        case NORMAL:
+        case MSTATE_Normal:
             if (b < 0x80) {
                 if ((out_midi_last_command[sel] & 0xf0) == 0xc0) { // patch change
                     dl_fs_program_change(fl_synth, out_midi_last_command[sel] & 0xf, b);
@@ -284,21 +284,21 @@ void midi_byte_out(uint8_t sel, uint8_t b)
                     dl_fs_channel_pressure(fl_synth, out_midi_last_command[sel] & 0xf, b);
                 } else if (out_midi_last_command[sel] >= 0x80) { // two-param command
                     out_midi_first_param[sel] = b;
-                    midi_state = PARAM;
+                    midi_state = MSTATE_Param;
                 }
             } else {
                 if (b < 0xf0) {
                     out_midi_last_command[sel] = b;
                 } else if (b == 0xf0) {
                     sysex_bufptr = 0;
-                    midi_state = SYSEX;
+                    midi_state = MSTATE_SysEx;
                 } else if (b == 0xff) {
                     dl_fs_system_reset(fl_synth);
                     out_midi_last_command[sel] = 0;
                 }
             }
             break;
-        case PARAM:
+        case MSTATE_Param:
             switch (out_midi_last_command[sel] & 0xf0) {
                 case 0x80: // note off
                     dl_fs_noteoff(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel]); // no release velocity
@@ -320,15 +320,15 @@ void midi_byte_out(uint8_t sel, uint8_t b)
                     dl_fs_pitch_bend(fl_synth, out_midi_last_command[sel] & 0xf, ((uint16_t)out_midi_first_param[sel]) | (uint16_t)b << 7);
                     break;
             }
-            midi_state = NORMAL;
+            midi_state = MSTATE_Normal;
             break;
-        case SYSEX:
+        case MSTATE_SysEx:
             if (b & 0x80) { // any command byte can terminate a SYSEX, not just 0xf7
                 if (sysex_bufptr < (sizeof(sysex_buffer) / sizeof(sysex_buffer[0]))-1) { // only if buffer didn't fill
                     sysex_buffer[sysex_bufptr] = 0;
                     dl_fs_sysex(fl_synth, (const char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
                 }
-                midi_state = NORMAL;
+                midi_state = MSTATE_Normal;
                 return midi_byte_out(sel, b);
             } else {
                 sysex_buffer[sysex_bufptr] = b;

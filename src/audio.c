@@ -380,9 +380,9 @@ audio_render()
 		}
 		// VERA+YM mixing is according to the Developer Board
 		// Loudest single PSG channel is 1/8 times the max output
-		// mix = (psg + pcm) * 2 + ym + fs
-		int32_t mix_l = (vera_out_l >> 13) + (ym_out_l >> 15) + (fs_out_l >> 13);
-		int32_t mix_r = (vera_out_r >> 13) + (ym_out_r >> 15) + (fs_out_r >> 13);
+		// mix = (psg + pcm) * 2 + ym + fs * 4
+		int32_t mix_l = (vera_out_l >> 13) + (ym_out_l >> 15) + (fs_out_l >> 12);
+		int32_t mix_r = (vera_out_r >> 13) + (ym_out_r >> 15) + (fs_out_r >> 12);
 		uint32_t amp = SDL_max(SDL_abs(mix_l), SDL_abs(mix_r));
 		if (amp > 32767) {
 			uint32_t limiter_amp_new = (32767 << 16) / amp;
