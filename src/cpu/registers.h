@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "../endian.h"
 
 #define FLAG_CARRY     0x01
 #define FLAG_ZERO      0x02
@@ -19,26 +20,6 @@
 #define FLAG_CONSTANT FLAG_MEMORY_WIDTH
 
 //6502 CPU registers
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define LOW_HIGH_UNION(name, low, high) \
-    union { \
-        struct { \
-            uint8_t low; \
-            uint8_t high; \
-        }; \
-        uint16_t name; \
-    }
-#else
-#define LOW_HIGH_UNION(name, low, high) \
-    union { \
-        struct { \
-            uint8_t high; \
-            uint8_t low; \
-        }; \
-        uint16_t name; \
-    }
-#endif
 
 struct regs
 {
@@ -58,8 +39,6 @@ struct regs
 
     bool is65c816;
 };
-
-#undef LOW_HIGH_UNION
 
 void increment_wrap_at_page_boundary(uint16_t *value);
 void decrement_wrap_at_page_boundary(uint16_t *value);

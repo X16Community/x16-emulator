@@ -18,12 +18,10 @@ endif
 
 CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
-LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
+LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -pthread
 
-# build with link time optimization
-ifndef NOLTO
-	CFLAGS+=-flto
-	LDFLAGS+=-flto
+ifdef ADDL_INCLUDE
+	CFLAGS+=-I$(ADDL_INCLUDE)
 endif
 
 X16_ODIR = build/x16emu
@@ -44,10 +42,9 @@ GIT_REV=$(shell git diff --quiet && /bin/echo -n $$(git rev-parse --short=8 HEAD
 CFLAGS+=-D GIT_REV='"$(GIT_REV)"'
 
 ifeq ($(MAC_STATIC),1)
-	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController
-endif
-
-ifeq ($(CROSS_COMPILE_WINDOWS),1)
+	LDFLAGS=$(LIBSDL_FILE) -lm -liconv -lz -Wl,-framework,CoreAudio -Wl,-framework,AudioToolbox -Wl,-framework,ForceFeedback -lobjc -Wl,-framework,CoreVideo -Wl,-framework,Cocoa -Wl,-framework,Carbon -Wl,-framework,IOKit -Wl,-weak_framework,QuartzCore -Wl,-weak_framework,Metal -Wl,-weak_framework,CoreHaptics -Wl,-weak_framework,GameController -pthread
+	LDEMU=-ldl -Wl,-rpath,$(HOMEBREW_LIB)
+else ifeq ($(CROSS_COMPILE_WINDOWS),1)
 	LDFLAGS+=-L$(MINGW32)/lib
 	# this enables printf() to show, but also forces a console window
 	LDFLAGS+=-Wl,--subsystem,console
@@ -59,6 +56,14 @@ else
 	CC=x86_64-w64-mingw32-gcc
 	CXX=x86_64-w64-mingw32-g++
 endif
+else # Not Mac, not Windows, probably Linux
+	LDEMU=-ldl
+endif
+
+# build with link time optimization
+ifndef NOLTO
+	CFLAGS+=-flto
+	LDFLAGS+=-flto
 endif
 
 ifdef TARGET_WIN32
@@ -74,7 +79,11 @@ ifdef EMSCRIPTEN
 	MAKECART_OUTPUT=makecart.html
 endif
 
-_X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o iso_8859_15.o ymglue.o
+ifeq ($(FLUIDSYNTH),1)
+	CFLAGS+=-DHAS_FLUIDSYNTH
+endif
+
+_X16_OBJS = cpu/fake6502.o memory.o disasm.o video.o i2c.o smc.o rtc.o via.o serial.o ieee.o vera_spi.o audio.o vera_pcm.o vera_psg.o sdcard.o main.o debugger.o javascript_interface.o joystick.o rendertext.o keyboard.o icon.o timing.o wav_recorder.o testbench.o files.o cartridge.o iso_8859_15.o ymglue.o midi.o
 _X16_OBJS += extern/ymfm/src/ymfm_opm.o
 
 ifdef TARGET_WIN32
@@ -93,7 +102,7 @@ MAKECART_DEPS := $(MAKECART_OBJS:.o=.d)
 all: x16emu makecart
 
 x16emu: $(X16_OBJS)
-	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS)
+	$(CXX) -o $(X16_OUTPUT) $(X16_OBJS) $(LDFLAGS) $(LDEMU)
 
 $(X16_ODIR)/%.o: $(X16_SDIR)/%.c
 	@mkdir -p $$(dirname $@)

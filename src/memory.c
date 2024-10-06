@@ -18,6 +18,7 @@
 #include "audio.h"
 #include "cartridge.h"
 #include "iso_8859_15.h"
+#include "midi.h"
 
 uint8_t ram_bank;
 uint8_t rom_bank;
@@ -200,6 +201,9 @@ real_read6502(uint16_t address, bool debugOn, int16_t bank)
 		} else if (address >= 0x9fb0 && address < 0x9fc0) {
 			// emulator state
 			return emu_read(address & 0xf, debugOn);
+		} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
+			// midi card
+			return midi_serial_read(address & 0xf, debugOn);
 		} else {
 			// future expansion
 			return 0x9f; // open bus read
@@ -277,6 +281,8 @@ write6502(uint16_t address, uint8_t value)
 		} else if (address >= 0x9fb0 && address < 0x9fc0) {
 			// emulator state
 			emu_write(address & 0xf, value);
+		} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
+			midi_serial_write(address & 0xf, value);
 		} else {
 			// future expansion
 		}

@@ -42,6 +42,7 @@
 #include "wav_recorder.h"
 #include "testbench.h"
 #include "cartridge.h"
+#include "midi.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -129,6 +130,9 @@ bool testbench = false;
 bool enable_midline = false;
 bool ym2151_irq_support = false;
 char *cartridge_path = NULL;
+
+bool has_midi_card = false;
+uint16_t midi_card_addr;
 
 bool using_hostfs = true;
 
@@ -332,6 +336,7 @@ machine_reset()
 	video_reset();
 	mouse_state_init();
 	reset6502(regs.is65c816);
+	midi_serial_init();
 }
 
 void
@@ -526,6 +531,16 @@ usage()
 	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 	printf("-longpwron\n");
 	printf("\tSimulate a long press of the power button at system power-on.\n");
+	printf("-midicard [<address>]\n");
+	printf("\tInstall a serial MIDI card at the specified address, or at $9F60 by default.\n");
+	printf("\tThe -sf2 option must be specified along with this option.\n");
+	printf("-sf2 <SoundFont filename>\n");
+	printf("\tInitialize MIDI synth with the specified SoundFont.\n");
+	printf("\tThe -midicard option must be specified along with this option.\n");
+	printf("-midi-in\n");
+	printf("\tConnect the system MIDI input devices to the input of the first UART\n");
+	printf("\tof the emulated MIDI card. The -midicard option is required for this\n");
+	printf("\toption to have any effect.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -547,6 +562,36 @@ usage_keymap()
 	exit(1);
 }
 
+void no_fluidsynth_warning(void)
+{
+	static bool already_warned;
+
+	if (!already_warned) {
+		fprintf(stderr, "\nWarning: x16emu was built without FluidSynth support,\n");
+		fprintf(stderr, "so the MIDI synth will be inoperative.\n\n");
+#if defined(__linux__)
+		fprintf(stderr, "To build x16emu with fluidsynth support, you distro may\n");
+		fprintf(stderr, "have a libfluidsynth-dev or fluidsynth-devel package that\n");
+		fprintf(stderr, "needs to be installed before building x16emu.\n\n");
+#elif defined(__APPLE__)
+		fprintf(stderr, "To build x16emu with fluidsynth support,\n");
+		fprintf(stderr, "install the homebrew package fluid-synth before\n");
+		fprintf(stderr, "building x16emu.\n\n");
+#elif defined(_WIN64)
+		fprintf(stderr, "To build x16emu with fluidsynth support under MSYS2,\n");
+		fprintf(stderr, "install the mingw-w64-x86_64-fluidsynth package before\n");
+		fprintf(stderr, "building x16emu.\n\n");
+#elif defined(_WIN32)
+		fprintf(stderr, "To build x16emu with fluidsynth support under MSYS2,\n");
+		fprintf(stderr, "install the mingw-w64-i686-fluidsynth package before\n");
+		fprintf(stderr, "building x16emu.\n\n");
+#endif
+		fprintf(stderr, "Then build x16emu with FLUIDSYNTH=1. For example:\n");
+		fprintf(stderr, "FLUIDSYNTH=1 make\n");
+		already_warned = true;
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -556,6 +601,7 @@ main(int argc, char **argv)
 	char *rom_path = rom_path_data;
 	char *prg_path = NULL;
 	char *bas_path = NULL;
+	char *sf2_path = NULL;
 	char *sdcard_path = NULL;
 	bool run_test = false;
 	int test_number = 0;
@@ -630,6 +676,40 @@ main(int argc, char **argv)
 			prg_path = argv[0];
 			argc--;
 			argv++;
+		} else if (!strcmp(argv[0], "-midicard")) {
+#ifndef HAS_FLUIDSYNTH
+			no_fluidsynth_warning();
+#endif
+			argc--;
+			argv++;
+			has_midi_card = true;
+			if (argc && argv[0][0] != '-') {
+				midi_card_addr = 0x9f00 | ((uint16_t)strtol(argv[0], NULL, 16) & 0xff);
+				midi_card_addr &= 0xfff0;
+				argc--;
+				argv++;
+			} else {
+				midi_card_addr = 0x9f60;
+			}
+		} else if (!strcmp(argv[0], "-sf2")) {
+#ifndef HAS_FLUIDSYNTH
+			no_fluidsynth_warning();
+#endif
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			sf2_path = argv[0];
+			argc--;
+			argv++;
+		} else if (!strcmp(argv[0], "-midi-in")) {
+#ifndef HAS_FLUIDSYNTH
+			no_fluidsynth_warning();
+#endif
+			argc--;
+			argv++;
+			fs_midi_in_connect = true;
 		} else if (!strcmp(argv[0], "-run")) {
 			argc--;
 			argv++;
@@ -1086,6 +1166,18 @@ main(int argc, char **argv)
 #else
 		audio_buffers = 32;
 #endif
+	}
+
+	if (sf2_path && has_midi_card) {
+		if (midi_card_addr < 0x9f60) {
+			fprintf(stderr, "Warning: Serial MIDI card address must be in the range of 9F60-9FF0\n");
+		} else {
+			midi_init();
+			midi_load_sf2((uint8_t *)sf2_path);
+		}
+	} else if (sf2_path || has_midi_card) {
+		fprintf(stderr, "Warning: -sf2 and -midicard must be specified together in order to enable the MIDI synth.\n");
+		has_midi_card = false;
 	}
 
 	if (cartridge_path) {
@@ -1587,6 +1679,8 @@ emulator_loop(void *param)
 			audio_step(clocks);
 		}
 
+		midi_serial_step(clocks);
+
 		if (!headless && new_frame) {
 			if (nvram_dirty && nvram_path) {
 				SDL_RWops *f = SDL_RWFromFile(nvram_path, "wb");
@@ -1615,7 +1709,7 @@ emulator_loop(void *param)
 			audio_render();
 		}
 
-		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq())) {
+		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq()) || (has_midi_card && midi_serial_irq())) {
 //			printf("IRQ!\n");
 			irq6502();
 		}

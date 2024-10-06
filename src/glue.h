@@ -79,6 +79,9 @@ extern bool has_via2;
 extern uint32_t host_sample_rate;
 extern bool enable_midline;
 
+extern bool has_midi_card;
+extern uint16_t midi_card_addr;
+
 extern void machine_dump(const char* reason);
 extern void machine_reset();
 extern void machine_nmi();
