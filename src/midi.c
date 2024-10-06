@@ -6,6 +6,7 @@
 #include "glue.h"
 #include "midi.h"
 #include "audio.h"
+#include "endian.h"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -31,26 +32,6 @@ enum MIDI_states {
     PARAM,
     SYSEX,
 };
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define LOW_HIGH_UNION(name, low, high) \
-    union { \
-        struct { \
-            uint8_t low; \
-            uint8_t high; \
-        }; \
-        uint16_t name; \
-    }
-#else
-#define LOW_HIGH_UNION(name, low, high) \
-    union { \
-        struct { \
-            uint8_t high; \
-            uint8_t low; \
-        }; \
-        uint16_t name; \
-    }
-#endif
 
 struct midi_serial_regs
 {
@@ -122,8 +103,6 @@ struct midi_serial_regs
     pthread_mutex_t fifo_mutex;
     pthread_mutexattr_t fifo_mutex_attr;
 };
-
-#undef LOW_HIGH_UNION
 
 struct midi_serial_regs mregs[2];
 static bool serial_midi_mutexes_initialized = false;
@@ -434,60 +413,60 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
     int buflen;
 
     switch (type) {
-        case NOTE_OFF:
-        case NOTE_ON:
+        case FS_NOTE_OFF:
+        case FS_NOTE_ON:
             key = dl_fluid_midi_event_get_key(event);
             val = dl_fluid_midi_event_get_velocity(event);
             midi_event_enqueue_normal(mrp, cmd, key, val);
             break;
-        case KEY_PRESSURE:
+        case FS_KEY_PRESSURE:
             key = dl_fluid_midi_event_get_key(event);
             val = dl_fluid_midi_event_get_value(event);
             midi_event_enqueue_normal(mrp, cmd, key, val);
             break;
-        case CONTROL_CHANGE:
+        case FS_CONTROL_CHANGE:
             key = dl_fluid_midi_event_get_control(event);
             val = dl_fluid_midi_event_get_value(event);
             midi_event_enqueue_normal(mrp, cmd, key, val);
             break;
-        case PITCH_BEND:
+        case FS_PITCH_BEND:
             key = dl_fluid_midi_event_get_pitch(event) & 0x7f;
             val = (dl_fluid_midi_event_get_pitch(event) >> 7) & 0x7f;
             midi_event_enqueue_normal(mrp, cmd, key, val);
             break;
-        case PROGRAM_CHANGE:
-        case CHANNEL_PRESSURE:
+        case FS_PROGRAM_CHANGE:
+        case FS_CHANNEL_PRESSURE:
             val = dl_fluid_midi_event_get_program(event);
             midi_event_enqueue_short(mrp, cmd, val);
             break;
-        case MIDI_TIME_CODE:
+        case FS_MIDI_TIME_CODE:
             val = dl_fluid_midi_event_get_value(event);
             midi_event_enqueue_short(mrp, type, val);
             mrp->in_midi_last_command = 0;
             break;
-        case MIDI_TUNE_REQUEST:
+        case FS_MIDI_TUNE_REQUEST:
         case 0xF4:
         case 0xF5:
             midi_event_enqueue_byte(mrp, type);
             mrp->in_midi_last_command = 0;
             break;
-        case MIDI_SYNC:
-        case MIDI_TICK:
-        case MIDI_START:
-        case MIDI_CONTINUE:
-        case MIDI_STOP:
-        case MIDI_ACTIVE_SENSING:
-        case MIDI_SYSTEM_RESET:
+        case FS_MIDI_SYNC:
+        case FS_MIDI_TICK:
+        case FS_MIDI_START:
+        case FS_MIDI_CONTINUE:
+        case FS_MIDI_STOP:
+        case FS_MIDI_ACTIVE_SENSING:
+        case FS_MIDI_SYSTEM_RESET:
             midi_event_enqueue_byte(mrp, type);
             break;
-        case MIDI_SYSEX:
+        case FS_MIDI_SYSEX:
             // FluidSynth doesn't offer a get_sysex function, but internally
             // a text event is equivalent to a sysex event, in terms of what
             // parts of the event structure are populated
             //
             // Unfortunately that means we have to fool it in order to
             // access the data.
-            dl_fluid_midi_event_set_type(event, MIDI_TEXT);
+            dl_fluid_midi_event_set_type(event, FS_MIDI_TEXT);
             if (dl_fluid_midi_event_get_text(event, (void **)&bufptr, &buflen) == FLUID_OK && bufptr != NULL) {
                 midi_event_enqueue_sysex(mrp, bufptr, buflen);
             }
