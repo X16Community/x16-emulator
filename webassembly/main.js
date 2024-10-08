@@ -77,6 +77,7 @@ var lang_val = url.searchParams.get("keymap");
 var diag = url.searchParams.get("longpwron");
 var wide = url.searchParams.get("widescreen");
 var capture = url.searchParams.get("capture");
+var midline = url.searchParams.get("midlineeffects");
 
 var emuArguments = ['-keymap', lang, '-rtc'];
 
@@ -102,6 +103,9 @@ if (wide != null) {
 }
 if (capture != null) {
     emuArguments.push('-capture');
+}
+if (midline != null) {
+    emuArguments.push('-midline-effects');
 }
 
 if (manifest_link) {
@@ -355,6 +359,10 @@ function extractManifestFromBuffer(zip) {
 		if (manifestObject.capture) {
 			console.log('Found capture variable');
 			emuArguments.push('-capture');
+		}
+		if (manifestObject.midlineeffects) {
+			console.log('Found midlineeffects variable');
+			emuArguments.push('-midline-effects');
 		}
 
                 const promises = [];
