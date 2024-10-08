@@ -187,6 +187,63 @@ The following keys can be used for controlling games:
 |Cursor Right  | RIGHT           |
 
 
+Options for the WebEmulator
+--------
+
+The following options are available for the WebEmulator. With the exception of manifest, they all work exactly the same as in the normal emulator.
+* `manifest`
+* `ram`
+* `cpu`
+* `mhz`
+* `keymap`
+* `longpwron`
+* `widescreen`
+* `capture`
+
+#### The Address Line
+`manifest` tells the emulator what should be loaded as a startup program. If the file is a .bas or .prg, the emulator will load it and try to execute it. If the file is a .zip, the WebEmulator will get access to all the files inside that zip-file. When using a zip-file you may add a manifest file to provide additional information - See section below for more information on `manifest.json`
+
+On the Commander X16 forums, a link to the webemulator could look something like this:
+https://cx16forum.org/webemu/x16emu.html?manifest=/forum/download/file.php?id=1218&ram=2048&cpu=c816&mhz=10&keymap=da&widescreen&capture&longpwron  
+This will load the forum file with id 1218 into the emulator.  
+Give the emulator 2MB of RAM  
+Set the CPU type to 65C816  
+Set the CPU speed at 10 MHz  
+Set the keyboard layout to Danish  
+Show the emulator in widescreen mode  
+Capture the mouse and keyboard input   
+Start the emulator in RAM diagnostics mode  
+The last 3 options do not have any values, it is enough to have them on the address line to enable the feature.
+
+#### The manifest.json File
+If an application requires more than a single file to function, for example graphics or audio assets, it is necessary to package the needed files in a zip file. If there are more than one start file (BAS or PRG) the `manifest.json` file can be used to specify the default start file with `start_prg` or `start_bas` otherwise the WebEmulator will start the .prg or .bas it finds in the zip file.  
+
+Here is an example of the optional `manifest.json` file  
+	
+	{
+		"manifest_version": "1.0.0",
+		"name": "My Program",
+		"author": "John Smith",
+		"app_version": "1.0.0",
+		"license": "GPL 3",
+		"ram": "2048",
+		"cpu": "c816",
+		"mhz": "10",
+		"keymap": "da",
+		"widescreen": true,
+		"capture": true,
+		"longpwron": false,
+		"start_prg": "MYPROG.PRG",
+		"resources": [
+			"MYPROG.PRG",
+			"FILE1.BIN",
+			"FILE2.BIN"
+		]
+	}
+
+If the resources section is present, only files specified will be made available to the WebEmulator.  
+Options set in `manifest.json` will override options on the address line.
+
 Functions while running
 -----------------------
 
