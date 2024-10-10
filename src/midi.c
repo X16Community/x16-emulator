@@ -120,6 +120,9 @@ static int sysex_bufptr;
 static enum MIDI_states midi_state[2] = {MSTATE_Normal, MSTATE_Normal};
 static uint8_t out_midi_last_command[2] = {0, 0};
 static uint8_t out_midi_first_param[2];
+static uint16_t out_midi_nrpn[2][16];
+static uint16_t out_midi_rpn[2][16];
+static bool out_midi_nrpn_active[2][16];
 
 static bool midi_initialized = false;
 
@@ -275,6 +278,8 @@ void midi_load_sf2(uint8_t* filename)
 // Store state, or dispatch event
 void midi_byte_out(uint8_t sel, uint8_t b)
 {
+    uint8_t chan = out_midi_last_command[sel] & 0xf;
+
     if (!midi_initialized) return;
     switch (midi_state[sel]) {
         case MSTATE_Normal:
@@ -305,23 +310,44 @@ void midi_byte_out(uint8_t sel, uint8_t b)
         case MSTATE_Param:
             switch (out_midi_last_command[sel] & 0xf0) {
                 case 0x80: // note off
-                    dl_fs_noteoff(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel]); // no release velocity
+                    dl_fs_noteoff(fl_synth, chan, out_midi_first_param[sel]); // no release velocity
                     break;
                 case 0x90: // note on
                     if (b == 0) {
-                        dl_fs_noteoff(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel]);
+                        dl_fs_noteoff(fl_synth, chan, out_midi_first_param[sel]);
                     } else {
-                        dl_fs_noteon(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel], b);
+                        dl_fs_noteon(fl_synth, chan, out_midi_first_param[sel], b);
                     }
                     break;
                 case 0xa0: // aftertouch
-                    dl_fs_key_pressure(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel], b);
+                    dl_fs_key_pressure(fl_synth, chan, out_midi_first_param[sel], b);
                     break;
                 case 0xb0: // controller
-                    dl_fs_cc(fl_synth, out_midi_last_command[sel] & 0xf, out_midi_first_param[sel], b);
+                    switch (out_midi_first_param[sel]) {
+                        case 98:
+                            out_midi_nrpn_active[sel][chan] = true;
+                            out_midi_nrpn[sel][chan] = (out_midi_nrpn[sel][chan] & 0x00ff) | (b << 8);
+                            break;
+                        case 99:
+                            out_midi_nrpn_active[sel][chan] = true;
+                            out_midi_nrpn[sel][chan] = (out_midi_nrpn[sel][chan] & 0xff00) | b;
+                            break;
+                        case 100:
+                            out_midi_nrpn_active[sel][chan] = false;
+                            out_midi_rpn[sel][chan] = (out_midi_rpn[sel][chan] & 0x00ff) | (b << 8);
+                            break;
+                        case 101:
+                            out_midi_nrpn_active[sel][chan] = false;
+                            out_midi_rpn[sel][chan] = (out_midi_rpn[sel][chan] & 0xff00) | b;
+                            break;
+                    }
+                    dl_fs_cc(fl_synth, chan, out_midi_first_param[sel], b);
+                    if (out_midi_nrpn_active[sel][chan] && out_midi_nrpn[sel][chan] == 0x0121 && out_midi_first_param[sel] == 6) {
+                        dl_fs_cc(fl_synth, chan, 71, b); // Translate NRPN 0x0121 -> Controller 71 (Timbre/Resonance)
+                    }
                     break;
                 case 0xe0: // pitch bend
-                    dl_fs_pitch_bend(fl_synth, out_midi_last_command[sel] & 0xf, ((uint16_t)out_midi_first_param[sel]) | (uint16_t)b << 7);
+                    dl_fs_pitch_bend(fl_synth, chan, ((uint16_t)out_midi_first_param[sel]) | (uint16_t)b << 7);
                     break;
             }
             midi_state[sel] = MSTATE_Normal;
@@ -330,11 +356,15 @@ void midi_byte_out(uint8_t sel, uint8_t b)
             if (b & 0x80) { // any command byte can terminate a SYSEX, not just 0xf7
                 if (sysex_bufptr < (sizeof(sysex_buffer) / sizeof(sysex_buffer[0]))-1) { // only if buffer didn't fill
                     sysex_buffer[sysex_bufptr] = 0;
-                    // Handle Master Volume SysEx
-                    if (!strncmp((const char *)sysex_buffer, "\x7F\x7F\x04\x01\x00", sysex_bufptr-1)) {
+                    if (!strncmp((char *)sysex_buffer, "\x7F\x7F\x04\x01\x00", sysex_bufptr-1)) {
+                        // Handle Master Volume SysEx
                         dl_fluid_settings_setnum(fl_settings, "synth.gain", FL_DEFAULT_GAIN*((float)sysex_buffer[sysex_bufptr-1]/127));
+                    } else if (!strncmp((char *)sysex_buffer, "\x7E\x7F\x09\x01", sysex_bufptr)) {
+                        // Handle General MIDI reset SysEx
+                        dl_fs_system_reset(fl_synth);
+                    } else {
+                        dl_fs_sysex(fl_synth, (char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
                     }
-                    dl_fs_sysex(fl_synth, (const char *)sysex_buffer, sysex_bufptr, NULL, NULL, NULL, 0);
                 }
                 midi_state[sel] = MSTATE_Normal;
                 return midi_byte_out(sel, b);
