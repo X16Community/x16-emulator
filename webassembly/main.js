@@ -339,8 +339,11 @@ function extractManifestFromBuffer(zip) {
 		}
 		if (manifestObject.cpu) {
 			console.log('Found CPU type: '+manifestObject.cpu);
-			if (manifestObject.cpu == 'c816')
+			if (manifestObject.cpu == 'c816') {
 				emuArguments.push('-c816');
+			} elseif (manifestObject.cpu == 'c02') {
+				emuArguments.push('c02');
+			}
 		}
 		if (manifestObject.mhz) {
 			console.log('Found mhz variable: '+manifestObject.mhz);
