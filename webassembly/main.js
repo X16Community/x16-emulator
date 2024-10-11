@@ -87,6 +87,8 @@ if (ram_val) {
 if (cpu_val) {
     if (cpu_val == 'c816') {
         emuArguments.push('-c816');
+    } elseif (cpu_val == 'c02') {
+	emuArguments.push('-c02');
     }
 }
 if (mhz_val) {
