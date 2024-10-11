@@ -73,6 +73,11 @@ var manifest_link = url.searchParams.get("manifest");
 var ram_val = url.searchParams.get("ram");
 var cpu_val = url.searchParams.get("cpu");
 var mhz_val = url.searchParams.get("mhz");
+var lang_val = url.searchParams.get("keymap");
+var diag = url.searchParams.get("longpwron");
+var wide = url.searchParams.get("widescreen");
+var capture = url.searchParams.get("capture");
+var midline = url.searchParams.get("midlineeffects");
 
 var emuArguments = ['-keymap', lang, '-rtc'];
 
@@ -80,11 +85,27 @@ if (ram_val) {
     emuArguments.push('-ram', ram_val);
 }
 if (cpu_val) {
-    if (cpu_val == 'c816')
+    if (cpu_val == 'c816') {
         emuArguments.push('-c816');
+    }
 }
 if (mhz_val) {
     emuArguments.push('-mhz', mhz_val);
+}
+if (lang_val) {
+    emuArguments.push('-keymap', lang_val);
+}
+if (diag != null) {
+    emuArguments.push('-longpwron');
+}
+if (wide != null) {
+    emuArguments.push('-widescreen');
+}
+if (capture != null) {
+    emuArguments.push('-capture');
+}
+if (midline != null) {
+    emuArguments.push('-midline-effects');
 }
 
 if (manifest_link) {
@@ -309,6 +330,40 @@ function extractManifestFromBuffer(zip) {
                 let manifestObject = JSON.parse(manifestString);
                 console.log("Parsed manifest from zip:")
                 console.log(manifestObject);
+
+		if (manifestObject.ram) {
+			console.log('Found RAM amount: '+manifestObject.ram);
+			emuArguments.push('-ram', manifestObject.ram);
+		}
+		if (manifestObject.cpu) {
+			console.log('Found CPU type: '+manifestObject.cpu);
+			if (manifestObject.cpu == 'c816')
+				emuArguments.push('-c816');
+		}
+		if (manifestObject.mhz) {
+			console.log('Found mhz variable: '+manifestObject.mhz);
+			emuArguments.push('-mhz', manifestObject.mhz);
+		}
+		if (manifestObject.keymap) {
+			console.log('Found keymap variable: '+manifestObject.keymap);
+			emuArguments.push('-keymap', manifestObject.keymap);
+		}
+		if (manifestObject.longpwron) {
+			console.log('Found longpwron variable');
+			emuArguments.push('-longpwron');
+		}
+		if (manifestObject.widescreen) {
+			console.log('Found widescreen variable');
+			emuArguments.push('-widescreen');
+		}
+		if (manifestObject.capture) {
+			console.log('Found capture variable');
+			emuArguments.push('-capture');
+		}
+		if (manifestObject.midlineeffects) {
+			console.log('Found midlineeffects variable');
+			emuArguments.push('-midline-effects');
+		}
 
                 const promises = [];
                 if (manifestObject.resources) {
