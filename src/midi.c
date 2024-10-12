@@ -3,6 +3,7 @@
 // All rights reserved. License: 2-clause BSD
 
 #include <pthread.h>
+#include <stdio.h>
 #include "glue.h"
 #include "midi.h"
 #include "audio.h"

@@ -16,7 +16,7 @@ else ifeq ($(OS),Windows_NT)
 	TARGET_WIN32=yes
 endif
 
-CFLAGS=-std=c99 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
+CFLAGS=-std=c11 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
 LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -pthread
 
