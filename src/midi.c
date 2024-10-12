@@ -2,7 +2,8 @@
 // Copyright (c) 2024 MooingLemur
 // All rights reserved. License: 2-clause BSD
 
-#include <pthread.h>
+#include <threads.h>
+#include <stdio.h>
 #include "glue.h"
 #include "midi.h"
 #include "audio.h"
@@ -100,8 +101,7 @@ struct midi_serial_regs
     int mfsz;
     uint8_t in_midi_last_command;
 
-    pthread_mutex_t fifo_mutex;
-    pthread_mutexattr_t fifo_mutex_attr;
+    mtx_t fifo_mutex;
 };
 
 struct midi_serial_regs mregs[2];
@@ -441,7 +441,7 @@ void midi_event_enqueue_sysex(struct midi_serial_regs* mrp, uint8_t *bufptr, int
 int handle_midi_event(void* data, fluid_midi_event_t* event)
 {
     struct midi_serial_regs* mrp = (struct midi_serial_regs*)data;
-    pthread_mutex_lock(&mrp->fifo_mutex);
+    mtx_lock(&mrp->fifo_mutex);
 
     uint8_t type = dl_fluid_midi_event_get_type(event);
     uint8_t chan = dl_fluid_midi_event_get_channel(event);
@@ -513,7 +513,7 @@ int handle_midi_event(void* data, fluid_midi_event_t* event)
 
     //fprintf(stderr, "Debug: MIDI IN: Type: %02X Chan: %02X\n", type, chan);
 
-    pthread_mutex_unlock(&mrp->fifo_mutex);
+    mtx_unlock(&mrp->fifo_mutex);
     return FLUID_OK;
 }
 
@@ -609,8 +609,7 @@ void midi_serial_init()
 
     if (!serial_midi_mutexes_initialized) {
         for (sel=0; sel<2; sel++) {
-            pthread_mutexattr_init(&mregs[sel].fifo_mutex_attr);
-            pthread_mutex_init(&mregs[sel].fifo_mutex, &mregs[sel].fifo_mutex_attr);
+            mtx_init(&mregs[sel].fifo_mutex, mtx_plain);
         }
         serial_midi_mutexes_initialized = true;
     }
@@ -643,7 +642,7 @@ void midi_serial_step(int clocks)
         mregs[sel].clock -= (int64_t)mregs[sel].clockdec * clocks;
         while (mregs[sel].clock < 0) {
             // process uart
-            pthread_mutex_lock(&mregs[sel].fifo_mutex);
+            mtx_lock(&mregs[sel].fifo_mutex);
 
             if (mregs[sel].obyte_bits_remain > 0) {
                 mregs[sel].obyte_bits_remain--;
@@ -699,7 +698,7 @@ void midi_serial_step(int clocks)
                 mregs[sel].ibyte_bits_remain = 2 + mregs[sel].lcr_word_length_bits + mregs[sel].lcr_stb + mregs[sel].lcr_pen;
             }
 
-            pthread_mutex_unlock(&mregs[sel].fifo_mutex);
+            mtx_unlock(&mregs[sel].fifo_mutex);
             mregs[sel].clock += 0x1000000LL;
             midi_serial_iir_check(sel);
         }
@@ -708,7 +707,7 @@ void midi_serial_step(int clocks)
 
 uint8_t midi_serial_dequeue_ibyte(uint8_t sel)
 {
-    pthread_mutex_lock(&mregs[sel].fifo_mutex);
+    mtx_lock(&mregs[sel].fifo_mutex);
     uint8_t ret = mregs[sel].ififo[0];
     uint8_t i;
 
@@ -726,13 +725,13 @@ uint8_t midi_serial_dequeue_ibyte(uint8_t sel)
         midi_serial_iir_check(sel);
     }
 
-    pthread_mutex_unlock(&mregs[sel].fifo_mutex);
+    mtx_unlock(&mregs[sel].fifo_mutex);
     return ret;
 }
 
 void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val)
 {
-    pthread_mutex_lock(&mregs[sel].fifo_mutex);
+    mtx_lock(&mregs[sel].fifo_mutex);
     if (mregs[sel].ofsz < (mregs[sel].fcr_fifo_enable ? 16 : 1)) {
         mregs[sel].ofifo[mregs[sel].ofsz] = val;
         mregs[sel].thre_intr = false;
@@ -749,7 +748,7 @@ void midi_serial_enqueue_obyte(uint8_t sel, uint8_t val)
         fprintf(stderr, "Serial MIDI: Warning: UART %d TX Overflow\n", sel);
     }
     midi_serial_iir_check(sel);
-    pthread_mutex_unlock(&mregs[sel].fifo_mutex);
+    mtx_unlock(&mregs[sel].fifo_mutex);
 }
 
 uint8_t midi_serial_read(uint8_t reg, bool debugOn)
