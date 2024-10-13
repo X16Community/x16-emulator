@@ -1763,21 +1763,22 @@ emulator_loop(void *param)
 				static bool prg_done = false;
 
 				if (prg_file && !prg_done) {
+					int loadlen = 0;
 					// LOAD":*" will cause the IEEE library
 					// to load from "prg_file"
 					if (prg_override_start >= 0) {
-						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",%d,1,$%04X\r", ieee_unit, prg_override_start);
+						loadlen = snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",%d,1,$%04X\r", ieee_unit, prg_override_start);
 					} else {
-						snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",%d,1\r", ieee_unit);
+						loadlen = snprintf(paste_text_data, sizeof(paste_text_data), "LOAD\":*\",%d,1\r", ieee_unit);
 					}
 					paste_text = paste_text_data;
 					prg_done = true;
 
 					if (run_after_load) {
 						if (prg_override_start >= 0) {
-							snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "SYS$%04X\r", prg_override_start);
+							snprintf(paste_text_data + loadlen, sizeof(paste_text_data) - loadlen, "SYS$%04X\r", prg_override_start);
 						} else {
-							snprintf(strchr(paste_text_data, 0), sizeof(paste_text_data), "RUN\r");
+							snprintf(paste_text_data + loadlen, sizeof(paste_text_data) - loadlen, "RUN\r");
 						}
 					}
 				}
