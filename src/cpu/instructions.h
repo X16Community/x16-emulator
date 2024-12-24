@@ -829,27 +829,23 @@ static void tsc() {
 }
 
 static void mvn() {
-    if (regs.c != 0xFFFF) {
-        if (index_16bit()) {
-            write6502(regs.y++, read6502(regs.x++));
-        } else {
-            write6502(regs.yl++, read6502(regs.xl++));
-        }
-
-        regs.c--;
+    if (index_16bit()) {
+        write6502(regs.y++, read6502(regs.x++));
+    } else {
+        write6502(regs.yl++, read6502(regs.xl++));
+    }
+    if (--regs.c != 0xFFFF) {
         regs.pc -= 3;
     }
 }
 
 static void mvp() {
-    if (regs.c != 0xFFFF) {
-        if (index_16bit()) {
-            write6502(regs.y--, read6502(regs.x--));
-        } else {
-            write6502(regs.yl--, read6502(regs.xl--));
-        }
-
-        regs.c--;
+    if (index_16bit()) {
+        write6502(regs.y--, read6502(regs.x--));
+    } else {
+        write6502(regs.yl--, read6502(regs.xl--));
+    }
+    if (--regs.c != 0xFFFF) {
         regs.pc -= 3;
     }
 }
