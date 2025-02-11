@@ -691,6 +691,7 @@ render_sprite_line(const uint16_t y)
 
 		uint8_t unpacked_sprite_line[64];
 		const uint16_t width = (props->sprite_width<64? props->sprite_width : 64);
+		const uint8_t vram_fetch_mask = ((2 - props->color_mode) << 2) - 1;
 		if (props->color_mode == 0) {
 			// 4bpp
 			expand_4bpp_data(unpacked_sprite_line, bitmap_data, width);
@@ -707,14 +708,14 @@ render_sprite_line(const uint16_t y)
 			}
 
 			// one clock per fetched 32 bits
-			if (!(sx & 3)) {
+			if (!(sx & vram_fetch_mask)) {
 				sprite_budget--; if (sprite_budget == 0) break;
 			}
 
 			// one clock per rendered pixel
 			sprite_budget--; if (sprite_budget == 0) break;
 
-			const uint8_t col_index = unpacked_sprite_line[eff_sx];
+			uint8_t col_index = unpacked_sprite_line[eff_sx];
 			eff_sx += eff_sx_incr;
 
 			// palette offset
@@ -722,8 +723,11 @@ render_sprite_line(const uint16_t y)
 				sprite_line_collisions |= sprite_line_mask[line_x] & props->sprite_collision_mask;
 				sprite_line_mask[line_x] |= props->sprite_collision_mask;
 
-			if (props->sprite_zdepth > sprite_line_z[line_x]) {
-					sprite_line_col[line_x] = col_index + props->palette_offset;
+				if (props->sprite_zdepth > sprite_line_z[line_x]) {
+					if (col_index < 16) {
+						col_index += props->palette_offset;
+					}
+					sprite_line_col[line_x] = col_index;
 					sprite_line_z[line_x] = props->sprite_zdepth;
 				}
 			}
@@ -979,7 +983,7 @@ render_layer_line_bitmap(uint8_t layer, uint16_t y)
 			col_index += palette_offset << 4;
 			if (props->text_mode_256c) {
 				col_index |= 0x80;
-			}			
+			}
 		}
 		layer_line[layer][x] = col_index;
 	}
