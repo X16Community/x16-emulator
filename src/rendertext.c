@@ -5,10 +5,10 @@
 #endif
 #include "rendertext.h"
 
-#define CHAR_WIDTH 5
-#define CHAR_HEIGHT 7
-#define TEXTURE_HEIGHT (CHAR_HEIGHT * 1)
-#define TEXTURE_WIDTH (CHAR_WIDTH * 0x60)
+#define CHARACTER_WIDTH 5
+#define CHARACTER_HEIGHT 7
+#define TEXTURE_HEIGHT (CHARACTER_HEIGHT * 1)
+#define TEXTURE_WIDTH (CHARACTER_WIDTH * 0x60)
 
 // Text Area origin => debug area
 int xPos = 0;
@@ -150,7 +150,7 @@ void DEBUGInitChars(SDL_Renderer *renderer) {
 			int rcy = 0;
 			int pixData = fontdata[ch * 5 + x1];
 			while (pixData != 0) {
-				textureData[ch*CHAR_WIDTH + rcy*TEXTURE_WIDTH + rcx] = (pixData & 1) ? 0xFFFF : 0x0000;
+				textureData[ch*CHARACTER_WIDTH + rcy*TEXTURE_WIDTH + rcx] = (pixData & 1) ? 0xFFFF : 0x0000;
 				pixData = pixData >> 1;
 				rcy++;
 			}
@@ -174,16 +174,16 @@ void DEBUGWrite(SDL_Renderer *renderer, int x, int y, int ch, SDL_Color colour) 
 	SDL_SetTextureColorMod(fontTexture, colour.r, colour.g, colour.b);
 	ch-=0x20;
 	SDL_Rect srcRect = {
-		ch* CHAR_WIDTH,
+		ch* CHARACTER_WIDTH,
 		0,
-		CHAR_WIDTH,
-		CHAR_HEIGHT
+		CHARACTER_WIDTH,
+		CHARACTER_HEIGHT
 	};
 	SDL_Rect dstRect = {
-		x*(CHAR_WIDTH+1) + xPos,
-		y*(CHAR_HEIGHT+1) + yPos,
-		CHAR_WIDTH,
-		CHAR_HEIGHT
+		x*(CHARACTER_WIDTH+1) + xPos,
+		y*(CHARACTER_HEIGHT+1) + yPos,
+		CHARACTER_WIDTH,
+		CHARACTER_HEIGHT
 	};
 	SDL_RenderCopy(renderer, fontTexture, &srcRect, &dstRect);
 }
