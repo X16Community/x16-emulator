@@ -19,6 +19,7 @@
 #define NUM_CART_BANKS (256 - 32)
 
 #define RAM_SIZE (0xa000 + num_ram_banks * 8192) /* $0000-$9FFF + banks at $A000-$BFFF */
+#define RAM_816_SIZE (0x1000000)
 #define ROM_SIZE (NUM_ROM_BANKS * 16384)   /* banks at $C000-$FFFF */
 #define CART_SIZE (NUM_CART_BANKS * 16384)  /* expansion banks at $C000-$FFFF */
 

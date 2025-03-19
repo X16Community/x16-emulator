@@ -1396,103 +1396,107 @@ handle_ieee_intercept()
 	static int count_unlistn = 0;
 	bool handled = true;
 	int s = -1;
-	switch(regs.pc) {
-		case 0xFEB1: {
-			uint16_t count = regs.a;
-			s=MCIOUT(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
-			if (s == -2) {
-				handled = false;
-			} else if (s == -3) {
-				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
-			} else {
-				regs.x = count & 0xff;
-				regs.y = count >> 8;
-				regs.status &= 0xfe; // clear C -> supported
+
+	// Only apply the remapping in segment 0x00
+	if(regs.k == 0) {	
+		switch(regs.pc) {
+			case 0xFEB1: {
+				uint16_t count = regs.a;
+				s=MCIOUT(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
+				if (s == -2) {
+					handled = false;
+				} else if (s == -3) {
+					regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
+				} else {
+					regs.x = count & 0xff;
+					regs.y = count >> 8;
+					regs.status &= 0xfe; // clear C -> supported
+				}
+				break;
 			}
-			break;
+			case 0xFF44: {
+				uint16_t count = regs.a;
+				s=MACPTR(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
+				if (s == -2) {
+					handled = false;
+				} else if (s == -3) {
+					regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
+				} else {
+					regs.x = count & 0xff;
+					regs.y = count >> 8;
+					regs.status &= 0xfe; // clear C -> supported
+				}
+				break;
+			}
+			case 0xFF93:
+				s=SECOND(regs.a);
+				if (s == -2) {
+					handled = false;
+				}
+				break;
+			case 0xFF96:
+				s=TKSA(regs.a);
+				if (s == -2) {
+					handled = false;
+				}
+				break;
+			case 0xFFA5:
+				s=ACPTR(&regs.a);
+				if (s == -2) {
+					handled = false;
+				} else {
+					regs.status = (regs.status & ~3) | (!regs.a << 1); // unconditional CLC, and set zero flag based on byte read
+				}
+				break;
+			case 0xFFA8:
+				s=CIOUT(regs.a);
+				if (s == -2) {
+					handled = false;
+				} else {
+					regs.status = (regs.status & ~1); // unconditonal CLC
+				}
+				break;
+			case 0xFFAB:
+				s=UNTLK();
+				if (s == -2) {
+					handled = false;
+				}
+				break;
+			case 0xFFAE:
+				s=UNLSN();
+				if (s == -2) {
+					handled = false;
+				}
+				if (prg_file && sdcard_path_is_set() && ++count_unlistn == 4) {
+					// after auto-loading a PRG from the host fs,
+					// switch to the SD card if requested
+					// 4x UNLISTEN:
+					//    2x for LOAD"AUTOBOOT.X16*"
+					//    2x for LOAD":*"
+					prg_finished_loading = true;
+					sdcard_attach();
+				}
+				break;
+			case 0xFFB1:
+				s=LISTEN(regs.a);
+				if (s == -2) {
+					handled = false;
+				} else {
+					regs.status = (regs.status & ~1); // unconditonal CLC
+				}
+				break;
+			case 0xFFB4:
+				s=TALK(regs.a);
+				if (s == -2) {
+					handled = false;
+				} else {
+					regs.status = (regs.status & ~1); // unconditonal CLC
+				}
+				break;
+			default:
+				handled = false;
+				break;
 		}
-		case 0xFF44: {
-			uint16_t count = regs.a;
-			s=MACPTR(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
-			if (s == -2) {
-				handled = false;
-			} else if (s == -3) {
-				regs.status = (regs.status | 1); // SEC (unsupported, or in this case, no open context)
-			} else {
-				regs.x = count & 0xff;
-				regs.y = count >> 8;
-				regs.status &= 0xfe; // clear C -> supported
-			}
-			break;
-		}
-		case 0xFF93:
-			s=SECOND(regs.a);
-			if (s == -2) {
-				handled = false;
-			}
-			break;
-		case 0xFF96:
-			s=TKSA(regs.a);
-			if (s == -2) {
-				handled = false;
-			}
-			break;
-		case 0xFFA5:
-			s=ACPTR(&regs.a);
-			if (s == -2) {
-				handled = false;
-			} else {
-				regs.status = (regs.status & ~3) | (!regs.a << 1); // unconditional CLC, and set zero flag based on byte read
-			}
-			break;
-		case 0xFFA8:
-			s=CIOUT(regs.a);
-			if (s == -2) {
-				handled = false;
-			} else {
-				regs.status = (regs.status & ~1); // unconditonal CLC
-			}
-			break;
-		case 0xFFAB:
-			s=UNTLK();
-			if (s == -2) {
-				handled = false;
-			}
-			break;
-		case 0xFFAE:
-			s=UNLSN();
-			if (s == -2) {
-				handled = false;
-			}
-			if (prg_file && sdcard_path_is_set() && ++count_unlistn == 4) {
-				// after auto-loading a PRG from the host fs,
-				// switch to the SD card if requested
-				// 4x UNLISTEN:
-				//    2x for LOAD"AUTOBOOT.X16*"
-				//    2x for LOAD":*"
-				prg_finished_loading = true;
-				sdcard_attach();
-			}
-			break;
-		case 0xFFB1:
-			s=LISTEN(regs.a);
-			if (s == -2) {
-				handled = false;
-			} else {
-				regs.status = (regs.status & ~1); // unconditonal CLC
-			}
-			break;
-		case 0xFFB4:
-			s=TALK(regs.a);
-			if (s == -2) {
-				handled = false;
-			} else {
-				regs.status = (regs.status & ~1); // unconditonal CLC
-			}
-			break;
-		default:
-			handled = false;
-			break;
 	}
 
 	if (handled) {

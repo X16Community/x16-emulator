@@ -99,7 +99,7 @@ struct regs regs;
 uint32_t instructions = 0; //keep track of total instructions executed
 uint32_t clockticks6502 = 0, clockgoal6502 = 0;
 uint16_t opcode_addr, oldpc, ea, reladdr, value;
-uint8_t eal;
+uint8_t eal, opcode_bank;
 uint32_t result;
 uint8_t opcode, oldstatus;
 
@@ -113,9 +113,13 @@ uint8_t penaltyx = 0;
 uint8_t penaltyd = 0;
 uint8_t waiting = 0;
 
-//externally supplied functions
+// MGK: To be removed once no longer used
 extern uint8_t read6502(uint16_t address);
 extern void write6502(uint16_t address, uint8_t value);
+
+//externally supplied functions
+extern uint8_t read65816(uint8_t procbank, uint16_t address);
+extern void write65816(uint8_t procbank, uint16_t address, uint8_t value);
 extern void stop6502(uint16_t address);
 extern void vp6502();
 extern uint8_t memory_get_ram_bank();
@@ -157,6 +161,7 @@ void rockwell_warning(const char *instruction) {
     warn_rockwell = false;
 }
 
+// MGK: Need to extend to work with DBR or Long
 static uint16_t getvalue(bool use16Bit) {
     if (addrtable[opcode] == acc) {
         return use16Bit ? regs.c : (uint16_t)regs.a;
@@ -166,10 +171,7 @@ static uint16_t getvalue(bool use16Bit) {
     return read6502(ea);
 }
 
-__attribute__((unused)) static uint16_t getvalue16() {
-    return((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
-}
-
+// MGK: Need to extend to work with DBR or Long
 static void putvalue(uint16_t saveval, bool use16Bit) {
     if (addrtable[opcode] == acc) {
         if (use16Bit) {
@@ -212,11 +214,12 @@ void exec6502(uint32_t tickcount) {
     }
 
     opcode_addr = regs.pc;
+    opcode_bank = regs.k;       // Need to keep track of PBR as well
 
     clockgoal6502 += tickcount;
 
     while (clockticks6502 < clockgoal6502) {
-        opcode = read6502(regs.pc++);
+        opcode = read65816(regs.k, regs.pc++);
 
         if (regs.e) {
             regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
@@ -253,8 +256,9 @@ void step6502() {
 	}
 
     opcode_addr = regs.pc;
+    opcode_bank = regs.k;   // Need to keep track of PBR as well
 
-    opcode = read6502(regs.pc++);
+    opcode = read65816(regs.k, regs.pc++);
 
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;

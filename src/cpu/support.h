@@ -108,33 +108,33 @@ uint16_t direct_page_add(uint16_t offset) {
 #define decsp() decrement_wrap_at_page_boundary(&regs.sp)
 
 void push16(uint16_t pushval) {
-    write6502(regs.sp, (pushval >> 8) & 0xFF);
+    write65816(0X00, regs.sp, (pushval >> 8) & 0xFF);
     decsp();
-    write6502(regs.sp, pushval & 0xFF);
+    write65816(0X00, regs.sp, pushval & 0xFF);
     decsp();
 }
 
 void push8(uint8_t pushval) {
-    write6502(regs.sp, pushval);
+    write65816(0X00, regs.sp, pushval);
     decsp();
 }
 
 uint16_t pull16() {
     incsp();
-    uint16_t temp16 = read6502(regs.sp);
+    uint16_t temp16 = read65816(0X00, regs.sp);
     incsp();
-    temp16 |= (uint16_t) read6502(regs.sp) << 8;
+    temp16 |= (uint16_t) read65816(0X00, regs.sp) << 8;
     return temp16;
 }
 
 uint8_t pull8() {
     incsp();
-    uint8_t value = read6502(regs.sp);
+    uint8_t value = read65816(0X00, regs.sp);
     return value;
 }
 
 void reset6502(bool c816) {
-    regs.pc = (uint16_t)read6502(0xFFFC) | ((uint16_t)read6502(0xFFFD) << 8);
+    regs.pc = (uint16_t)read65816(0X00, 0xFFFC) | ((uint16_t)read65816(0X00, 0xFFFD) << 8);
     regs.c = 0;
     regs.x = 0;
     regs.y = 0;
@@ -193,7 +193,7 @@ void interrupt6502(enum InterruptType vector) {
     vp6502();
 
     uint16_t vector_address = (regs.e ? 0xFFF0 : 0xFFE0) + (uint8_t) vector;
-    regs.pc = (uint16_t) read6502(vector_address) | ((uint16_t) read6502(vector_address + 1) << 8);
+    regs.pc = (uint16_t) read65816(0X00, vector_address) | ((uint16_t) read65816(0X00, vector_address + 1) << 8);
 
     clockticks6502 += 7; // consumed by CPU to process interrupt
 }

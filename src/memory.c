@@ -24,6 +24,7 @@ uint8_t ram_bank;
 uint8_t rom_bank;
 
 uint8_t *RAM;
+uint8_t *RAM_816;
 uint8_t ROM[ROM_SIZE];
 extern uint8_t *CART;
 
@@ -53,6 +54,7 @@ memory_init()
 {
 	// Initialize RAM array
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
+	RAM_816 = calloc(RAM_816_SIZE, sizeof(uint8_t));
 
 	if(reportUsageStatisticsFilename!=NULL) {
 		RAM_system_reads = calloc(65536, sizeof(uint64_t));
@@ -134,8 +136,14 @@ effective_ram_bank()
 //
 // if debugOn then reads memory only for debugger; no I/O, no side effects whatsoever
 
+// MGK: Eventually this goes
 uint8_t
 read6502(uint16_t address) {
+	return read65816(0x00, address);
+}
+
+uint8_t
+read65816(uint8_t procbank, uint16_t address) {
 	// Report access to uninitialized RAM (if option selected)
 	if (reportUninitializedAccess) {
 		uint8_t pc_bank;
@@ -169,131 +177,150 @@ read6502(uint16_t address) {
       }
     }
 
-	return real_read6502(address, false, USE_CURRENT_BANK);
+	return real_read65816(procbank, address, false, USE_CURRENT_BANK);
 }
 
 uint8_t
-real_read6502(uint16_t address, bool debugOn, int16_t bank)
+real_read65816(uint8_t procbank, uint16_t address, bool debugOn, int16_t bank)
 {
-	if (address < 0x9f00) { // RAM
-		return RAM[address];
-	} else if (address < 0xa000) { // I/O
-		if (!debugOn && address >= 0x9fa0) {
-			// slow IO5-7 range
-			clockticks6502 += 3;
-		}
-		if (address >= 0x9f00 && address < 0x9f10) {
-			return via1_read(address & 0xf, debugOn);
-		} else if (has_via2 && (address >= 0x9f10 && address < 0x9f20)) {
-			return via2_read(address & 0xf, debugOn);
-		} else if (address >= 0x9f20 && address < 0x9f40) {
-			return video_read(address & 0x1f, debugOn);
-		} else if (address >= 0x9f40 && address < 0x9f60) {
-			// slow IO2 range
-			if (!debugOn) {
+	if (procbank == 0) {
+		if (address < 0x9f00) { // RAM
+			return RAM[address];
+		} else if (address < 0xa000) { // I/O
+			if (!debugOn && address >= 0x9fa0) {
+				// slow IO5-7 range
 				clockticks6502 += 3;
 			}
-			if ((address & 0x01) != 0) { // partial decoding in this range
-				audio_render();
-				return YM_read_status();
+			if (address >= 0x9f00 && address < 0x9f10) {
+				return via1_read(address & 0xf, debugOn);
+			} else if (has_via2 && (address >= 0x9f10 && address < 0x9f20)) {
+				return via2_read(address & 0xf, debugOn);
+			} else if (address >= 0x9f20 && address < 0x9f40) {
+				return video_read(address & 0x1f, debugOn);
+			} else if (address >= 0x9f40 && address < 0x9f60) {
+				// slow IO2 range
+				if (!debugOn) {
+					clockticks6502 += 3;
+				}
+				if ((address & 0x01) != 0) { // partial decoding in this range
+					audio_render();
+					return YM_read_status();
+				}
+				return 0x9f; // open bus read
+			} else if (address >= 0x9fb0 && address < 0x9fc0) {
+				// emulator state
+				return emu_read(address & 0xf, debugOn);
+			} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
+				// midi card
+				return midi_serial_read(address & 0xf, debugOn);
+			} else {
+				// future expansion
+				return 0x9f; // open bus read
 			}
-			return 0x9f; // open bus read
-		} else if (address >= 0x9fb0 && address < 0x9fc0) {
-			// emulator state
-			return emu_read(address & 0xf, debugOn);
-		} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
-			// midi card
-			return midi_serial_read(address & 0xf, debugOn);
-		} else {
-			// future expansion
-			return 0x9f; // open bus read
-		}
-	} else if (address < 0xc000) { // banked RAM
-		int ramBank = bank >= 0 ? (uint8_t)bank : effective_ram_bank();
-		if (ramBank < num_ram_banks) {
-			return RAM[0xa000 + (ramBank << 13) + address - 0xa000];
-		} else {
-			return (address >> 8) & 0xff; // open bus read
-		}
-	} else { // banked ROM
-		int romBank = bank >= 0 ? (uint8_t)bank : rom_bank;
-		if (romBank < 32) {
-			return ROM[(romBank << 14) + address - 0xc000];
-		} else {
-			if (!CART) {
+		} else if (address < 0xc000) { // banked RAM
+			int ramBank = bank >= 0 ? (uint8_t)bank : effective_ram_bank();
+			if (ramBank < num_ram_banks) {
+				return RAM[0xa000 + (ramBank << 13) + address - 0xa000];
+			} else {
 				return (address >> 8) & 0xff; // open bus read
 			}
-			return cartridge_read(address, romBank);
+		} else { // banked ROM
+			int romBank = bank >= 0 ? (uint8_t)bank : rom_bank;
+			if (romBank < 32) {
+				return ROM[(romBank << 14) + address - 0xc000];
+			} else {
+				if (!CART) {
+					return (address >> 8) & 0xff; // open bus read
+				}
+				return cartridge_read(address, romBank);
+			}
 		}
+	} else {
+
+		// Deal with $010000 - $ffffff		
+		return RAM_816[address];		
 	}
 }
 
+// MGK: Eliminate these references when no longer used
 void
 write6502(uint16_t address, uint8_t value)
 {
-	if(reportUsageStatisticsFilename!=NULL) {
-		if (address < 0xa000) {
-			RAM_system_writes[address]++;
-		} else if (address < 0xc000) {
-			RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
-		} else {
-			// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
-			ROM_banked_writes[rom_bank][address-0xc000]++;
-		}
-	}
+	return write65816(0x00, address, value);
+}
 
-	// Update RAM access flag
-	if (reportUninitializedAccess) {
-		if (address < 0xa000) {
-			RAM_access_flags[address] = true;
-		} else if (address < 0xc000) {
-			if (effective_ram_bank() < num_ram_banks)
-				RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = true;
-		}
-	}
-	// Write to CPU I/O ports
-	if (address < 2) {
-		cpuio_write(address, value);
-	}
-	// Write to memory
-	if (address < 0x9f00) { // RAM
-		RAM[address] = value;
-	} else if (address < 0xa000) { // I/O
-		if (address >= 0x9fa0) {
-			// slow IO5-7 range
-			clockticks6502 += 3;
-		}
-		if (address >= 0x9f00 && address < 0x9f10) {
-			via1_write(address & 0xf, value);
-		} else if (has_via2 && (address >= 0x9f10 && address < 0x9f20)) {
-			via2_write(address & 0xf, value);
-		} else if (address >= 0x9f20 && address < 0x9f40) {
-			video_write(address & 0x1f, value);
-		} else if (address >= 0x9f40 && address < 0x9f60) {
-			// slow IO2 range
-			clockticks6502 += 3;
-			if ((address & 0x01) == 0) {   // YM reg (partially decoded)
-				addr_ym = value;
-			} else {                       // YM data (partially decoded)
-				audio_render();
-				YM_write_reg(addr_ym, value);
+void
+write65816(uint8_t procbank, uint16_t address, uint8_t value)
+{
+	if (procbank == 0) {
+		if(reportUsageStatisticsFilename!=NULL) {
+			if (address < 0xa000) {
+				RAM_system_writes[address]++;
+			} else if (address < 0xc000) {
+				RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
+			} else {
+				// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
+				ROM_banked_writes[rom_bank][address-0xc000]++;
 			}
-		} else if (address >= 0x9fb0 && address < 0x9fc0) {
-			// emulator state
-			emu_write(address & 0xf, value);
-		} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
-			midi_serial_write(address & 0xf, value);
-		} else {
-			// future expansion
 		}
-	} else if (address < 0xc000) { // banked RAM
-		if (effective_ram_bank() < num_ram_banks)
-			RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
-	} else { // ROM
-		if (rom_bank >= 32) { // Cartridge ROM/RAM
-			cartridge_write(address, rom_bank, value);
+
+		// Update RAM access flag
+		if (reportUninitializedAccess) {
+			if (address < 0xa000) {
+				RAM_access_flags[address] = true;
+			} else if (address < 0xc000) {
+				if (effective_ram_bank() < num_ram_banks)
+					RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = true;
+			}
 		}
-		// ignore if base ROM (banks 0-31)
+		// Write to CPU I/O ports
+		if (address < 2) {
+			cpuio_write(address, value);
+		}
+		// Write to memory
+		if (address < 0x9f00) { // RAM
+			RAM[address] = value;
+		} else if (address < 0xa000) { // I/O
+			if (address >= 0x9fa0) {
+				// slow IO5-7 range
+				clockticks6502 += 3;
+			}
+			if (address >= 0x9f00 && address < 0x9f10) {
+				via1_write(address & 0xf, value);
+			} else if (has_via2 && (address >= 0x9f10 && address < 0x9f20)) {
+				via2_write(address & 0xf, value);
+			} else if (address >= 0x9f20 && address < 0x9f40) {
+				video_write(address & 0x1f, value);
+			} else if (address >= 0x9f40 && address < 0x9f60) {
+				// slow IO2 range
+				clockticks6502 += 3;
+				if ((address & 0x01) == 0) {   // YM reg (partially decoded)
+					addr_ym = value;
+				} else {                       // YM data (partially decoded)
+					audio_render();
+					YM_write_reg(addr_ym, value);
+				}
+			} else if (address >= 0x9fb0 && address < 0x9fc0) {
+				// emulator state
+				emu_write(address & 0xf, value);
+			} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
+				midi_serial_write(address & 0xf, value);
+			} else {
+				// future expansion
+			}
+		} else if (address < 0xc000) { // banked RAM
+			if (effective_ram_bank() < num_ram_banks)
+				RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
+		} else { // ROM
+			if (rom_bank >= 32) { // Cartridge ROM/RAM
+				cartridge_write(address, rom_bank, value);
+			}
+			// ignore if base ROM (banks 0-31)
+		}
+	} else {
+
+		// Deal with $010000 - $ffffff
+		RAM_816[address] = value;				
 	}
 }
 
