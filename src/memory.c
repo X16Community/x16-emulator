@@ -232,7 +232,7 @@ real_read65816(uint8_t procbank, uint16_t address, bool debugOn, int16_t bank)
 	} else {
 
 		// Deal with $010000 - $ffffff		
-		return RAM_816[address];		
+		return RAM_816[(procbank << 16) | address];		
 	}
 }
 
@@ -307,7 +307,7 @@ write65816(uint8_t procbank, uint16_t address, uint8_t value)
 	} else {
 
 		// Deal with $010000 - $ffffff
-		RAM_816[address] = value;				
+		RAM_816[(procbank << 16) | address] = value;				
 	}
 }
 

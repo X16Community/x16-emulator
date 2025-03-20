@@ -1999,6 +1999,7 @@ TALK(uint8_t a)
 	return ret;
 }
 
+// MGK: Pay attention to regs.db and only do $a000 wrap around if regs.db == 0
 int
 MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {
@@ -2035,6 +2036,7 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	}
 }
 
+// MGK: Pay attention to regs.db and only do $a000 wrap around if regs.db == 0
 int
 MCIOUT(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {

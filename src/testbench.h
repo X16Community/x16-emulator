@@ -26,20 +26,38 @@ STP                 Sent when STP instruction is executed
 
 RAM                 Set RAM bank
 ROM                 Set ROM bank
+STL nnnnnn nn       Set value of memory address nnnnnn to nn
 STM nnnn nn         Set value of memory address nnnn to nn
+FLL nnnnnn nnnnnn nnFill memory address range nnnnnn to nnnnnn with value nn
 FLM nnnn nnnn nn    Fill memory address range nnnn to nnnn with value nn
 STA nn              Set accumulator value to nn
 STX nn              Set X register value to nn
 STY nn              Set Y register value to nn
 SST nn              Set status register value to nn
 SSP nn              Set stack pointer value to nn
+RNL nnnnnn          Execute code at address nnnn, when done emulator respond with RDY
 RUN nnnn            Execute code at address nnnn, when done emulator respond with RDY
+RQL nnnnnn          Request value of memory address nnnnnn
 RQM nnnn            Request value of memory address nnnn
 RQA                 Request value of accumulator
 RQX                 Request value of X register
 RQY                 Request value of Y register
 RST                 Request value of status register
+// MGK: Fix this so it only returns the low byte
 RSP                 Request value of stack pointer
+// MGK: Add these
+RAL                 Request 16-bit value of accumulator
+RXL                 Request 16-bit value of X register
+RYL                 Request 16-bit value of Y register
+RSL                 Request 16-bit value of stack pointer
+RPB                 Request 8-bit program bank
+RDB                 Request 8-bit data bank
+SAL nnnn            Set accumulator value to nnnn
+SXL nnnn            Set X register value to nnnn
+SYL nnnn            Set Y register value to nnnn
+SSL nnnn            Set stack pointer value to nnnn
+SPB                 Set program bank
+SDB                 Set data bank
 
 
 4. Message formatting

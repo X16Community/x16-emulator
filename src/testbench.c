@@ -2,8 +2,6 @@
 // Copyright (c) 2019 Michael Steil
 // All rights reserved. License: 2-clause BSD
 
-// MGK: Test Bench needs signifigant extension to support 24 bit addresses
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,8 +62,11 @@ void testbench_init()
     char addr[5] = "0000";
     char addr2[5] = "0000";
     char val[3] = "00";
+    char bank[3] = "00";
+    //char bank2[3] = "00";
 
     int iaddr, iaddr2, ival;
+    size_t ibank; //, ibank2;
     size_t slen = 0;
 
     bool init_done = false;
@@ -112,7 +113,25 @@ void testbench_init()
 
         else if (strncmp(line, "STL", 3) == 0) {            //Set memory address value (24 bit address)
 
-            // MGK: Write this
+            if (len < 14) {
+                invalid();
+            } else {                
+
+                strncpy(bank, line + 4, 2);
+                strncpy(addr, line + 6, 4);
+                strncpy(val, line + 11, 2);                
+
+                ibank = hex_to_int8(bank); 
+                iaddr = hex_to_int16(addr);
+                ival = hex_to_int8(val);
+
+                if (iaddr == -1 || ival == -1) {
+                    invalid();
+                } else {
+                    write65816(ibank, (uint16_t)iaddr, (uint8_t)ival);
+                    ready();
+                }
+            }
 
         }
         else if (strncmp(line, "STM", 3) == 0) {            //Set memory address value (16 bit address)
@@ -237,8 +256,30 @@ void testbench_init()
             }
         }
 
-        else if (strncmp(line, "RNL", 3) == 0) {            //Run code at address (24 bit address)
-            // MGK: Write this
+        else if (strncmp(line, "RNL", 3) == 0) {            //Run code at address (24 bit address)            
+            if (len < 11) {
+                invalid();
+            } else {
+                strncpy(bank, line + 4, 2);
+                strncpy(addr, line + 5, 4);
+
+                iaddr = hex_to_int16(addr);
+                ibank = hex_to_int8(bank);
+                if (iaddr == -1) {
+                    invalid();
+                } else {
+                    write65816(0x00, regs.sp, 0x00);
+                    decrement_wrap_at_page_boundary(&regs.sp);
+                    write65816(0x00, regs.sp, (0xfffd -1) >> 8);
+                    decrement_wrap_at_page_boundary(&regs.sp);
+                    write65816(0x00, regs.sp, (0xfffd - 1) & 255);
+                    decrement_wrap_at_page_boundary(&regs.sp);
+                    regs.k = ibank;
+                    regs.pc = (uint16_t)iaddr;
+
+                    init_done=true;
+                }
+            }
         }
 
         else if (strncmp(line, "RUN", 3) == 0) {            //Run code at address (16 bit address)
@@ -263,7 +304,20 @@ void testbench_init()
         }
 
         else if(strncmp(line, "RQL", 3) == 0) {             //Request memory address value (24 bit address)
-            // MGK: Write This
+            if (len < 11) {
+                invalid();
+            } else {
+                strncpy(bank, line + 4, 2);
+                strncpy(addr, line + 6, 4);
+                ibank = hex_to_int8(bank);
+                iaddr = hex_to_int16(addr);
+                if (iaddr == -1) {
+                    invalid();
+                } else {                    
+                    printf("%lx\n", (long)debug_read65816(ibank, (uint16_t)iaddr, USE_CURRENT_BANK));
+                    fflush(stdout);
+                }
+            }
         }
 
         else if(strncmp(line, "RQM", 3) == 0) {             //Request memory address value (16 bit address)
