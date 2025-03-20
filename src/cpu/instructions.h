@@ -829,10 +829,12 @@ static void tsc() {
 }
 
 static void mvn() {
+    uint8_t dst = getvalue(ea);
+    uint8_t src = getvalue(ea+1);
     if (index_16bit()) {
-        write6502(regs.y++, read6502(regs.x++));
+        write65816(dst, regs.y++, read65816(src, regs.x++));        
     } else {
-        write6502(regs.yl++, read6502(regs.xl++));
+        write65816(dst, regs.yl++, read65816(src, regs.xl++));
     }
     if (--regs.c != 0xFFFF) {
         regs.pc -= 3;
@@ -840,10 +842,12 @@ static void mvn() {
 }
 
 static void mvp() {
+    uint8_t dst = getvalue(ea);
+    uint8_t src = getvalue(ea+1);
     if (index_16bit()) {
-        write6502(regs.y--, read6502(regs.x--));
+        write65816(dst, regs.y--, read65816(src, regs.x--));
     } else {
-        write6502(regs.yl--, read6502(regs.xl--));
+        write65816(dst, regs.yl--, read65816(src, regs.xl--));
     }
     if (--regs.c != 0xFFFF) {
         regs.pc -= 3;

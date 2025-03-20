@@ -143,6 +143,7 @@ set_kernal_cbdos_flags(uint8_t flags)
 		write6502(cbdos_flags, flags);
 }
 
+// MGK: Will need to convert this to 816 code
 static uint8_t
 get_kernal_cbdos_flags(void)
 {
@@ -1996,6 +1997,7 @@ TALK(uint8_t a)
 	return ret;
 }
 
+// MGK: Will need to convert this to 816 code
 int
 MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {
@@ -2032,6 +2034,7 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	}
 }
 
+// MGK: Will need to convert this to 816 code
 int
 MCIOUT(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 {
