@@ -113,10 +113,6 @@ uint8_t penaltyx = 0;
 uint8_t penaltyd = 0;
 uint8_t waiting = 0;
 
-// MGK: To be removed once no longer used
-extern uint8_t read6502(uint16_t address);
-extern void write6502(uint16_t address, uint8_t value);
-
 //externally supplied functions
 extern uint8_t read65816(uint8_t procbank, uint16_t address);
 extern void write65816(uint8_t procbank, uint16_t address, uint8_t value);
@@ -161,17 +157,16 @@ void rockwell_warning(const char *instruction) {
     warn_rockwell = false;
 }
 
-// MGK: Need to extend to work with DBR or Long
 static uint16_t getvalue(bool use16Bit) {
     if (addrtable[opcode] == acc) {
         return use16Bit ? regs.c : (uint16_t)regs.a;
     } else if (use16Bit) {
-        return ((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
+        return ((uint16_t)read65816(eal, ea) | ((uint16_t)read65816(eal, ea+1) << 8));
     }
-    return read6502(ea);
+    return read65816(eal, ea);
 }
 
-// MGK: Need to extend to work with DBR or Long
+
 static void putvalue(uint16_t saveval, bool use16Bit) {
     if (addrtable[opcode] == acc) {
         if (use16Bit) {
@@ -180,10 +175,10 @@ static void putvalue(uint16_t saveval, bool use16Bit) {
             regs.a = (uint8_t)(saveval & 0x00FF);
         }
     } else if (use16Bit) {
-        write6502(ea, (saveval & 0x00FF));
-        write6502(ea + 1, saveval >> 8);
+        write65816(eal, ea, (saveval & 0x00FF));
+        write65816(eal, ea + 1, saveval >> 8);
     } else {
-        write6502(ea, (saveval & 0x00FF));
+        write65816(eal, ea, (saveval & 0x00FF));
     }
 }
 

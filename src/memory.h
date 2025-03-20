@@ -11,12 +11,9 @@
 #include <SDL.h>
 
 #define USE_CURRENT_BANK (-1)
-// MGK: I'm probably breaking the debugger, will need work
 #define debug_read6502(a, b) real_read65816(0, a, true, b)
+#define debug_read65816(k, a, b) real_read65816(k, a, true, b)
 
-// MGK: Next 2 Eventually go
-uint8_t read6502(uint16_t address);
-void write6502(uint16_t address, uint8_t value);
 uint8_t read65816(uint8_t procbank, uint16_t address);
 uint8_t real_read65816(uint8_t procbank, uint16_t address, bool debugOn, int16_t bank);
 void write65816(uint8_t procbank, uint16_t address, uint8_t value);

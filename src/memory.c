@@ -136,12 +136,6 @@ effective_ram_bank()
 //
 // if debugOn then reads memory only for debugger; no I/O, no side effects whatsoever
 
-// MGK: Eventually this goes
-uint8_t
-read6502(uint16_t address) {
-	return read65816(0x00, address);
-}
-
 uint8_t
 read65816(uint8_t procbank, uint16_t address) {
 	// Report access to uninitialized RAM (if option selected)
@@ -240,13 +234,6 @@ real_read65816(uint8_t procbank, uint16_t address, bool debugOn, int16_t bank)
 		// Deal with $010000 - $ffffff		
 		return RAM_816[address];		
 	}
-}
-
-// MGK: Eliminate these references when no longer used
-void
-write6502(uint16_t address, uint8_t value)
-{
-	return write65816(0x00, address, value);
 }
 
 void

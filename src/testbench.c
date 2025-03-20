@@ -2,6 +2,8 @@
 // Copyright (c) 2019 Michael Steil
 // All rights reserved. License: 2-clause BSD
 
+// MGK: Test Bench needs signifigant extension to support 24 bit addresses
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,12 +110,18 @@ void testbench_init()
             }
         }
 
-        else if (strncmp(line, "STM", 3) == 0) {            //Set memory address value
+        else if (strncmp(line, "STL", 3) == 0) {            //Set memory address value (24 bit address)
+
+            // MGK: Write this
+
+        }
+        else if (strncmp(line, "STM", 3) == 0) {            //Set memory address value (16 bit address)
             if (len < 12) {
                 invalid();
-            } else {
+            } else {                
+
                 strncpy(addr, line + 4, 4);
-                strncpy(val, line + 9, 2);
+                strncpy(val, line + 9, 2);                
 
                 iaddr = hex_to_int16(addr);
                 ival = hex_to_int8(val);
@@ -121,13 +129,17 @@ void testbench_init()
                 if (iaddr == -1 || ival == -1) {
                     invalid();
                 } else {
-                    write6502((uint16_t)iaddr, (uint8_t)ival);
+                    write65816(0x00, (uint16_t)iaddr, (uint8_t)ival);
                     ready();
                 }
             }
         }
 
-        else if (strncmp(line, "FLM", 3) == 0) {            //Fill memory address range with value
+        else if (strncmp(line, "FLL", 3) == 0) {            //Fill memory address range with value (24 bit address)
+            // MGK: Write this
+        }
+
+        else if (strncmp(line, "FLM", 3) == 0) {            //Fill memory address range with value (16 bit address)
             if (len < 17) {
                 invalid();
             } else {
@@ -143,7 +155,7 @@ void testbench_init()
                     invalid();
                 } else {
                     for (; iaddr <= iaddr2; iaddr++) {
-                        write6502((uint16_t)iaddr, (uint8_t)ival);
+                        write65816(0x00, (uint16_t)iaddr, (uint8_t)ival);
                     }
                     ready();
                 }
@@ -225,7 +237,11 @@ void testbench_init()
             }
         }
 
-        else if (strncmp(line, "RUN", 3) == 0) {            //Run code at address
+        else if (strncmp(line, "RNL", 3) == 0) {            //Run code at address (24 bit address)
+            // MGK: Write this
+        }
+
+        else if (strncmp(line, "RUN", 3) == 0) {            //Run code at address (16 bit address)
             if (len < 9) {
                 invalid();
             } else {
@@ -235,9 +251,9 @@ void testbench_init()
                 if (iaddr == -1) {
                     invalid();
                 } else {
-                    write6502(regs.sp, (0xfffd -1) >> 8);
+                    write65816(0x00, regs.sp, (0xfffd -1) >> 8);
                     decrement_wrap_at_page_boundary(&regs.sp);
-                    write6502(regs.sp, (0xfffd - 1) & 255);
+                    write65816(0x00, regs.sp, (0xfffd - 1) & 255);
                     decrement_wrap_at_page_boundary(&regs.sp);
                     regs.pc = (uint16_t)iaddr;
 
@@ -246,7 +262,11 @@ void testbench_init()
             }
         }
 
-        else if(strncmp(line, "RQM", 3) == 0) {             //Request memory address value
+        else if(strncmp(line, "RQL", 3) == 0) {             //Request memory address value (24 bit address)
+            // MGK: Write This
+        }
+
+        else if(strncmp(line, "RQM", 3) == 0) {             //Request memory address value (16 bit address)
             if (len < 9) {
                 invalid();
             } else {
@@ -254,8 +274,8 @@ void testbench_init()
                 iaddr = hex_to_int16(addr);
                 if (iaddr == -1) {
                     invalid();
-                } else {
-                    printf("%lx\n", (long)debug_read6502((uint16_t)iaddr, USE_CURRENT_BANK));
+                } else {                    
+                    printf("%lx\n", (long)debug_read65816(0x00, (uint16_t)iaddr, USE_CURRENT_BANK));
                     fflush(stdout);
                 }
             }
