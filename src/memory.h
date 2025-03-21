@@ -10,12 +10,14 @@
 #include <stdio.h>
 #include <SDL.h>
 
-#define USE_CURRENT_BANK (-1)
-#define debug_read6502(a, b) real_read6502(a, true, b)
+#define BANK_SIZE 65536
 
-uint8_t read6502(uint16_t address);
-uint8_t real_read6502(uint16_t address, bool debugOn, int16_t bank);
-void write6502(uint16_t address, uint8_t value);
+#define USE_CURRENT_X16_BANK (-1)
+#define debug_read6502(a, b, x) real_read6502(a, b, true, x)
+
+uint8_t read6502(uint16_t address, uint8_t bank);
+uint8_t real_read6502(uint16_t address, uint8_t bank, bool debugOn, int16_t x16Bank);
+void write6502(uint16_t address, uint8_t bank, uint8_t value);
 void vp6502();
 
 void memory_init();

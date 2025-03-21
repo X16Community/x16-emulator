@@ -29,8 +29,9 @@
  * Fake6502 requires you to provide two external     *
  * functions:                                        *
  *                                                   *
- * uint8_t read6502(uint16_t address)                *
- * void write6502(uint16_t address, uint8_t value)   *
+ * uint8_t read6502(uint16_t address, uint8_t bank)  *
+ * void write6502(uint16_t address, uint8_t bank,    *
+ * uint8_t value)                                    *
  *                                                   *
  * You may optionally pass Fake6502 the pointer to a *
  * function which you want to be called after every  *
@@ -98,8 +99,8 @@ struct regs regs;
 //helper variables
 uint32_t instructions = 0; //keep track of total instructions executed
 uint32_t clockticks6502 = 0, clockgoal6502 = 0;
-uint16_t opcode_addr, oldpc, ea, reladdr, value;
-uint8_t eal;
+uint16_t opcode_addr, oldpc, reladdr, value;
+uint32_t ea;
 uint32_t result;
 uint8_t opcode, oldstatus;
 
@@ -114,9 +115,9 @@ uint8_t penaltyd = 0;
 uint8_t waiting = 0;
 
 //externally supplied functions
-extern uint8_t read6502(uint16_t address);
-extern void write6502(uint16_t address, uint8_t value);
-extern void stop6502(uint16_t address);
+extern uint8_t read6502(uint16_t address, uint8_t bank);
+extern void write6502(uint16_t address, uint8_t bank, uint8_t value);
+extern void stop6502(uint16_t address, uint8_t bank);
 extern void vp6502();
 extern uint8_t memory_get_ram_bank();
 extern uint8_t memory_get_rom_bank();
@@ -161,13 +162,13 @@ static uint16_t getvalue(bool use16Bit) {
     if (addrtable[opcode] == acc) {
         return use16Bit ? regs.c : (uint16_t)regs.a;
     } else if (use16Bit) {
-        return ((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
+        return ((uint16_t)read6502(ea, bank_byte(ea)) | ((uint16_t)read6502(ea+1, bank_byte(ea)) << 8));
     }
-    return read6502(ea);
+    return read6502(ea, bank_byte(ea));
 }
 
 __attribute__((unused)) static uint16_t getvalue16() {
-    return((uint16_t)read6502(ea) | ((uint16_t)read6502(ea+1) << 8));
+    return((uint16_t)read6502(ea, bank_byte(ea)) | ((uint16_t)read6502(ea+1, bank_byte(ea)) << 8));
 }
 
 static void putvalue(uint16_t saveval, bool use16Bit) {
@@ -178,10 +179,10 @@ static void putvalue(uint16_t saveval, bool use16Bit) {
             regs.a = (uint8_t)(saveval & 0x00FF);
         }
     } else if (use16Bit) {
-        write6502(ea, (saveval & 0x00FF));
-        write6502(ea + 1, saveval >> 8);
+        write6502(ea, bank_byte(ea), (saveval & 0x00FF));
+        write6502(ea + 1, bank_byte(ea), saveval >> 8);
     } else {
-        write6502(ea, (saveval & 0x00FF));
+        write6502(ea, bank_byte(ea), (saveval & 0x00FF));
     }
 }
 
@@ -216,7 +217,7 @@ void exec6502(uint32_t tickcount) {
     clockgoal6502 += tickcount;
 
     while (clockticks6502 < clockgoal6502) {
-        opcode = read6502(regs.pc++);
+        opcode = read6502(regs.pc++, regs.k);
 
         if (regs.e) {
             regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
@@ -254,7 +255,7 @@ void step6502() {
 
     opcode_addr = regs.pc;
 
-    opcode = read6502(regs.pc++);
+    opcode = read6502(regs.pc++, regs.k);
 
     if (regs.e) {
         regs.status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;

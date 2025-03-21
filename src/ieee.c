@@ -140,14 +140,14 @@ static void
 set_kernal_cbdos_flags(uint8_t flags)
 {
 	if (cbdos_flags)
-		write6502(cbdos_flags, flags);
+		write6502(cbdos_flags, 0, flags);
 }
 
 static uint8_t
 get_kernal_cbdos_flags(void)
 {
 	if (cbdos_flags) {
-		return read6502(cbdos_flags);
+		return read6502(cbdos_flags, 0);
 	} else {
 		return 0;
 	}
@@ -1755,17 +1755,17 @@ ieee_init()
 	// Locate and remember cbdos_flags variable address in KERNAL vars
 	{
 		// check JMP instruction at ACPTR API
-		if (debug_read6502(0xffa5, 0) != 0x4c) goto fail;
+		if (debug_read6502(0xffa5, 0, 0) != 0x4c) goto fail;
 
 		// get address of ACPTR routine
-		uint16_t kacptr = debug_read6502(0xffa6, 0) | debug_read6502(0xffa7, 0) << 8;
+		uint16_t kacptr = debug_read6502(0xffa6, 0, 0) | debug_read6502(0xffa7, 0, 0) << 8;
 		if (kacptr < 0xc000) goto fail;
 
 		// first instruction is BIT cbdos_flags
-		if (debug_read6502(kacptr, 0) != 0x2c) goto fail;
+		if (debug_read6502(kacptr, 0, 0) != 0x2c) goto fail;
 
 		// get the address of cbdos_flags
-		cbdos_flags = debug_read6502(kacptr+1, 0) | debug_read6502(kacptr+2, 0) << 8;
+		cbdos_flags = debug_read6502(kacptr+1, 0, 0) | debug_read6502(kacptr+2, 0, 0) << 8;
 
 		if (cbdos_flags < 0x0200 || cbdos_flags >= 0x0400) goto fail;
 		goto success;
@@ -2002,20 +2002,20 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	if (talking) {
 		int ret = 0;
 		int count = *c ?: 256;
-		uint8_t ram_bank = read6502(0);
+		uint8_t ram_bank = read6502(0, 0);
 		int i = 0;
 		if (channels[channel].f) {
 			do {
 				uint8_t byte = 0;
 				ret = ACPTR(&byte);
-				write6502(addr, byte);
+				write6502(addr, 0, byte);
 				i++;
 				if (!stream_mode) {
 					addr++;
 					if (addr == 0xc000) {
 						addr = 0xa000;
 						ram_bank++;
-						write6502(0, ram_bank);
+						write6502(0, 0, ram_bank);
 					}
 				}
 				if (ret > 0) {
@@ -2038,19 +2038,19 @@ MCIOUT(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 	if (listening) {
 		int ret = 0;
 		int count = *c ?: 256;
-		uint8_t ram_bank = read6502(0);
+		uint8_t ram_bank = read6502(0, 0);
 		int i = 0;
 		if (channels[channel].f && channels[channel].write) {
 			do {
 				uint8_t byte;
-				byte = read6502(addr);
+				byte = read6502(addr, 0);
 				i++;
 				if (!stream_mode) {
 					addr++;
 					if (addr == 0xc000) {
 						addr = 0xa000;
 						ram_bank++;
-						write6502(0, ram_bank);
+						write6502(0, 0, ram_bank);
 					}
 				}
 				ret = CIOUT(byte);
