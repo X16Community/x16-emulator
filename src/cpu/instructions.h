@@ -341,8 +341,8 @@ static void iny() {
 }
 
 static void jml() {
-    regs.pc = ea;
-    regs.k = eal;
+    regs.pc = ea & 0xFFFF;
+    regs.k = ea >> 16;
 }
 
 static void jmp() {
@@ -357,8 +357,8 @@ static void jsr() {
 static void jsl() {
     push8(regs.k);
     push16(regs.pc - 1);
-    regs.pc = ea;
-    regs.k = eal;
+    regs.pc = ea & 0xFFFF;
+    regs.k = ea >> 16;
 }
 
 static void lda() {
@@ -829,11 +829,14 @@ static void tsc() {
 }
 
 static void mvn() {
-    regs.db = ea;
+    uint8_t sourceBank = ea >> 8;
+    uint8_t destBank = ea;
+    regs.db = destBank;
+
     if (index_16bit()) {
-        write6502(regs.y++, read6502(regs.x++));
+        write6502(regs.y++, destBank, read6502(regs.x++, sourceBank));
     } else {
-        write6502(regs.yl++, read6502(regs.xl++));
+        write6502(regs.yl++, destBank, read6502(regs.xl++, sourceBank));
     }
     if (--regs.c != 0xFFFF) {
         regs.pc -= 3;
@@ -841,11 +844,14 @@ static void mvn() {
 }
 
 static void mvp() {
+    uint8_t sourceBank = ea >> 8;
+    uint8_t destBank = ea;
     regs.db = ea;
+
     if (index_16bit()) {
-        write6502(regs.y--, read6502(regs.x--));
+        write6502(regs.y--, destBank, read6502(regs.x--, sourceBank));
     } else {
-        write6502(regs.yl--, read6502(regs.xl--));
+        write6502(regs.yl--, destBank, read6502(regs.xl--, sourceBank));
     }
     if (--regs.c != 0xFFFF) {
         regs.pc -= 3;

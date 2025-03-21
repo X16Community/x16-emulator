@@ -55,8 +55,8 @@ memory_init()
 	RAM = calloc(RAM_SIZE, sizeof(uint8_t));
 
 	if(reportUsageStatisticsFilename!=NULL) {
-		RAM_system_reads = calloc(65536, sizeof(uint64_t));
-		RAM_system_writes = calloc(65536, sizeof(uint64_t));
+		RAM_system_reads = calloc(num_banks * BANK_SIZE, sizeof(uint64_t));
+		RAM_system_writes = calloc(num_banks * BANK_SIZE, sizeof(uint64_t));
 		for(int bank=0; bank<256; ++bank) {
 			RAM_banked_reads[bank] = calloc(8192, sizeof(uint64_t));
 			RAM_banked_writes[bank] = calloc(8192, sizeof(uint64_t));
@@ -128,34 +128,56 @@ memory_initialize_cart(uint8_t *mem)
 //
 // if debugOn then reads memory only for debugger; no I/O, no side effects whatsoever
 
+static const char *format_addr(uint16_t address, uint8_t bank, uint8_t x16Bank) {
+	static char buffer[2 + 1 + 4 + 1];
+
+	if (bank == 0 && address >= 0xA000) {
+		if (address >= 0xA000) {
+			snprintf(buffer, sizeof(buffer), "%02X:%04X", x16Bank, address);
+		}
+	}
+	else if (is_gen2) {
+		snprintf(buffer, sizeof(buffer), "%02X %04X", bank, address);
+	} else {
+		snprintf(buffer, sizeof(buffer), "%04X", address);
+	}
+
+	return buffer;
+}
+
 uint8_t
-read6502(uint16_t address) {
+read6502(uint16_t address, uint8_t bank) {
+	if (!is_gen2) bank = 0;
 	// Report access to uninitialized RAM (if option selected)
 	if (reportUninitializedAccess) {
-		uint8_t pc_bank;
+		if (bank == 0) {
+			uint8_t pc_x16_bank;
 
-		if (opcode_addr < 0xa000) {
-			pc_bank = 0;
-		} else if (opcode_addr < 0xc000) {
-			pc_bank = memory_get_ram_bank();
-		} else {
-			pc_bank = memory_get_rom_bank();
+			if (opcode_addr < 0xa000) {
+				pc_x16_bank = 0;
+			} else if (opcode_addr < 0xc000) {
+				pc_x16_bank = memory_get_ram_bank();
+			} else {
+				pc_x16_bank = memory_get_rom_bank();
+			}
+			
+			if (address >= 0xa000 && address < 0xc000) {
+				if (memory_get_ram_bank() < num_ram_banks && RAM_access_flags[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] == false){
+					printf("Warning: %02X:%04X accessed uninitialized RAM address %02X:%04X\n", pc_x16_bank, opcode_addr, memory_get_ram_bank(), address);
+				}
+			}
 		}
 
-		if (address < 0x9f00) {
-			if (RAM_access_flags[address] == false) {
-				printf("Warning: %02X:%04X accessed uninitialized RAM address 00:%04X\n", pc_bank, opcode_addr, address);
-			}
-		} else if (address >= 0xa000 && address < 0xc000) {
-			if (memory_get_ram_bank() < num_ram_banks && RAM_access_flags[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] == false){
-				printf("Warning: %02X:%04X accessed uninitialized RAM address %02X:%04X\n", pc_bank, opcode_addr, memory_get_ram_bank(), address);
+		if (bank != 0 || address < 0x9f00) {
+			if (RAM_access_flags[bank * BANK_SIZE + address] == false) {
+				printf("Warning: %s accessed uninitialized RAM address %02X %04X\n", format_addr(opcode_addr, regs.k, 0), bank, address);
 			}
 		}
 	}
 
     if (reportUsageStatisticsFilename!=NULL) {
-      if (address < 0xa000) {
-        RAM_system_reads[address]++;
+      if (bank != 0 || address < 0xa000) {
+        RAM_system_reads[bank * BANK_SIZE + address]++;
       } else if (address < 0xc000) {
         RAM_banked_reads[memory_get_ram_bank()][address-0xa000]++;
       } else {
@@ -163,12 +185,20 @@ read6502(uint16_t address) {
       }
     }
 
-	return real_read6502(address, false, USE_CURRENT_BANK);
+	return real_read6502(address, bank, false, USE_CURRENT_X16_BANK);
 }
 
 uint8_t
-real_read6502(uint16_t address, bool debugOn, int16_t bank)
+real_read6502(uint16_t address, uint8_t bank, bool debugOn, int16_t x16Bank)
 {
+	if (is_gen2 && bank != 0) { // RAM
+		if (bank < num_banks) {
+			return RAM[bank * BANK_SIZE + address];	
+		} else {
+			return (address >> 8) & 0xff; // open bus read
+		}
+	}
+
 	if (address < 0x9f00) { // RAM
 		return RAM[address];
 	} else if (address < 0xa000) { // I/O
@@ -203,14 +233,14 @@ real_read6502(uint16_t address, bool debugOn, int16_t bank)
 			return 0x9f; // open bus read
 		}
 	} else if (address < 0xc000) { // banked RAM
-		int ramBank = bank >= 0 ? (uint8_t)bank : memory_get_ram_bank();
+		int ramBank = x16Bank >= 0 ? (uint8_t)x16Bank : memory_get_ram_bank();
 		if (ramBank < num_ram_banks) {
-			return RAM[0xa000 + (ramBank << 13) + address - 0xa000];
+			return RAM[(num_banks - 1) * BANK_SIZE + 0xa000 + (ramBank << 13) + address - 0xa000];
 		} else {
 			return (address >> 8) & 0xff; // open bus read
 		}
 	} else { // banked ROM
-		int romBank = bank >= 0 ? (uint8_t)bank : rom_bank;
+		int romBank = x16Bank >= 0 ? (uint8_t)x16Bank : rom_bank;
 		if (romBank < 32) {
 			return ROM[(romBank << 14) + address - 0xc000];
 		} else {
@@ -223,11 +253,13 @@ real_read6502(uint16_t address, bool debugOn, int16_t bank)
 }
 
 void
-write6502(uint16_t address, uint8_t value)
+write6502(uint16_t address, uint8_t bank, uint8_t value)
 {
+	if (!is_gen2) bank = 0;
+
 	if(reportUsageStatisticsFilename!=NULL) {
-		if (address < 0xa000) {
-			RAM_system_writes[address]++;
+		if (bank != 0 || address < 0xa000) {
+			RAM_system_writes[bank * BANK_SIZE + address]++;
 		} else if (address < 0xc000) {
 			RAM_banked_writes[memory_get_ram_bank()][address-0xa000]++;
 		} else {
@@ -238,13 +270,22 @@ write6502(uint16_t address, uint8_t value)
 
 	// Update RAM access flag
 	if (reportUninitializedAccess) {
-		if (address < 0xa000) {
-			RAM_access_flags[address] = true;
+		if (bank != 0 || address < 0xa000) {
+			RAM_access_flags[bank * BANK_SIZE + address] = true;
 		} else if (address < 0xc000) {
 			if (memory_get_ram_bank() < num_ram_banks)
 				RAM_access_flags[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] = true;
 		}
 	}
+	
+	// Write to memory
+	if (is_gen2 && bank != 0) {
+		if (bank < num_banks) {
+			RAM[bank * BANK_SIZE + address] = value;
+		}
+		return;
+	}
+
 	// Write to CPU I/O ports
 	if (address < 2) {
 		cpuio_write(address, value);
@@ -282,7 +323,7 @@ write6502(uint16_t address, uint8_t value)
 		}
 	} else if (address < 0xc000) { // banked RAM
 		if (memory_get_ram_bank() < num_ram_banks)
-			RAM[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] = value;
+			RAM[(num_banks - 1) * BANK_SIZE + 0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] = value;
 	} else { // ROM
 		if (rom_bank >= 32) { // Cartridge ROM/RAM
 			cartridge_write(address, rom_bank, value);
@@ -332,7 +373,7 @@ void memory_dump_usage_counts() {
 	writestring(f, "\nsystem RAM reads:\n");
 	int addr;
 	char buf[100];
-	for(addr=0; addr<65536; ++addr) {
+	for(addr=0; addr<num_banks * BANK_SIZE; ++addr) {
 		if(RAM_system_reads[addr]>0) {
 			SDL_RWwrite(f, buf, snprintf(buf, sizeof(buf), "r %04x %" PRIu64 "\n", addr, RAM_system_reads[addr]), 1);
 		}
