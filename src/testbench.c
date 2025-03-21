@@ -340,6 +340,11 @@ void testbench_init()
             fflush(stdout);
         }
 
+        else if(strncmp(line, "RAL", 3) == 0) {             //Request 16-bit accumulator value
+            printf("%lx\n", (long)regs.c);
+            fflush(stdout);
+        }
+
         else if(strncmp(line, "RQX", 3) == 0) {             //Request X register value
             printf("%lx\n", (long)regs.xl);
             fflush(stdout);

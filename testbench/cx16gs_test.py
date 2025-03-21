@@ -34,11 +34,61 @@ class CX16GSTest(unittest.TestCase):
         self.assertEqual(self.e.getMemoryL(0x02, 0x0000), 0x02)
         self.assertEqual(self.e.getMemoryL(0x03, 0x0000), 0x03)        
 
+    def test_SEP_30(self):
+        # Arrange     
+        start = 0x8000
+        self.setPC(start)   
+
+        self.e.setMemory(self.nextPC(), 0x18)   # clc
+        self.e.setMemory(self.nextPC(), 0xfb)   # xbe
+        self.e.setMemory(self.nextPC(), 0xe2)   # sep #$30 - A, X, Y all 8- bit
+        self.e.setMemory(self.nextPC(), 0x30)
+        self.e.setMemory(self.nextPC(), 0x08)   # php
+        self.e.setMemory(self.nextPC(), 0x68)   # pla 
+        self.e.setMemory(self.nextPC(), 0x8d)   # sta $9000
+        self.e.setMemory(self.nextPC(), 0x00)
+        self.e.setMemory(self.nextPC(), 0x90)       
+        self.e.setMemory(self.nextPC(), 0x60)   # rts
+                
+        # Act
+        self.e.run(0x8000)
+
+        # Assert
+        self.assertEqual(self.e.getMemory(0x9000), 0x31)              
+
+    def test_REP_30(self):
+        # Arrange     
+        start = 0x8000
+        self.setPC(start)     
+
+        self.e.setMemory(self.nextPC(), 0x18)   # clc
+        self.e.setMemory(self.nextPC(), 0xfb)   # xbe
+        self.e.setMemory(self.nextPC(), 0xc2)   # rep #$30 - A, X, Y all 16- bit
+        self.e.setMemory(self.nextPC(), 0x30)
+        self.e.setMemory(self.nextPC(), 0x08)   # php
+        self.e.setMemory(self.nextPC(), 0xe2)   # sep #$30 - A, X, Y all 8- bit
+        self.e.setMemory(self.nextPC(), 0x30)
+        self.e.setMemory(self.nextPC(), 0x68)   # pla        
+        self.e.setMemory(self.nextPC(), 0x8d)   # sta $9000
+        self.e.setMemory(self.nextPC(), 0x00)
+        self.e.setMemory(self.nextPC(), 0x90)
+        self.e.setMemory(self.nextPC(), 0x60)   # rts
+                
+        # Act
+        self.e.run(0x8000)
+
+        # Assert
+        self.assertEqual(self.e.getMemory(0x9000), 0x01)                       
+
     def test_LDA_immediate(self):
         # Arrange
+        testValue = 0x34    
+
         start = 0x8000
         self.setPC(start)
-        testValue = 0x34        
+        
+        self.e.setMemory(self.nextPC(), 0x18)   # clc
+        self.e.setMemory(self.nextPC(), 0xfb)   # xbe    
         self.e.setMemory(self.nextPC(), 0xe2)   # sep #$30 - A, X, Y all 8- bit
         self.e.setMemory(self.nextPC(), 0x30)
         self.e.setMemory(self.nextPC(), 0xa9)   # lda #$34
@@ -49,13 +99,35 @@ class CX16GSTest(unittest.TestCase):
         self.e.run(start)
 
         # Assert
-        self.assertEqual(self.e.getA(), testValue)
+        self.assertEqual(self.e.getA(), testValue)      
+
+    def test_LDA_immediate_16(self):
+        # Arrange
+        start = 0x8000
+        self.setPC(start)        
+
+        self.e.setMemory(self.nextPC(), 0x18)   # clc
+        self.e.setMemory(self.nextPC(), 0xfb)   # xbe
+        self.e.setMemory(self.nextPC(), 0xC2)   # rep #$30 - A, X, Y all 16- bit
+        self.e.setMemory(self.nextPC(), 0x30)
+        self.e.setMemory(self.nextPC(), 0xa9)   # lda #$1234
+        self.e.setMemory(self.nextPC(), 0x34)        
+        self.e.setMemory(self.nextPC(), 0x12)        
+        self.e.setMemory(self.nextPC(), 0x60)   # rts
+        
+        # Act
+        self.e.run(start)
+
+        # Assert
+        self.assertEqual(self.e.getA_long(), 0x1234)          
 
     def test_LDA_absolute(self):
         # Arrange     
+        testValue = 0xef
+
         start = 0x8000
         self.setPC(start)   
-        testValue = 0xef
+
         self.e.setMemory(self.nextPC(), 0xe2)   # sep #$30 - A, X, Y all 8- bit
         self.e.setMemory(self.nextPC(), 0x30)
         self.e.setMemory(self.nextPC(), 0xad)   # lda $9000
@@ -73,9 +145,11 @@ class CX16GSTest(unittest.TestCase):
 
     def test_LDA_absolute_long(self):
         # Arrange        
+        testValue = 0xcf        
+        
         start = 0x8000
         self.setPC(start)
-        testValue = 0xcf        
+        
         self.e.setMemory(self.nextPC(), 0xe2)   # sep #$30 - A, X, Y all 8- bit
         self.e.setMemory(self.nextPC(), 0x30)
         self.e.setMemory(self.nextPC(), 0xaf)   # lda $019000

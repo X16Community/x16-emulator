@@ -175,6 +175,10 @@ class X16TestBench:
     def getA(self):
         self.__writeline("RQA")
         return self.__toint8(self.__getresponse())
+    
+    def getA_long(self):
+        self.__writeline("RAL")
+        return self.__toint16(self.__getresponse())
 
     def getX(self):
         self.__writeline("RQX")
