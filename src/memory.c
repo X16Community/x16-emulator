@@ -123,12 +123,6 @@ memory_initialize_cart(uint8_t *mem)
 	}
 }
 
-inline static uint8_t
-effective_ram_bank()
-{
-	return ram_bank;
-}
-
 //
 // interface for fake6502
 //
@@ -153,7 +147,7 @@ read6502(uint16_t address) {
 				printf("Warning: %02X:%04X accessed uninitialized RAM address 00:%04X\n", pc_bank, opcode_addr, address);
 			}
 		} else if (address >= 0xa000 && address < 0xc000) {
-			if (effective_ram_bank() < num_ram_banks && RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] == false){
+			if (memory_get_ram_bank() < num_ram_banks && RAM_access_flags[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] == false){
 				printf("Warning: %02X:%04X accessed uninitialized RAM address %02X:%04X\n", pc_bank, opcode_addr, memory_get_ram_bank(), address);
 			}
 		}
@@ -163,7 +157,7 @@ read6502(uint16_t address) {
       if (address < 0xa000) {
         RAM_system_reads[address]++;
       } else if (address < 0xc000) {
-        RAM_banked_reads[effective_ram_bank()][address-0xa000]++;
+        RAM_banked_reads[memory_get_ram_bank()][address-0xa000]++;
       } else {
 		ROM_banked_reads[rom_bank][address-0xc000]++;
       }
@@ -209,7 +203,7 @@ real_read6502(uint16_t address, bool debugOn, int16_t bank)
 			return 0x9f; // open bus read
 		}
 	} else if (address < 0xc000) { // banked RAM
-		int ramBank = bank >= 0 ? (uint8_t)bank : effective_ram_bank();
+		int ramBank = bank >= 0 ? (uint8_t)bank : memory_get_ram_bank();
 		if (ramBank < num_ram_banks) {
 			return RAM[0xa000 + (ramBank << 13) + address - 0xa000];
 		} else {
@@ -235,7 +229,7 @@ write6502(uint16_t address, uint8_t value)
 		if (address < 0xa000) {
 			RAM_system_writes[address]++;
 		} else if (address < 0xc000) {
-			RAM_banked_writes[effective_ram_bank()][address-0xa000]++;
+			RAM_banked_writes[memory_get_ram_bank()][address-0xa000]++;
 		} else {
 			// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
 			ROM_banked_writes[rom_bank][address-0xc000]++;
@@ -247,8 +241,8 @@ write6502(uint16_t address, uint8_t value)
 		if (address < 0xa000) {
 			RAM_access_flags[address] = true;
 		} else if (address < 0xc000) {
-			if (effective_ram_bank() < num_ram_banks)
-				RAM_access_flags[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = true;
+			if (memory_get_ram_bank() < num_ram_banks)
+				RAM_access_flags[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] = true;
 		}
 	}
 	// Write to CPU I/O ports
@@ -287,8 +281,8 @@ write6502(uint16_t address, uint8_t value)
 			// future expansion
 		}
 	} else if (address < 0xc000) { // banked RAM
-		if (effective_ram_bank() < num_ram_banks)
-			RAM[0xa000 + (effective_ram_bank() << 13) + address - 0xa000] = value;
+		if (memory_get_ram_bank() < num_ram_banks)
+			RAM[0xa000 + (memory_get_ram_bank() << 13) + address - 0xa000] = value;
 	} else { // ROM
 		if (rom_bank >= 32) { // Cartridge ROM/RAM
 			cartridge_write(address, rom_bank, value);
