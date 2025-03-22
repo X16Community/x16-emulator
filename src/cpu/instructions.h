@@ -829,6 +829,7 @@ static void tsc() {
 }
 
 static void mvn() {
+    regs.db = ea;
     if (index_16bit()) {
         write6502(regs.y++, read6502(regs.x++));
     } else {
@@ -840,6 +841,7 @@ static void mvn() {
 }
 
 static void mvp() {
+    regs.db = ea;
     if (index_16bit()) {
         write6502(regs.y--, read6502(regs.x--));
     } else {
