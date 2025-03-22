@@ -333,42 +333,42 @@ function extractManifestFromBuffer(zip) {
                 console.log("Parsed manifest from zip:")
                 console.log(manifestObject);
 
-		if (manifestObject.ram) {
-			console.log('Found RAM amount: '+manifestObject.ram);
-			emuArguments.push('-ram', manifestObject.ram);
-		}
-		if (manifestObject.cpu) {
-			console.log('Found CPU type: '+manifestObject.cpu);
-			if (manifestObject.cpu == 'c816') {
-				emuArguments.push('-c816');
-			} else if (manifestObject.cpu == 'c02') {
-				emuArguments.push('-c02');
-			}
-		}
-		if (manifestObject.mhz) {
-			console.log('Found mhz variable: '+manifestObject.mhz);
-			emuArguments.push('-mhz', manifestObject.mhz);
-		}
-		if (manifestObject.keymap) {
-			console.log('Found keymap variable: '+manifestObject.keymap);
-			emuArguments.push('-keymap', manifestObject.keymap);
-		}
-		if (manifestObject.longpwron) {
-			console.log('Found longpwron variable');
-			emuArguments.push('-longpwron');
-		}
-		if (manifestObject.widescreen) {
-			console.log('Found widescreen variable');
-			emuArguments.push('-widescreen');
-		}
-		if (manifestObject.capture) {
-			console.log('Found capture variable');
-			emuArguments.push('-capture');
-		}
-		if (manifestObject.midlineeffects) {
-			console.log('Found midlineeffects variable');
-			emuArguments.push('-midline-effects');
-		}
+                if (manifestObject.ram) {
+                    console.log('Found RAM amount: '+manifestObject.ram);
+                    emuArguments.push('-ram', manifestObject.ram);
+                }
+                if (manifestObject.cpu) {
+                    console.log('Found CPU type: '+manifestObject.cpu);
+                    if (manifestObject.cpu == 'c816') {
+                        emuArguments.push('-c816');
+                    } else if (manifestObject.cpu == 'c02') {
+                        emuArguments.push('-c02');
+                    }
+                }
+                if (manifestObject.mhz) {
+                    console.log('Found mhz variable: '+manifestObject.mhz);
+                    emuArguments.push('-mhz', manifestObject.mhz);
+                }
+                if (manifestObject.keymap) {
+                    console.log('Found keymap variable: '+manifestObject.keymap);
+                    emuArguments.push('-keymap', manifestObject.keymap);
+                }
+                if (manifestObject.longpwron) {
+                    console.log('Found longpwron variable');
+                    emuArguments.push('-longpwron');
+                }
+                if (manifestObject.widescreen) {
+                    console.log('Found widescreen variable');
+                    emuArguments.push('-widescreen');
+                }
+                if (manifestObject.capture) {
+                    console.log('Found capture variable');
+                    emuArguments.push('-capture');
+                }
+                if (manifestObject.midlineeffects) {
+                    console.log('Found midlineeffects variable');
+                    emuArguments.push('-midline-effects');
+                }
 
                 const promises = [];
                 if (manifestObject.resources) {
