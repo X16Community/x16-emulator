@@ -87,7 +87,7 @@ if (ram_val) {
 if (cpu_val) {
     if (cpu_val == 'c816') {
         emuArguments.push('-c816');
-    } elseif (cpu_val == 'c02') {
+    } else if (cpu_val == 'c02') {
 	emuArguments.push('-c02');
     }
 }
@@ -341,7 +341,7 @@ function extractManifestFromBuffer(zip) {
 			console.log('Found CPU type: '+manifestObject.cpu);
 			if (manifestObject.cpu == 'c816') {
 				emuArguments.push('-c816');
-			} elseif (manifestObject.cpu == 'c02') {
+			} else if (manifestObject.cpu == 'c02') {
 				emuArguments.push('-c02');
 			}
 		}
