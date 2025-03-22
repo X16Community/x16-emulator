@@ -342,7 +342,7 @@ function extractManifestFromBuffer(zip) {
 			if (manifestObject.cpu == 'c816') {
 				emuArguments.push('-c816');
 			} elseif (manifestObject.cpu == 'c02') {
-				emuArguments.push('c02');
+				emuArguments.push('-c02');
 			}
 		}
 		if (manifestObject.mhz) {
