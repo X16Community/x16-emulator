@@ -18,7 +18,8 @@ extern int showDebugOnRender;
 
 struct breakpoint {
 	int pc;
-	int bank;
+	uint8_t bank;
+	int x16Bank;
 };
 
 void DEBUGRenderDisplay(int width,int height);
