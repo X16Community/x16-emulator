@@ -308,7 +308,7 @@ int disasm(uint16_t pc, uint8_t *RAM, char *line, unsigned int max_line, int16_t
 	}
 
 	if (isBlockMove) {
-		snprintf(line, max_line, mnemonic, debug_read6502(pc + 1, bank), debug_read6502(pc + 2, bank));
+		snprintf(line, max_line, mnemonic, debug_read6502(pc + 2, bank), debug_read6502(pc + 1, bank));
 		length = 3;
 		if (regs.c != 0xFFFF) *eff_addr = regs.y; // We can have only one effective address, so we're choosing the destination
 	}
