@@ -192,8 +192,8 @@ static void sridy() { // (indirect,S),Y
 }
 
 static void bmv() { // block move
-    uint8_t src = read6502(regs.pc++);
-    ea = (src << 8) | read6502(regs.pc++);
+    uint8_t dest = read6502(regs.pc++);
+    ea = (read6502(regs.pc++) << 8) | dest;
 }
 
 static void absl() { // absolute long
