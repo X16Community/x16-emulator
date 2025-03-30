@@ -73,7 +73,7 @@ endif
 ifdef EMSCRIPTEN
 	LDFLAGS+=--shell-file webassembly/x16emu-template.html --preload-file rom.bin -s TOTAL_MEMORY=32MB -s ASSERTIONS=1 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=1
 	# To the Javascript runtime exported functions
-	LDFLAGS+=-s EXPORTED_FUNCTIONS='["_j2c_reset", "_j2c_paste", "_j2c_start_audio", _main]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s USE_ZLIB=1 -s EXIT_RUNTIME=1
+	LDFLAGS+=-s EXPORTED_FUNCTIONS='["_j2c_reset", "_j2c_paste", "_j2c_start_audio", _main]' -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s USE_ZLIB=1 -s EXIT_RUNTIME=1
 	CFLAGS+=-s USE_ZLIB=1
 	X16_OUTPUT=x16emu.html
 	MAKECART_OUTPUT=makecart.html

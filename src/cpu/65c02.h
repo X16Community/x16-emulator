@@ -24,14 +24,14 @@
 
 static void ainx() { 		// absolute indexed branch
     uint16_t eahelp, eahelp2;
-    eahelp = (uint16_t)read6502(regs.pc) | (uint16_t)((uint16_t)read6502(regs.pc+1) << 8);
+    eahelp = (uint16_t)read6502(regs.pc, regs.k) | (uint16_t)((uint16_t)read6502(regs.pc+1, regs.k) << 8);
     eahelp = (eahelp + regs.x) & 0xFFFF;
 #if 0
     eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //replicate 6502 page-boundary wraparound bug
 #else
     eahelp2 = eahelp + 1; // the 65c02 doesn't have the bug
 #endif
-    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
+    ea = (uint16_t)read6502(eahelp, regs.k) | ((uint16_t)read6502(eahelp2, regs.k) << 8);
     regs.pc += 2;
 }
 
@@ -142,7 +142,7 @@ static void trb() {
 // *******************************************************************************************
 
 static void dbg() {
-    stop6502(regs.pc - 1);
+    stop6502(regs.pc - 1, regs.k);
 }
 
 // *******************************************************************************************
