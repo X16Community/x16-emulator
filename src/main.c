@@ -1139,6 +1139,7 @@ main(int argc, char **argv)
 			regs.is65c816 = true;
 			is_gen2 = true;
 			num_banks = 256;
+			num_ram_banks = 256;
 		}
 		else if (!strcmp(argv[0], "-rockwell")){
 			argc--;
