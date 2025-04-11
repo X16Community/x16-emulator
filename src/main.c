@@ -1813,7 +1813,7 @@ emulator_loop(void *param)
 #if 0 // enable this for slow pasting
 		if (!(instruction_counter % 100000))
 #endif
-		while (pasting_bas && RAM[(num_banks - 1) * BANK_SIZE + NDX] < 10 && !(regs.status & 0x04)) {
+		while (pasting_bas && BRAM[NDX - 0xa000] < 10 && !(regs.status & 0x04)) {
 			uint32_t c;
 			int e = 0;
 
@@ -1827,8 +1827,8 @@ emulator_loop(void *param)
 				c = iso8859_15_from_unicode(c);
 			}
 			if (c && !e) {
-				RAM[(num_banks - 1) * BANK_SIZE + KEYD + RAM[(num_banks - 1) * BANK_SIZE + NDX]] = c;
-				RAM[(num_banks - 1) * BANK_SIZE + NDX]++;
+				BRAM[KEYD - 0xa000 + BRAM[NDX - 0xa000]] = c;
+				BRAM[NDX - 0xa000]++;
 			} else {
 				pasting_bas = false;
 				if (warp_pastes) warp_mode = false;
