@@ -2004,18 +2004,35 @@ MACPTR(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 		int count = *c ?: 256;
 		uint8_t ram_bank = read6502(0, 0);
 		int i = 0;
-		if (channels[channel].f) {
+
+		if (channel != 15 && channels[channel].read && channels[channel].name[0] != '$' && channels[channel].f) {
+			// find the end of the file so we know our EOF condition ahead of time
+			Sint64 curpos = SDL_RWtell(channels[channel].f);
+			Sint64 endpos = SDL_RWseek(channels[channel].f, 0, RW_SEEK_END);
+			SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
+
 			do {
 				uint8_t byte = 0;
-				ret = ACPTR(&byte);
-				write6502(addr, 0, byte);
-				i++;
-				if (!stream_mode) {
-					addr++;
-					if (addr == 0xc000) {
-						addr = 0xa000;
-						ram_bank++;
-						write6502(0, 0, ram_bank);
+				if (SDL_RWread(channels[channel].f, &byte, 1, 1) != 1) {
+					ret = 0x42;
+					byte = 0;
+				} else {
+					curpos++;
+					if (curpos == endpos) {
+						ret = 0x40;
+						channels[channel].read = false;
+						cclose(channel);
+					}
+
+					write6502(addr, 0, byte);
+					i++;
+					if (!stream_mode) {
+						addr++;
+						if (addr == 0xc000) {
+							addr = 0xa000;
+							ram_bank++;
+							write6502(0, 0, ram_bank);
+						}
 					}
 				}
 				if (ret > 0) {
@@ -2062,6 +2079,131 @@ MCIOUT(uint16_t addr, uint16_t *c, uint8_t stream_mode)
 			ret = -3; // unsupported
 		}
 		*c = i;
+		return ret;
+	} else {
+		return -2; // not us, do not handle
+	}
+}
+
+int
+XMACPTR(uint8_t stream_mode) // stream_mode is only for passing into MACPTR fallback
+{
+	if (talking) {
+		int ret = 0;
+		int count = read6502(6, 0) | (read6502(7, 0) << 8);
+		uint16_t destaddr = read6502(2, 0) | (read6502(3, 0) << 8);
+		uint8_t destbnk = read6502(4, 0);
+
+		if (count == 0) {
+			count = 65536;
+		}
+
+		if (destbnk == 0) {
+			int s;
+			uint16_t cnt = count;
+			s = MACPTR(destaddr, &cnt, stream_mode);
+			if (s < 0) {
+				return s;
+			}
+			write6502(6, 0, cnt & 0xff);
+			write6502(7, 0, cnt >> 8);
+			return s;
+		}
+
+		int i = 0;
+		if (channel != 15 && channels[channel].read && channels[channel].name[0] != '$' && channels[channel].f) {
+			// find the end of the file so we know our EOF condition ahead of time
+			Sint64 curpos = SDL_RWtell(channels[channel].f);
+			Sint64 endpos = SDL_RWseek(channels[channel].f, 0, RW_SEEK_END);
+			SDL_RWseek(channels[channel].f, curpos, RW_SEEK_SET);
+
+			do {
+				uint8_t byte = 0;
+				if (SDL_RWread(channels[channel].f, &byte, 1, 1) != 1) {
+					ret = 0x42;
+					byte = 0;
+				} else {
+					curpos++;
+					if (curpos == endpos) {
+						ret = 0x40;
+						channels[channel].read = false;
+						cclose(channel);
+					}
+
+					write6502(destaddr, destbnk, byte);
+					i++;
+					destaddr++;
+					if (destaddr == 0) {
+						destbnk++;
+						if (destbnk == 0) {
+							break;
+						}
+					}
+				}
+				if (ret > 0) {
+					break;
+				}
+			} while(i < count);
+		} else {
+			ret = -3; // unsupported
+		}
+		write6502(6, 0, i & 0xff);
+		write6502(7, 0, i >> 8);
+		return ret;
+	} else {
+		return -2; // not us, do not handle
+	}
+}
+
+int
+XMCIOUT(uint8_t stream_mode) // stream_mode is only for passing into MCIOUT fallback
+{
+	if (listening) {
+		int ret = 0;
+		int count = read6502(6, 0) | (read6502(7, 0) << 8);
+		uint16_t srcaddr = read6502(2, 0) | (read6502(3, 0) << 8);
+		uint8_t srcbnk = read6502(4, 0);
+
+		if (count == 0) {
+			count = 65536;
+		}
+
+		if (srcbnk == 0) {
+			int s;
+			uint16_t cnt = count;
+			s = MCIOUT(srcaddr, &cnt, stream_mode);
+			if (s < 0) {
+				return s;
+			}
+			write6502(6, 0, cnt & 0xff);
+			write6502(7, 0, cnt >> 8);
+			return s;
+		}
+
+		int i = 0;
+		if (channels[channel].f && channels[channel].write) {
+			do {
+				uint8_t byte;
+				byte = read6502(srcaddr, srcbnk);
+				ret = CIOUT(byte);
+				i++;
+				srcaddr++;
+				if (srcaddr == 0) {
+					srcbnk++;
+					if (srcbnk == 0) {
+						break;
+					}
+				}
+				if (ret) {
+					break;
+				}
+			} while(i < count);
+		} else {
+			ret = -3; // unsupported
+		}
+
+		write6502(6, 0, i & 0xff);
+		write6502(7, 0, i >> 8);
 		return ret;
 	} else {
 		return -2; // not us, do not handle
