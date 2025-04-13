@@ -341,13 +341,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 
 		case SDLK_PAGEDOWN:
 			if (isShift) {
-				currentPC = (currentPC + 0x10);
-				if (currentPC >= 0x10000) {
-					if (is_gen2) {
-						currentPCBank = (currentPCBank + 1) & 0xFF;
-					}
-					currentPC &= 0xFFFF;
-				}
+				currentPC = (currentPC + 0x10) & 0xFFFF;
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData + 0x100) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -359,13 +353,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 
 		case SDLK_PAGEUP:
 			if (isShift) {
-				currentPC = (currentPC - 0x10);
-				if (currentPC < 0) {
-					if (is_gen2) {
-						currentPCBank = (currentPCBank - 1) & 0xFF;
-					}
-					currentPC &= 0xFFFF;
-				}
+				currentPC = (currentPC - 0x10) & 0xFFFF;
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData - 0x100) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -377,13 +365,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 
 		case SDLK_DOWN:
 			if (isShift) {
-				currentPC++;
-				if (currentPC >= 0x10000) {
-					if (is_gen2) {
-						currentPCBank = (currentPCBank + 1) & 0xFF;
-					}
-					currentPC &= 0xFFFF;
-				}
+				currentPC = (currentPC + 1) & 0xFFFF;
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData + 0x08) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -395,13 +377,7 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 
 		case SDLK_UP:
 			if (isShift) {
-				currentPC = (currentPC - 1);
-				if (currentPC < 0) {
-					if (is_gen2) {
-						currentPCBank = (currentPCBank - 1) & 0xFF;
-					}
-					currentPC &= 0xFFFF;
-				}
+				currentPC = (currentPC - 1) & 0xFFFF;
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData - 0x08) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
