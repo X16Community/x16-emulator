@@ -481,6 +481,9 @@ static void DEBUGExecCmd() {
 				currentX16Bank = bnumber & 0xFF;
 			} else {
 				sscanf(line, "%x", &number);
+				if (!is_gen2) {
+					currentX16Bank = (number >> 16) & 0xFF;
+				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
 			currentData= addr;
@@ -537,12 +540,12 @@ static void DEBUGExecCmd() {
 				currentPCX16Bank = bnumber & 0xFF;
 			} else {
 				sscanf(line, "%x", &number);
+				if (!is_gen2) {
+					currentPCX16Bank = (number >> 16) & 0xFF;
+				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
-			// Banked Memory, RAM then ROM
-			if(addr < 0xA000 || addr > 0x10000) {
-				currentPCX16Bank= -1;
-			}
+
 			currentPC = addr & 0xFFFF;
 			currentPCBank = (addr >> 16) & 0xFF;
 			break;
