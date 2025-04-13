@@ -763,10 +763,9 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 	uint8_t implied_status = regs.status;
 	uint8_t implied_e = regs.e;
 	uint8_t opcode, operand, carry;
-	int renderedPCBank = currentPCBank;
 
 	for (int y = 0; y < lines; y++) { 							// Each line
-		DEBUGAddress(DBG_ASMX, y, currentPCX16Bank, initialPC, renderedPCBank, col_label);
+		DEBUGAddress(DBG_ASMX, y, currentPCX16Bank, initialPC, currentPCBank, col_label);
 		int32_t eff_addr;
 
 		// Attempt to display the disassembly correctly more often
@@ -779,7 +778,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 		// still been true without the added logic, anyway.
 
 		if (regs.is65c816) {
-			opcode = debug_read6502(initialPC, renderedPCBank, currentPCX16Bank);
+			opcode = debug_read6502(initialPC, currentPCBank, currentPCX16Bank);
 			switch (opcode) {
 				case 0x81: // CLC
 					implied_status &= ~FLAG_CARRY;
@@ -788,11 +787,11 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 					implied_status |= FLAG_CARRY;
 					;;
 				case 0xC2: // REP
-					operand = debug_read6502((initialPC+1) & 0xffff, renderedPCBank, currentPCX16Bank);
+					operand = debug_read6502((initialPC+1) & 0xffff, currentPCBank, currentPCX16Bank);
 					implied_status = ~operand & implied_status;
 					;;
 				case 0xE2: // SEP
-					operand = debug_read6502((initialPC+1) & 0xffff, renderedPCBank, currentPCX16Bank);
+					operand = debug_read6502((initialPC+1) & 0xffff, currentPCBank, currentPCX16Bank);
 					implied_status = operand | implied_status;
 					;;
 				case 0xFB: // XCE
@@ -806,7 +805,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 			if (implied_e) implied_status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
 
 		}
-		int size = disasm(initialPC, renderedPCBank, RAM, buffer, sizeof(buffer), currentPCX16Bank, implied_status, &eff_addr);	// Disassemble code
+		int size = disasm(initialPC, currentPCBank, RAM, buffer, sizeof(buffer), currentPCX16Bank, implied_status, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
 		// Populate effective address
@@ -817,13 +816,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 				DEBUGNumber(DBG_DATX, lines-1, eff_addr, 4, col_data);
 			}
 		}
-		initialPC = (initialPC + size);										// Forward to next
-		if (initialPC >= 0x10000) {
-			if (is_gen2) {
-				renderedPCBank = (renderedPCBank + 1) & 0xFF;
-			}
-			initialPC &= 0xFFFF;
-		}
+		initialPC = (initialPC + size) & 0xFFFF;										// Forward to next
 	}
 }
 
