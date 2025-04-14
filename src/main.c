@@ -1412,8 +1412,8 @@ handle_ieee_intercept()
 	int s = -1;
 	switch(regs.pc) {
 		case 0xFEA8: { // EXTAPI16
-			if (!regs.is65c816) {
-				handled = false; // punt to kernal's 65C816 check which should return c=1.
+			if (!regs.is65c816 || (regs.status & 0x20)) { // don't handle if not '816 or if m=1
+				handled = false; // punt to kernal's 65C816 check and will break if m=1
 				break;
 			}
 			switch(regs.c) {
@@ -1423,8 +1423,9 @@ handle_ieee_intercept()
 						handled = false;
 					} else if (s == -3) {
 						regs.status |= 1; // SEC (unsupported, or in this case, no open context)
+						regs.status &= ~0x30; // REP #$30
 					} else {
-						regs.status &= 0xfe; // CLC -> supported
+						regs.status &= ~0x31; // REP #$30 and CLC -> supported
 					}
 					break;
 				}
@@ -1434,8 +1435,9 @@ handle_ieee_intercept()
 						handled = false;
 					} else if (s == -3) {
 						regs.status |= 1; // SEC (unsupported, or in this case, no open context)
+						regs.status &= ~0x30; // REP #$30
 					} else {
-						regs.status &= 0xfe; // CLC -> supported
+						regs.status &= ~0x31; // REP #$30 and CLC -> supported
 					}
 					break;
 				}
