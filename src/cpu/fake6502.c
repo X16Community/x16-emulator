@@ -158,17 +158,26 @@ void rockwell_warning(const char *instruction) {
     warn_rockwell = false;
 }
 
+static uint8_t wrappedBankByte(uint32_t addr) {
+    if (addrtable[opcode] == zp || addrtable[opcode] == zpx || addrtable[opcode] == zpy) {
+        return 0;
+    }
+    else {
+        return bank_byte(addr+1);
+    }
+}
+
 static uint16_t getvalue(bool use16Bit) {
     if (addrtable[opcode] == acc) {
         return use16Bit ? regs.c : (uint16_t)regs.a;
     } else if (use16Bit) {
-        return ((uint16_t)read6502(ea, bank_byte(ea)) | ((uint16_t)read6502(ea+1, bank_byte(ea)) << 8));
+        return ((uint16_t)read6502(ea, bank_byte(ea)) | ((uint16_t)read6502(ea+1, wrappedBankByte(ea)) << 8));
     }
     return read6502(ea, bank_byte(ea));
 }
 
 __attribute__((unused)) static uint16_t getvalue16() {
-    return((uint16_t)read6502(ea, bank_byte(ea)) | ((uint16_t)read6502(ea+1, bank_byte(ea)) << 8));
+    return((uint16_t)read6502(ea, bank_byte(ea)) | ((uint16_t)read6502(ea+1, wrappedBankByte(ea)) << 8));
 }
 
 static void putvalue(uint16_t saveval, bool use16Bit) {
@@ -180,7 +189,7 @@ static void putvalue(uint16_t saveval, bool use16Bit) {
         }
     } else if (use16Bit) {
         write6502(ea, bank_byte(ea), (saveval & 0x00FF));
-        write6502(ea + 1, bank_byte(ea), saveval >> 8);
+        write6502(ea + 1, wrappedBankByte(ea), saveval >> 8);
     } else {
         write6502(ea, bank_byte(ea), (saveval & 0x00FF));
     }
