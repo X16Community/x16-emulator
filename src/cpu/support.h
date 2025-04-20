@@ -63,8 +63,8 @@
 #define saveaccum(n) (memory_16bit() ? (regs.c = (n)) : (regs.a = (uint8_t)((n) & 0x00FF)))
 
 #define mask_long_addr(addr) ((addr) & 0xFFFFFF)
-#define as_bank_byte(b) ((uint32_t) (((uint8_t) b) << 16))
-#define bank_byte(b) ((uint8_t) (b >> 16))
+#define as_bank_byte(b) ((uint32_t) (((uint8_t) (b)) << 16))
+#define bank_byte(b) ((uint8_t) ((b) >> 16))
 
 //a few general functions used by various other functions
 
