@@ -198,7 +198,7 @@ jobs:
           path: emu_binaries/*
   build-linux-x86_64:
     needs: [README]  
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -251,7 +251,7 @@ jobs:
           path: emu_binaries/*
   build-linux-aarch64:
     needs: [README]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -311,7 +311,7 @@ jobs:
           path: emu_binaries/*
   build-linux-armhf:
     needs: [README]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
