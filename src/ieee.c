@@ -2090,9 +2090,9 @@ XMACPTR(uint8_t stream_mode) // stream_mode is only for passing into MACPTR fall
 {
 	if (talking) {
 		int ret = 0;
-		int count = read6502(6, 0) | (read6502(7, 0) << 8);
-		uint16_t destaddr = read6502(2, 0) | (read6502(3, 0) << 8);
-		uint8_t destbnk = read6502(4, 0);
+		int count = read6502(X16_REG_R2L, 0) | (read6502(X16_REG_R2H, 0) << 8);
+		uint16_t destaddr = read6502(X16_REG_R0L, 0) | (read6502(X16_REG_R0H, 0) << 8);
+		uint8_t destbnk = read6502(X16_REG_R1L, 0);
 
 		if (count == 0) {
 			count = 65536;
@@ -2105,8 +2105,8 @@ XMACPTR(uint8_t stream_mode) // stream_mode is only for passing into MACPTR fall
 			if (s < 0) {
 				return s;
 			}
-			write6502(6, 0, cnt & 0xff);
-			write6502(7, 0, cnt >> 8);
+			write6502(X16_REG_R2L, 0, cnt & 0xff);
+			write6502(X16_REG_R2H, 0, cnt >> 8);
 			return s;
 		}
 
@@ -2147,8 +2147,8 @@ XMACPTR(uint8_t stream_mode) // stream_mode is only for passing into MACPTR fall
 		} else {
 			ret = -3; // unsupported
 		}
-		write6502(6, 0, i & 0xff);
-		write6502(7, 0, i >> 8);
+		write6502(X16_REG_R2L, 0, i & 0xff);
+		write6502(X16_REG_R2H, 0, i >> 8);
 		return ret;
 	} else {
 		return -2; // not us, do not handle
@@ -2160,9 +2160,9 @@ XMCIOUT(uint8_t stream_mode) // stream_mode is only for passing into MCIOUT fall
 {
 	if (listening) {
 		int ret = 0;
-		int count = read6502(6, 0) | (read6502(7, 0) << 8);
-		uint16_t srcaddr = read6502(2, 0) | (read6502(3, 0) << 8);
-		uint8_t srcbnk = read6502(4, 0);
+		int count = read6502(X16_REG_R2L, 0) | (read6502(X16_REG_R2H, 0) << 8);
+		uint16_t srcaddr = read6502(X16_REG_R0L, 0) | (read6502(X16_REG_R0H, 0) << 8);
+		uint8_t srcbnk = read6502(X16_REG_R1L, 0);
 
 		if (count == 0) {
 			count = 65536;
@@ -2175,8 +2175,8 @@ XMCIOUT(uint8_t stream_mode) // stream_mode is only for passing into MCIOUT fall
 			if (s < 0) {
 				return s;
 			}
-			write6502(6, 0, cnt & 0xff);
-			write6502(7, 0, cnt >> 8);
+			write6502(X16_REG_R2L, 0, cnt & 0xff);
+			write6502(X16_REG_R2H, 0, cnt >> 8);
 			return s;
 		}
 
@@ -2202,8 +2202,8 @@ XMCIOUT(uint8_t stream_mode) // stream_mode is only for passing into MCIOUT fall
 			ret = -3; // unsupported
 		}
 
-		write6502(6, 0, i & 0xff);
-		write6502(7, 0, i >> 8);
+		write6502(X16_REG_R2L, 0, i & 0xff);
+		write6502(X16_REG_R2H, 0, i >> 8);
 		return ret;
 	} else {
 		return -2; // not us, do not handle
