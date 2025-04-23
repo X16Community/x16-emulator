@@ -1383,7 +1383,7 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	if (regs.pc < 0xFEB1 || (is_gen2 && regs.k != 0) || !is_kernal()) {
+	if (regs.pc < 0xFEA8 || (is_gen2 && regs.k != 0) || !is_kernal()) {
 		return false;
 	}
 
@@ -1411,6 +1411,42 @@ handle_ieee_intercept()
 	bool handled = true;
 	int s = -1;
 	switch(regs.pc) {
+		case 0xFEA8: { // EXTAPI16
+			if (!regs.is65c816 || (regs.status & 0x20)) { // don't handle if not '816 or if m=1
+				handled = false; // punt to kernal's 65C816 check and will break if m=1
+				break;
+			}
+			switch(regs.c) {
+				case 5: { // XMACPTR
+					s=XMACPTR(regs.status & 0x01);
+					if (s == -2) {
+						handled = false;
+					} else if (s == -3) {
+						regs.status |= 1; // SEC (unsupported, or in this case, no open context)
+						regs.status &= ~0x30; // REP #$30
+					} else {
+						regs.status &= ~0x31; // REP #$30 and CLC -> supported
+					}
+					break;
+				}
+				case 6: { // XMCIOUT
+					s=XMCIOUT(regs.status & 0x01);
+					if (s == -2) {
+						handled = false;
+					} else if (s == -3) {
+						regs.status |= 1; // SEC (unsupported, or in this case, no open context)
+						regs.status &= ~0x30; // REP #$30
+					} else {
+						regs.status &= ~0x31; // REP #$30 and CLC -> supported
+					}
+					break;
+				}
+				default:
+					handled = false;
+					break;
+			}
+			break;
+		}
 		case 0xFEB1: {
 			uint16_t count = regs.a;
 			s=MCIOUT(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
