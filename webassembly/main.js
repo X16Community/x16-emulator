@@ -337,7 +337,18 @@ function extractManifestFromBuffer(zip) {
                     console.log('Found RAM amount: '+manifestObject.ram);
                     emuArguments.push('-ram', manifestObject.ram);
                 }
-                if (manifestObject.cpu) {
+
+                let gen1 = true;
+
+                if (manifestObject.model) {
+                    console.log('Found model: '+manifestObject.model);
+                    if (manifestObject.model === 'gs') {
+                        gen1 = false;
+                        emuArguments.push('-gs');
+                    }
+                }
+
+                if (gen1 === true && manifestObject.cpu) {
                     console.log('Found CPU type: '+manifestObject.cpu);
                     if (manifestObject.cpu == 'c816') {
                         emuArguments.push('-c816');
