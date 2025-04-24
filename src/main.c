@@ -1138,8 +1138,6 @@ main(int argc, char **argv)
 			argv++;
 			regs.is65c816 = true;
 			is_gen2 = true;
-			num_banks = NUM_MAX_BANKS;
-			num_ram_banks = NUM_MAX_RAM_BANKS;
 		}
 		else if (!strcmp(argv[0], "-rockwell")){
 			argc--;
@@ -1148,6 +1146,11 @@ main(int argc, char **argv)
 		} else {
 			usage();
 		}
+	}
+
+	if (is_gen2) {
+		num_banks = NUM_MAX_BANKS;
+		num_ram_banks = NUM_MAX_RAM_BANKS;
 	}
 
 	SDL_RWops *f = SDL_RWFromFile(rom_path, "rb");
