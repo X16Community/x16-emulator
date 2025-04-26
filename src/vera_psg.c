@@ -85,7 +85,7 @@ render(int16_t *left, int16_t *right)
 		struct channel *ch = &channels[i];
 
 		uint32_t new_phase = (ch->left || ch->right) ? ((ch->phase + ch->freq) & 0x1FFFF) : 0;
-		if ((ch->phase & 0x10000) != (new_phase & 0x10000)) {
+		if ((ch->phase & 0x10000) && !(new_phase & 0x10000)) {
 			ch->noiseval = (noise_state >> 1) & 0x3F;
 		}
 		ch->phase = new_phase;
