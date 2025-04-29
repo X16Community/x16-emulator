@@ -1333,6 +1333,7 @@ bool
 video_update()
 {
 	static bool cmd_down = false;
+	static bool alt_down = false;
 	bool mouse_changed = false;
 
 	// for activity LED, overlay red 8x4 square into top right of framebuffer
@@ -1423,9 +1424,23 @@ video_update()
 					consumed = true;
 				}
 			}
+			if (alt_down && !disable_emu_cmd_keys) {
+				// Capture ALT+F4 key sequence to exit emulator if it is not handled by SDL
+				if (event.key.keysym.sym == SDLK_F4) {
+					printf("Shutdown requested by ALT+F4\n");
+					main_shutdown();
+#ifdef __EMSCRIPTEN__
+					emscripten_force_exit(0);
+#endif
+					exit(0);
+				}
+			}
 			if (!consumed) {
 				if (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY) {
 					cmd_down = true;
+				}
+				if (event.key.keysym.scancode == SDL_SCANCODE_LALT || event.key.keysym.scancode == SDL_SCANCODE_RALT) {
+					alt_down = true;
 				}
 				handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
 			}
@@ -1434,6 +1449,9 @@ video_update()
 		if (event.type == SDL_KEYUP) {
 			if (event.key.keysym.scancode == LSHORTCUT_KEY || event.key.keysym.scancode == RSHORTCUT_KEY) {
 				cmd_down = false;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_LALT || event.key.keysym.scancode == SDL_SCANCODE_RALT) {
+				alt_down = false;
 			}
 			handle_keyboard(false, event.key.keysym.sym, event.key.keysym.scancode);
 			continue;
