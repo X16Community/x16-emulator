@@ -121,7 +121,7 @@ void testbench_init()
                 if (iaddr == -1 || ival == -1) {
                     invalid();
                 } else {
-                    write6502((uint16_t)iaddr, (uint8_t)ival);
+                    write6502((uint16_t)iaddr, regs.db, (uint8_t)ival);
                     ready();
                 }
             }
@@ -143,7 +143,7 @@ void testbench_init()
                     invalid();
                 } else {
                     for (; iaddr <= iaddr2; iaddr++) {
-                        write6502((uint16_t)iaddr, (uint8_t)ival);
+                        write6502((uint16_t)iaddr, regs.db, (uint8_t)ival);
                     }
                     ready();
                 }
@@ -235,9 +235,9 @@ void testbench_init()
                 if (iaddr == -1) {
                     invalid();
                 } else {
-                    write6502(regs.sp, (0xfffd -1) >> 8);
+                    write6502(regs.sp, 0, (0xfffd -1) >> 8);
                     decrement_wrap_at_page_boundary(&regs.sp);
-                    write6502(regs.sp, (0xfffd - 1) & 255);
+                    write6502(regs.sp, 0, (0xfffd - 1) & 255);
                     decrement_wrap_at_page_boundary(&regs.sp);
                     regs.pc = (uint16_t)iaddr;
 
@@ -255,7 +255,7 @@ void testbench_init()
                 if (iaddr == -1) {
                     invalid();
                 } else {
-                    printf("%lx\n", (long)debug_read6502((uint16_t)iaddr, USE_CURRENT_BANK));
+                    printf("%lx\n", (long)debug_read6502((uint16_t)iaddr, regs.db, USE_CURRENT_X16_BANK));
                     fflush(stdout);
                 }
             }

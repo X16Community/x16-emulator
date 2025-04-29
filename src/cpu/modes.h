@@ -47,13 +47,25 @@ static void imm16() {
 }
 
 static void _zp_with_offset(uint16_t offset) {
-    uint16_t imm_value = (uint16_t) read6502((uint16_t)regs.pc++);
+    uint16_t imm_value = (uint16_t) read6502((uint16_t)regs.pc++, regs.k);
 
     if (regs.dp & 0x00FF) {
         penaltyd = 1;
     }
 
     ea = direct_page_add(imm_value + offset);
+}
+
+static void _zp_long_with_offset(uint16_t offset) {
+    uint16_t eahelp;
+    eahelp = (uint16_t)read6502(regs.pc++, regs.k);
+
+    ea = (uint16_t)read6502(regs.dp + eahelp, regs.k) | ((uint16_t)read6502(regs.dp + eahelp + 1, regs.k) << 8) | ((uint16_t)read6502(regs.dp + eahelp + 2, regs.k) << 16);
+    ea = mask_long_addr(ea + offset);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
 }
 
 static void zp() { //zero-page
@@ -69,38 +81,56 @@ static void zpy() { //zero-page,Y
 }
 
 static void rel() { //relative for branch ops (8-bit immediate value, sign-extended)
-    reladdr = (uint16_t)read6502(regs.pc++);
+    reladdr = (uint16_t)read6502(regs.pc++, regs.k);
     if (reladdr & 0x80) reladdr |= 0xFF00;
 }
 
 static void rel16() { //relative for PER and BRL (16-bit immediate value)
-    reladdr = (uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8);
+    reladdr = (uint16_t)read6502(regs.pc, regs.k) | ((uint16_t)read6502(regs.pc+1, regs.k) << 8);
     regs.pc += 2;
 }
 
 static void abso() { //absolute
-    ea = (uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8);
+    ea = addr_with_db((uint16_t) read6502(regs.pc, regs.k) | ((uint16_t)read6502(regs.pc+1, regs.k) << 8));
     regs.pc += 2;
+}
+
+static void absl() { // absolute long
+    ea = (uint32_t) read6502(regs.pc, regs.k) | ((uint32_t)read6502(regs.pc+1, regs.k) << 8) | ((uint32_t)read6502(regs.pc+2, regs.k) << 16);
+    regs.pc += 3;
 }
 
 static void absx() { //absolute,X
     uint16_t startpage;
-    ea = ((uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8));
+    ea = addr_with_db((uint16_t)read6502(regs.pc, regs.k) | ((uint16_t)read6502(regs.pc+1, regs.k) << 8));
     startpage = ea & 0xFF00;
-    ea += regs.x;
+    ea = mask_long_addr(ea + regs.x);
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
     }
 
     regs.pc += 2;
+}
+
+static void abslx() { // absolute long, X
+    uint16_t startpage;
+    ea = (uint32_t)read6502(regs.pc, regs.k) | ((uint32_t)read6502(regs.pc+1, regs.k) << 8) | ((uint32_t)read6502(regs.pc+2, regs.k) << 16);
+    startpage = ea & 0xFF00;
+    ea = mask_long_addr(ea + regs.x);
+
+    if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
+        penaltyaddr = 1;
+    }
+
+    regs.pc += 3;
 }
 
 static void absy() { //absolute,Y
     uint16_t startpage;
-    ea = ((uint16_t)read6502(regs.pc) | ((uint16_t)read6502(regs.pc+1) << 8));
+    ea = addr_with_db((uint16_t)read6502(regs.pc, regs.k) | ((uint16_t)read6502(regs.pc+1, regs.k) << 8));
     startpage = ea & 0xFF00;
-    ea += regs.y;
+    ea = mask_long_addr(ea + regs.y);
 
     if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
         penaltyaddr = 1;
@@ -109,117 +139,30 @@ static void absy() { //absolute,Y
     regs.pc += 2;
 }
 
-static void ind() { //indirect
+static void ind() { //indirect - used for jmp, which assumes the pointer is in bank 0!
     uint16_t eahelp, eahelp2;
-    eahelp = (uint16_t)read6502(regs.pc) | (uint16_t)((uint16_t)read6502(regs.pc+1) << 8);
+    eahelp = (uint16_t)read6502(regs.pc, regs.k) | (uint16_t)((uint16_t)read6502(regs.pc+1, regs.k) << 8);
     //
     //      The 6502 page boundary wraparound bug does not occur on a 65C02.
     //
     //eahelp2 = (eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF); //replicate 6502 page-boundary wraparound bug
     eahelp2 = (eahelp+1) & 0xFFFF;
-    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp2) << 8);
+    ea = (uint16_t)read6502(eahelp, 0) | ((uint16_t)read6502(eahelp2, 0) << 8);
+    regs.pc += 2;
+}
+
+static void aindl() { // [addr]    uint16_t eahelp, eahelp2;
+    uint16_t eahelp, eahelp2;
+    eahelp = (uint16_t)read6502(regs.pc, regs.k) | (uint16_t)((uint16_t)read6502(regs.pc+1, regs.k) << 8);
+    eahelp2 = (eahelp+1) & 0xFFFF;
+    ea = (uint32_t)read6502(eahelp, 0) | ((uint32_t)read6502(eahelp2, 0) << 8) | ((uint16_t)read6502((eahelp2 + 1) & 0xFFFF, 0) << 16);
     regs.pc += 2;
 }
 
 static void ind0() { // (zp)
     uint16_t eahelp;
-    eahelp = (uint16_t)read6502(regs.pc++);
-    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
-
-    if (regs.dp & 0x00FF) {
-        penaltyd = 1;
-    }
-}
-
-static void indx() { // (indirect,X)
-    uint16_t eahelp;
-    eahelp = (uint16_t)read6502(regs.pc++) + regs.x;
-    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
-
-    if (regs.dp & 0x00FF) {
-        penaltyd = 1;
-    }
-}
-
-static void indy() { // (indirect),Y
-    uint16_t eahelp, startpage;
-    eahelp = (uint16_t)read6502(regs.pc++);
-    ea = (uint16_t)read6502(direct_page_add(eahelp)) | ((uint16_t)read6502(direct_page_add(eahelp + 1)) << 8);
-    startpage = ea & 0xFF00;
-    ea += regs.y;
-
-    if (regs.dp & 0x00FF) {
-        penaltyd = 1;
-    }
-
-    if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
-        penaltyaddr = 1;
-    }
-}
-
-static void ind0p() { // (zp) used by PEI, which doesn't do wraparound calculations
-    uint16_t eahelp;
-    eahelp = (uint16_t)read6502(regs.pc++);
-    ea = (uint16_t)read6502(regs.dp + eahelp) | ((uint16_t)read6502(regs.dp + eahelp + 1) << 8);
-
-    if (regs.dp & 0x00FF) {
-        penaltyd = 1;
-    }
-}
-
-static void zprel() { // zero-page, relative for branch ops (8-bit immediatel value, sign-extended)
-	ea = (uint16_t)read6502(regs.pc);
-	reladdr = (uint16_t)read6502(regs.pc+1);
-	if (reladdr & 0x80) reladdr |= 0xFF00;
-
-	regs.pc += 2;
-}
-
-static void sr() { // absolute,S
-    ea = regs.sp + (uint16_t)read6502(regs.pc++);
-}
-
-static void sridy() { // (indirect,S),Y
-    uint16_t eahelp, startpage;
-    eahelp = regs.sp + (uint16_t)read6502(regs.pc++);
-    ea = (uint16_t)read6502(eahelp) | ((uint16_t)read6502(eahelp + 1) << 8);
-    startpage = ea & 0xFF00;
-    ea += (uint16_t)regs.y;
-
-    if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
-        penaltyaddr = 1;
-    }
-}
-
-static void bmv() { // block move
-    uint8_t dest = read6502(regs.pc++);
-    ea = (read6502(regs.pc++) << 8) | dest;
-}
-
-static void absl() { // absolute long
-    abso();
-    eal = read6502(regs.pc++);
-}
-
-static void abslx() { // absolute long, X
-    absx();
-    eal = read6502(regs.pc++);
-}
-
-static void aindl() { // [addr]
-    ind();
-    eal = read6502(regs.pc++);
-}
-
-static void _zp_long_with_offset(uint16_t offset) {
-    uint16_t eahelp;
-    eahelp = (uint16_t)read6502(regs.pc++);
-
-    uint32_t ea32 = (uint16_t)read6502(regs.dp + eahelp) | ((uint16_t)read6502(regs.dp + eahelp + 1) << 8) | ((uint16_t)read6502(regs.dp + eahelp + 2) << 16);
-    ea32 += offset;
-
-    ea = (uint16_t) ea32;
-    eal = (uint8_t) (ea32 >> 16);
+    eahelp = (uint16_t)read6502(regs.pc++, regs.k);
+    ea = (uint16_t)read6502(direct_page_add(eahelp), 0) | ((uint16_t)read6502(direct_page_add(eahelp + 1), 0) << 8);
 
     if (regs.dp & 0x00FF) {
         penaltyd = 1;
@@ -230,6 +173,71 @@ static void indl0() { // [dp]
     _zp_long_with_offset(0);
 }
 
+static void indx() { // (indirect,X)
+    uint16_t eahelp;
+    eahelp = (uint16_t)read6502(regs.pc++, regs.k) + regs.x;
+    ea = (uint16_t)read6502(direct_page_add(eahelp), 0) | ((uint16_t)read6502(direct_page_add(eahelp + 1), 0) << 8);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
+}
+
+static void indy() { // (indirect),Y
+    uint16_t eahelp, startpage;
+    eahelp = (uint16_t)read6502(regs.pc++, regs.k);
+    ea = (uint16_t)read6502(direct_page_add(eahelp), 0) | ((uint16_t)read6502(direct_page_add(eahelp + 1), 0) << 8);
+    startpage = ea & 0xFF00;
+    ea += regs.y;
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
+
+    if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
+        penaltyaddr = 1;
+    }
+}
+
 static void indly() { // [dp],Y
     _zp_long_with_offset(regs.y);
+}
+
+static void ind0p() { // (zp) used by PEI, which doesn't do wraparound calculations
+    uint16_t eahelp;
+    eahelp = (uint16_t)read6502(regs.pc++, regs.k);
+    ea = (uint16_t)read6502(regs.dp + eahelp, 0) | ((uint16_t)read6502(regs.dp + eahelp + 1, 0) << 8);
+
+    if (regs.dp & 0x00FF) {
+        penaltyd = 1;
+    }
+}
+
+static void zprel() { // zero-page, relative for branch ops (8-bit immediatel value, sign-extended) - only used for the 65C02's Rockwell extensions
+	ea = (uint16_t)read6502(regs.pc, 0);
+	reladdr = (uint16_t)read6502(regs.pc+1, 0);
+	if (reladdr & 0x80) reladdr |= 0xFF00;
+
+	regs.pc += 2;
+}
+
+static void sr() { // absolute,S
+    ea = regs.sp + (uint16_t)read6502(regs.pc++, regs.k);
+}
+
+static void sridy() { // (indirect,S),Y
+    uint16_t eahelp, startpage;
+    eahelp = regs.sp + (uint16_t)read6502(regs.pc++, regs.k);
+    ea = (uint16_t)read6502(eahelp, 0) | ((uint16_t)read6502(eahelp + 1, 0) << 8);
+    startpage = ea & 0xFF00;
+    ea += (uint16_t)regs.y;
+
+    if (startpage != (ea & 0xFF00)) { //one cycle penlty for page-crossing on some opcodes
+        penaltyaddr = 1;
+    }
+}
+
+static void bmv() { // block move
+    uint8_t dest = read6502(regs.pc++, regs.k);
+    ea = (read6502(regs.pc++, regs.k) << 8) | dest;
 }
