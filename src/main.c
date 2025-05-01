@@ -1261,7 +1261,11 @@ main(int argc, char **argv)
 #ifdef SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME
 		SDL_SetHint(SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME, "Emulating modern retro awesomeness");
 #endif
-		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+		int e = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+		if (e < 0) {
+			fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+			exit(-1);
+		}
 		audio_init(audio_dev_name, audio_buffers);
 		video_init(window_scale, screen_x_scale, scale_quality, fullscreen, window_opacity);
 	}
