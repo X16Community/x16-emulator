@@ -18,7 +18,7 @@ endif
 
 CFLAGS=-std=c11 -O3 -Wall -Werror -g $(shell $(SDL2CONFIG) --cflags) -Isrc/extern/include
 CXXFLAGS=-std=c++17 -O3 -Wall -Werror -Isrc/extern/ymfm/src
-LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz -pthread
+LDFLAGS=$(shell $(SDL2CONFIG) --libs) -lm -lz
 
 ifdef ADDL_INCLUDE
 	CFLAGS+=-I$(ADDL_INCLUDE)
@@ -77,6 +77,8 @@ ifdef EMSCRIPTEN
 	CFLAGS+=-s USE_ZLIB=1
 	X16_OUTPUT=x16emu.html
 	MAKECART_OUTPUT=makecart.html
+else
+	LDFLAGS+=-pthread
 endif
 
 ifeq ($(FLUIDSYNTH),1)
