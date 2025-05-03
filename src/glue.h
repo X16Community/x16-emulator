@@ -89,7 +89,7 @@ extern uint16_t midi_card_addr;
 extern void machine_dump(const char* reason);
 extern void machine_reset();
 extern void machine_nmi();
-extern void machine_paste(char *text);
+extern void machine_paste(char *text, bool handle_free);
 extern void machine_toggle_warp();
 extern void init_audio();
 extern void main_shutdown();

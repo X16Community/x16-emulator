@@ -1395,7 +1395,7 @@ video_update()
 					machine_nmi();
 					consumed = true;
 				} else if (event.key.keysym.sym == SDLK_v) {
-					machine_paste(SDL_GetClipboardText());
+					machine_paste(SDL_GetClipboardText(), true);
 					consumed = true;
 				} else if (event.key.keysym.sym == SDLK_f || event.key.keysym.sym == SDLK_RETURN) {
 					is_fullscreen = !is_fullscreen;

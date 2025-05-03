@@ -348,11 +348,13 @@ machine_nmi()
 }
 
 void
-machine_paste(char *s)
+machine_paste(char *s, bool handle_free)
 {
 	if (s) {
 		paste_text = s;
-		clipboard_buffer = s; // so that we can free this later
+		if (handle_free) {
+			clipboard_buffer = s; // so that we can free this later
+		}
 		pasting_bas = true;
 		if (warp_pastes) warp_mode = true;
 	}
