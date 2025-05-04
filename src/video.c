@@ -1396,7 +1396,7 @@ video_update()
 					machine_nmi();
 					consumed = true;
 				} else if (event.key.keysym.sym == SDLK_v) {
-					machine_paste(SDL_GetClipboardText());
+					machine_paste(SDL_GetClipboardText(), true);
 					consumed = true;
 				} else if (event.key.keysym.sym == SDLK_f || event.key.keysym.sym == SDLK_RETURN) {
 					is_fullscreen = !is_fullscreen;
@@ -2328,7 +2328,7 @@ bool video_is_special_address(int addr)
 }
 
 void
-stop6502(uint16_t address) {
+stop6502(uint16_t address, uint8_t bank) {
 	if (debugger_enabled) {
 		DEBUGBreakToDebugger();
 	} else if (testbench) {
@@ -2346,7 +2346,11 @@ stop6502(uint16_t address) {
 			2, btns, NULL
 		};
 
-		sprintf(error_message, "Encountered stop instruction at address $%04X. CPU cannot continue.", address);
+		if (is_gen2) {
+			sprintf(error_message, "Encountered stop instruction at address $%06X. CPU cannot continue.", (regs.k << 16) | address);
+		} else {
+			sprintf(error_message, "Encountered stop instruction at address $%04X. CPU cannot continue.", address);
+		}
 		if (SDL_ShowMessageBox(&msg_box, &return_btn) == 0 && return_btn == 0) {
 			machine_reset();
 		};

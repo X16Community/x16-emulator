@@ -14,12 +14,14 @@
 //#define TRACE
 //#define PERFSTAT
 
+#define NUM_MAX_BANKS 256
 #define NUM_MAX_RAM_BANKS 256
 #define NUM_ROM_BANKS 32
 #define NUM_CART_BANKS (256 - 32)
 
-#define RAM_SIZE (0xa000 + num_ram_banks * 8192) /* $0000-$9FFF + banks at $A000-$BFFF */
-#define ROM_SIZE (NUM_ROM_BANKS * 16384)   /* banks at $C000-$FFFF */
+#define RAM_SIZE (num_banks * BANK_SIZE)    /* $0000-$9EFF, $9F00-$FFFF "wasted", then optionally $010000+ */
+#define BRAM_SIZE (num_ram_banks * 8192)    /* banks at $A000-$BFFF */
+#define ROM_SIZE (NUM_ROM_BANKS * 16384)    /* banks at $C000-$FFFF */
 #define CART_SIZE (NUM_CART_BANKS * 16384)  /* expansion banks at $C000-$FFFF */
 
 #define WINDOW_TITLE "Commander X16"
@@ -55,9 +57,11 @@ typedef enum {
 extern struct regs regs;
 extern uint16_t opcode_addr;
 extern uint8_t *RAM;
+extern uint8_t *BRAM;
 extern uint8_t ROM[];
 extern uint8_t *CART;
 
+extern uint16_t num_banks;
 extern uint16_t num_ram_banks;
 
 extern bool debugger_enabled;
@@ -85,7 +89,7 @@ extern uint16_t midi_card_addr;
 extern void machine_dump(const char* reason);
 extern void machine_reset();
 extern void machine_nmi();
-extern void machine_paste(char *text);
+extern void machine_paste(char *text, bool handle_free);
 extern void machine_toggle_warp();
 extern void init_audio();
 extern void main_shutdown();
@@ -107,4 +111,5 @@ extern bool no_keyboard_capture;
 extern bool kernal_mouse_enabled;
 extern char window_title[];
 extern bool pwr_long_press;
+extern bool is_gen2;
 #endif

@@ -94,6 +94,7 @@ char *clipboard_buffer = NULL;
 char paste_text_data[65536];
 bool pasting_bas = false;
 
+uint16_t num_banks = 1;
 uint16_t num_ram_banks = 64; // 512 KB default
 
 bool log_video = false;
@@ -152,6 +153,7 @@ bool run_after_load = false;
 char *nvram_path = NULL;
 
 bool pwr_long_press=false;
+bool is_gen2 = false;
 
 #ifdef TRACE
 #include "rom_labels.h"
@@ -346,11 +348,13 @@ machine_nmi()
 }
 
 void
-machine_paste(char *s)
+machine_paste(char *s, bool handle_free)
 {
 	if (s) {
 		paste_text = s;
-		clipboard_buffer = s; // so that we can free this later
+		if (handle_free) {
+			clipboard_buffer = s; // so that we can free this later
+		}
 		pasting_bas = true;
 		if (warp_pastes) warp_mode = true;
 	}
@@ -368,14 +372,14 @@ static bool
 is_kernal()
 {
 	// only for KERNAL
-	return (debug_read6502(0xfff6, USE_CURRENT_BANK) == 'M' &&
-			debug_read6502(0xfff7, USE_CURRENT_BANK) == 'I' &&
-			debug_read6502(0xfff8, USE_CURRENT_BANK) == 'S' &&
-			debug_read6502(0xfff9, USE_CURRENT_BANK) == 'T')
-		|| (debug_read6502(0xc008, USE_CURRENT_BANK) == 'M' &&
-			debug_read6502(0xc009, USE_CURRENT_BANK) == 'I' &&
-			debug_read6502(0xc00a, USE_CURRENT_BANK) == 'S' &&
-			debug_read6502(0xc00b, USE_CURRENT_BANK) == 'T');
+	return (debug_read6502(0xfff6, 0, USE_CURRENT_X16_BANK) == 'M' &&
+			debug_read6502(0xfff7, 0, USE_CURRENT_X16_BANK) == 'I' &&
+			debug_read6502(0xfff8, 0, USE_CURRENT_X16_BANK) == 'S' &&
+			debug_read6502(0xfff9, 0, USE_CURRENT_X16_BANK) == 'T')
+		|| (debug_read6502(0xc008, 0, USE_CURRENT_X16_BANK) == 'M' &&
+			debug_read6502(0xc009, 0, USE_CURRENT_X16_BANK) == 'I' &&
+			debug_read6502(0xc00a, 0, USE_CURRENT_X16_BANK) == 'S' &&
+			debug_read6502(0xc00b, 0, USE_CURRENT_X16_BANK) == 'T');
 }
 
 static void
@@ -878,10 +882,12 @@ main(int argc, char **argv)
 				struct breakpoint bp;
 				if (bpVal < 0xA000) {
 					bp.pc = bpVal;
-					bp.bank = -1;
+					bp.bank = 0;
+					bp.x16Bank = -1;
 				} else {
 					bp.pc = bpVal & 0xffff;
-					bp.bank = bpVal >> 16;
+					bp.bank = 0;
+					bp.x16Bank = bpVal >> 16;
 				}
 				DEBUGSetBreakPoint(bp);
 				argc--;
@@ -1123,17 +1129,30 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			regs.is65c816 = true;
+			is_gen2 = false;
 		} else if (!strcmp(argv[0], "-c02")){
 			argc--;
 			argv++;
 			regs.is65c816 = false;
-		} else if (!strcmp(argv[0], "-rockwell")){
+			is_gen2 = false;
+		} else if (!strcmp(argv[0], "-gs")) {
+			argc--;
+			argv++;
+			regs.is65c816 = true;
+			is_gen2 = true;
+		}
+		else if (!strcmp(argv[0], "-rockwell")){
 			argc--;
 			argv++;
 			warn_rockwell = false;
 		} else {
 			usage();
 		}
+	}
+
+	if (is_gen2) {
+		num_banks = NUM_MAX_BANKS;
+		num_ram_banks = NUM_MAX_RAM_BANKS;
 	}
 
 	SDL_RWops *f = SDL_RWFromFile(rom_path, "rb");
@@ -1244,7 +1263,11 @@ main(int argc, char **argv)
 #ifdef SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME
 		SDL_SetHint(SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME, "Emulating modern retro awesomeness");
 #endif
-		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+		int e = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+		if (e < 0) {
+			fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+			exit(-1);
+		}
 		audio_init(audio_dev_name, audio_buffers);
 		video_init(window_scale, screen_x_scale, scale_quality, fullscreen, window_opacity);
 	}
@@ -1329,29 +1352,29 @@ set_kernal_status(uint8_t s)
 	// from it.
 
 	// JMP in the KERNAL API vectors
-	if (debug_read6502(0xffb7, 0) != 0x4c) {
+	if (debug_read6502(0xffb7, 0, 0) != 0x4c) {
 		return false;
 	}
 	// target of KERNAL API vector JMP
-	uint16_t readst = debug_read6502(0xffb8, 0) | debug_read6502(0xffb9, 0) << 8;
+	uint16_t readst = debug_read6502(0xffb8, 0, 0) | debug_read6502(0xffb9, 0, 0) << 8;
 	if (readst < 0xc000) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (debug_read6502(readst, 0) != 0xad) {
+	if (debug_read6502(readst, 0, 0) != 0xad) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (debug_read6502(readst + 3, 0) != 0x0d) {
+	if (debug_read6502(readst + 3, 0, 0) != 0x0d) {
 		return false;
 	}
 	// ad 89 02 lda $0289
-	if (debug_read6502(readst + 6, 0) != 0x8d) {
+	if (debug_read6502(readst + 6, 0, 0) != 0x8d) {
 		return false;
 	}
-	uint16_t status0 = debug_read6502(readst+1, 0) | debug_read6502(readst+2, 0) << 8;
-	uint16_t status1 = debug_read6502(readst+4, 0) | debug_read6502(readst+5, 0) << 8;
-	uint16_t status2 = debug_read6502(readst+7, 0) | debug_read6502(readst+8, 0) << 8;
+	uint16_t status0 = debug_read6502(readst+1, 0, 0) | debug_read6502(readst+2, 0, 0) << 8;
+	uint16_t status1 = debug_read6502(readst+4, 0, 0) | debug_read6502(readst+5, 0, 0) << 8;
+	uint16_t status2 = debug_read6502(readst+7, 0, 0) | debug_read6502(readst+8, 0, 0) << 8;
 	// all three addresses must be the same
 	if (status0 != status1 || status0 != status2) {
 		return false;
@@ -1369,7 +1392,7 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	if (regs.pc < 0xFEB1 || !is_kernal()) {
+	if (regs.pc < 0xFEA8 || (is_gen2 && regs.k != 0) || !is_kernal()) {
 		return false;
 	}
 
@@ -1397,6 +1420,42 @@ handle_ieee_intercept()
 	bool handled = true;
 	int s = -1;
 	switch(regs.pc) {
+		case 0xFEA8: { // EXTAPI16
+			if (!regs.is65c816 || (regs.status & 0x20)) { // don't handle if not '816 or if m=1
+				handled = false; // punt to kernal's 65C816 check and will break if m=1
+				break;
+			}
+			switch(regs.c) {
+				case 5: { // XMACPTR
+					s=XMACPTR(regs.status & 0x01);
+					if (s == -2) {
+						handled = false;
+					} else if (s == -3) {
+						regs.status |= 1; // SEC (unsupported, or in this case, no open context)
+						regs.status &= ~0x30; // REP #$30
+					} else {
+						regs.status &= ~0x31; // REP #$30 and CLC -> supported
+					}
+					break;
+				}
+				case 6: { // XMCIOUT
+					s=XMCIOUT(regs.status & 0x01);
+					if (s == -2) {
+						handled = false;
+					} else if (s == -3) {
+						regs.status |= 1; // SEC (unsupported, or in this case, no open context)
+						regs.status &= ~0x30; // REP #$30
+					} else {
+						regs.status &= ~0x31; // REP #$30 and CLC -> supported
+					}
+					break;
+				}
+				default:
+					handled = false;
+					break;
+			}
+			break;
+		}
 		case 0xFEB1: {
 			uint16_t count = regs.a;
 			s=MCIOUT(regs.yl << 8 | regs.xl, &count, regs.status & 0x01);
@@ -1508,9 +1567,9 @@ handle_ieee_intercept()
 		}
 
 		increment_wrap_at_page_boundary(&regs.sp);
-		uint8_t low = debug_read6502(regs.sp, USE_CURRENT_BANK);
+		uint8_t low = debug_read6502(regs.sp, 0, USE_CURRENT_X16_BANK);
 		increment_wrap_at_page_boundary(&regs.sp);
-		regs.pc = ((debug_read6502(regs.sp, USE_CURRENT_BANK) << 8) | low) + 1;
+		regs.pc = ((debug_read6502(regs.sp, 0, USE_CURRENT_X16_BANK) << 8) | low) + 1;
 	}
 	return handled;
 }
@@ -1590,9 +1649,9 @@ emulator_loop(void *param)
 				printf(" ");
 			}
 
-			if (regs.pc >= 0xc000) {
+			if (regs.pc >= 0xc000 && regs.k == 0) {
 				printf (" %02x", memory_get_rom_bank());
-			} else if (regs.pc >= 0xa000) {
+			} else if (regs.pc >= 0xa000 && regs.k == 0) {
 				printf (" %02x", memory_get_ram_bank());
 			} else {
 				printf (" --");
@@ -1601,9 +1660,9 @@ emulator_loop(void *param)
 			printf(":.,%04x ", regs.pc);
 
 			char disasm_line[15];
-			int len = disasm(regs.pc, RAM, disasm_line, sizeof(disasm_line), -1, regs.status, &eff_addr);
+			int len = disasm(regs.pc, regs.k, RAM, disasm_line, sizeof(disasm_line), -1, regs.status, &eff_addr);
 			for (int i = 0; i < len; i++) {
-				printf("%02x ", debug_read6502(regs.pc + i, USE_CURRENT_BANK));
+				printf("%02x ", debug_read6502(regs.pc + i, regs.k, USE_CURRENT_X16_BANK));
 			}
 			for (int i = 0; i < 9 - 3 * len; i++) {
 				printf(" ");
@@ -1626,13 +1685,13 @@ emulator_loop(void *param)
 				}
 			}
 
-			if (eff_addr == 0x9f23) {
+			if (eff_addr == 0x9f23 && regs.k == 0) {
 				printf(" VRAM=$%05x ", video_get_address(0));
-			} else if (eff_addr == 0x9f24) {
+			} else if (eff_addr == 0x9f24 && regs.k == 0) {
 				printf(" VRAM=$%05x ", video_get_address(1));
-			} else if (eff_addr >= 0xc000) {
+			} else if (eff_addr >= 0xc000 && regs.k == 0) {
 				printf(" EA=$%02x:%04x ", memory_get_rom_bank(), eff_addr);
-			} else if (eff_addr >= 0xa000) {
+			} else if (eff_addr >= 0xa000 && regs.k == 0) {
 				printf(" EA=$%02x:%04x ", memory_get_ram_bank(), eff_addr);
 			} else if (eff_addr >= 0) {
 				printf(" EA=$--:%04x ", eff_addr);
@@ -1724,7 +1783,7 @@ emulator_loop(void *param)
 		// Change this comparison value if ever additional KERNAL
 		// API calls are snooped in this routine.
 
-		if (regs.pc >= 0xff68 && is_kernal()) {
+		if (regs.pc >= 0xff68 && (!is_gen2 || regs.k == 0) && is_kernal()) {
 			if (regs.pc == 0xff68) {
 				kernal_mouse_enabled = !!regs.a;
 				SDL_ShowCursor((mouse_grabbed || kernal_mouse_enabled) ? SDL_DISABLE : SDL_ENABLE);
@@ -1799,7 +1858,7 @@ emulator_loop(void *param)
 #if 0 // enable this for slow pasting
 		if (!(instruction_counter % 100000))
 #endif
-		while (pasting_bas && RAM[NDX] < 10 && !(regs.status & 0x04)) {
+		while (pasting_bas && BRAM[NDX - 0xa000] < 10 && !(regs.status & 0x04)) {
 			uint32_t c;
 			int e = 0;
 
@@ -1813,8 +1872,8 @@ emulator_loop(void *param)
 				c = iso8859_15_from_unicode(c);
 			}
 			if (c && !e) {
-				RAM[KEYD + RAM[NDX]] = c;
-				RAM[NDX]++;
+				BRAM[KEYD - 0xa000 + BRAM[NDX - 0xa000]] = c;
+				BRAM[NDX - 0xa000]++;
 			} else {
 				pasting_bas = false;
 				if (warp_pastes) warp_mode = false;

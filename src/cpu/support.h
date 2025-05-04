@@ -62,6 +62,10 @@
 
 #define saveaccum(n) (memory_16bit() ? (regs.c = (n)) : (regs.a = (uint8_t)((n) & 0x00FF)))
 
+#define mask_long_addr(addr) ((addr) & 0xFFFFFF)
+#define as_bank_byte(b) ((uint32_t) (((uint8_t) (b)) << 16))
+#define bank_byte(b) ((uint8_t) ((b) >> 16))
+
 //a few general functions used by various other functions
 
 uint16_t add_wrap_at_page_boundary(uint16_t value, uint8_t add) {
@@ -108,33 +112,33 @@ uint16_t direct_page_add(uint16_t offset) {
 #define decsp() decrement_wrap_at_page_boundary(&regs.sp)
 
 void push16(uint16_t pushval) {
-    write6502(regs.sp, (pushval >> 8) & 0xFF);
+    write6502(regs.sp, 0, (pushval >> 8) & 0xFF);
     decsp();
-    write6502(regs.sp, pushval & 0xFF);
+    write6502(regs.sp, 0, pushval & 0xFF);
     decsp();
 }
 
 void push8(uint8_t pushval) {
-    write6502(regs.sp, pushval);
+    write6502(regs.sp, 0, pushval);
     decsp();
 }
 
 uint16_t pull16() {
     incsp();
-    uint16_t temp16 = read6502(regs.sp);
+    uint16_t temp16 = read6502(regs.sp, 0);
     incsp();
-    temp16 |= (uint16_t) read6502(regs.sp) << 8;
+    temp16 |= (uint16_t) read6502(regs.sp, 0) << 8;
     return temp16;
 }
 
 uint8_t pull8() {
     incsp();
-    uint8_t value = read6502(regs.sp);
+    uint8_t value = read6502(regs.sp, 0);
     return value;
 }
 
 void reset6502(bool c816) {
-    regs.pc = (uint16_t)read6502(0xFFFC) | ((uint16_t)read6502(0xFFFD) << 8);
+    regs.pc = (uint16_t)read6502(0xFFFC, 0) | ((uint16_t)read6502(0xFFFD, 0) << 8);
     regs.c = 0;
     regs.x = 0;
     regs.y = 0;
@@ -193,7 +197,12 @@ void interrupt6502(enum InterruptType vector) {
     vp6502();
 
     uint16_t vector_address = (regs.e ? 0xFFF0 : 0xFFE0) + (uint8_t) vector;
-    regs.pc = (uint16_t) read6502(vector_address) | ((uint16_t) read6502(vector_address + 1) << 8);
+    regs.pc = (uint16_t) read6502(vector_address, 0) | ((uint16_t) read6502(vector_address + 1, 0) << 8);
 
     clockticks6502 += 7; // consumed by CPU to process interrupt
 }
+
+static uint32_t addr_with_db(uint16_t addr) {
+    return mask_long_addr(as_bank_byte(regs.db) | addr);
+}
+
