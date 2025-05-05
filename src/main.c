@@ -131,6 +131,7 @@ bool testbench = false;
 bool enable_midline = false;
 bool ym2151_irq_support = false;
 char *cartridge_path = NULL;
+char *user_perhipheral_path = NULL;
 
 bool has_midi_card = false;
 uint16_t midi_card_addr;
@@ -333,7 +334,7 @@ machine_reset()
 	vera_spi_init();
 	via1_init();
 	if (has_via2) {
-		via2_init();
+		via2_init(user_perhipheral_path);
 	}
 	video_reset();
 	mouse_state_init();
@@ -513,6 +514,9 @@ usage()
 	printf("\tSet the real-time-clock to the current system time and date.\n");
 	printf("-via2\n");
 	printf("\tInstall the second VIA chip expansion at $9F10\n");
+	printf("-user-perhipheral <perhipheral lib>\n");
+	printf("\tUse the provided shared library to drive user perhipherals.\n");
+	printf("\tImplies -via2\n");
 	printf("-testbench\n");
 	printf("\tHeadless mode for unit testing with an external test runner\n");
 	printf("-mhz <integer>\n");
@@ -1088,6 +1092,16 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			has_via2 = true;
+		} else if (!strcmp(argv[0], "-user-perhipheral")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			has_via2 = true;
+			user_perhipheral_path = argv[0];
+			argc--;
+			argv++;
 		} else if (!strcmp(argv[0], "-version")){
 			printf("%s", VER_INFO);
 #ifdef GIT_REV

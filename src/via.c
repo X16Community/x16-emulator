@@ -10,9 +10,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <dlfcn.h>
 //XXX
 #include "glue.h"
 #include "joystick.h"
+#include "user_pins.h"
 
 typedef struct {
 	unsigned timer_count[2];
@@ -338,28 +340,105 @@ via1_irq()
 // for now, just assume that all user ports are not connected
 // and reads return output register (open bus behavior)
 
+
+static bool attempt_perhipheral_load = true;
+static void *user_perhipheral_dl = NULL;
+static user_port_init_t user_port_init = NULL;
+
+static user_port_t user_port;
+
 void
-via2_init()
+via2_init(char const *user_perhipheral_path)
 {
 	via_init(&via[1]);
+	if (attempt_perhipheral_load && user_perhipheral_path) {
+		attempt_perhipheral_load = false;
+		user_perhipheral_dl = dlopen(user_perhipheral_path, RTLD_NOW);
+		if (user_perhipheral_dl) {
+			user_port_init = dlsym(user_perhipheral_dl, "user_port_init");
+		}
+		if (!(user_perhipheral_dl && user_port_init)) {
+			printf("failed to load user perhipheral %s:\n\t%s\n",
+			       user_perhipheral_path, dlerror());
+			printf("continuing with empty user port.\n");
+
+		}
+	}
+	// TODO Do we really want to reset the user perhipherals every time?
+	if (user_port_init) {
+		if (user_port_init(&user_port) < 0) {
+			user_port_init = NULL;
+			memset(&user_port, 0, sizeof(user_port));
+			printf("error initializing user port");
+		}
+	}
 }
 
 uint8_t
 via2_read(uint8_t reg, bool debug)
 {
-	return via_read(&via[1], reg, debug);
+	switch (reg) {
+		case 0: {
+			uint8_t regval = via_read(&via[1], reg, debug);
+			uint8_t mask = user_port.connected_pins >> 8; // PB is 2nd byte
+			// printf("via2 read mask: %02hhu, connected_pins: %06x\n", mask, user_por
+			//        t.connected_pins);
+			if (mask && user_port.read) {
+				uint8_t user_pins = user_port.read() >> 8;
+				// PB only returns pin values on inputs
+				mask &= ~via[1].registers[2];
+				return (regval & ~mask) | (user_pins & mask);
+			}
+		}
+		case 1:
+		case 15: {
+			uint8_t regval = via_read(&via[1], reg, debug);
+			uint8_t mask = user_port.connected_pins; // PA is 1st byte
+			if (mask) {
+				uint8_t user_pins = user_port.read();
+				// Port A always returns pin values on a read, even on output pins
+				return (regval & ~mask) | (user_pins & mask);
+			} else {
+				return regval;
+			}
+		}
+		default:
+			return via_read(&via[1], reg, debug);
+	}
 }
 
 void
 via2_write(uint8_t reg, uint8_t value)
 {
 	via_write(&via[1], reg, value);
+	switch (reg) {
+		case 0:
+		case 2: {
+			uint8_t regout = via[1].registers[0] & via[1].registers[2];
+			user_pin_t pinsout = ((user_pin_t)regout << 8) & user_port.connected_pins;
+			if (pinsout && user_port.write) {
+				user_port.write(pinsout);
+			}
+			break;
+		}
+		case 1:
+		case 3:
+		case 15: {
+			uint8_t regout = via[1].registers[1] & via[1].registers[3];
+			user_pin_t pinsout = (user_pin_t)regout & user_port.connected_pins;
+			if (pinsout && user_port.write) {
+				user_port.write(pinsout);
+			}
+			break;
+		}
+	}
 }
 
 void
 via2_step(unsigned clocks)
 {
 	via_step(&via[1], clocks);
+	if (user_port.step) user_port.step((double)clocks * (1000.0 / MHZ));
 }
 
 bool
