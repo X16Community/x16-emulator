@@ -377,34 +377,34 @@ via2_init(char const *user_perhipheral_path)
 uint8_t
 via2_read(uint8_t reg, bool debug)
 {
-	switch (reg) {
-		case 0: {
-			uint8_t regval = via_read(&via[1], reg, debug);
-			uint8_t mask = user_port.connected_pins >> 8; // PB is 2nd byte
-			// printf("via2 read mask: %02hhu, connected_pins: %06x\n", mask, user_por
-			//        t.connected_pins);
-			if (mask && user_port.read) {
-				uint8_t user_pins = user_port.read() >> 8;
-				// PB only returns pin values on inputs
-				mask &= ~via[1].registers[2];
-				return (regval & ~mask) | (user_pins & mask);
+	uint8_t regval = via_read(&via[1], reg, debug);
+	if (user_port.read) {
+		switch (reg) {
+			case 0: {
+				uint8_t mask = user_port.connected_pins >> 8; // PB is 2nd byte
+				// printf("via2 read mask: %02hhu, connected_pins: %06x\n", mask, user_por
+				//        t.connected_pins);
+				if (mask) {
+					uint8_t user_pins = user_port.read() >> 8;
+					// PB only returns pin values on inputs
+					mask &= ~via[1].registers[2];
+					return (regval & ~mask) | (user_pins & mask);
+				}
+				break;
+			}
+			case 1:
+			case 15: {
+				uint8_t mask = user_port.connected_pins; // PA is 1st byte
+				if (mask) {
+					uint8_t user_pins = user_port.read();
+					// Port A always returns pin values on a read, even on output pins
+					return (regval & ~mask) | (user_pins & mask);
+				}
+				break;
 			}
 		}
-		case 1:
-		case 15: {
-			uint8_t regval = via_read(&via[1], reg, debug);
-			uint8_t mask = user_port.connected_pins; // PA is 1st byte
-			if (mask) {
-				uint8_t user_pins = user_port.read();
-				// Port A always returns pin values on a read, even on output pins
-				return (regval & ~mask) | (user_pins & mask);
-			} else {
-				return regval;
-			}
-		}
-		default:
-			return via_read(&via[1], reg, debug);
 	}
+	return regval;
 }
 
 void
@@ -413,21 +413,15 @@ via2_write(uint8_t reg, uint8_t value)
 	via_write(&via[1], reg, value);
 	switch (reg) {
 		case 0:
-		case 2: {
-			uint8_t regout = via[1].registers[0] & via[1].registers[2];
-			user_pin_t pinsout = ((user_pin_t)regout << 8) & user_port.connected_pins;
-			if (pinsout && user_port.write) {
-				user_port.write(pinsout);
-			}
-			break;
-		}
 		case 1:
+		case 2:
 		case 3:
 		case 15: {
-			uint8_t regout = via[1].registers[1] & via[1].registers[3];
-			user_pin_t pinsout = (user_pin_t)regout & user_port.connected_pins;
-			if (pinsout && user_port.write) {
-				user_port.write(pinsout);
+			if (user_port.write) {
+				user_pin_t pa = via[1].registers[1] & via[1].registers[3];
+				user_pin_t pb = via[1].registers[0] & via[1].registers[2];
+				user_pin_t pins = (pa | (pb << 8)) & user_port.connected_pins;
+				user_port.write(pins);
 			}
 			break;
 		}
