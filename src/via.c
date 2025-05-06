@@ -132,13 +132,7 @@ via_write(via_t *via, uint8_t reg, uint8_t value)
 			via->registers[10] = value;
 			break;
 		case 13: // IFR
-			pcr = via->registers[12];
-			if ((value & 0x01) && ((pcr & 0b00001010) == 0b00000010)) {
-				via->registers[13] &= ~0x01;
-			}
-			if ((value & 0x08) && ((pcr & 0b10100000) == 0b00100000)) {
-				via->registers[13] &= ~0x08;
-			}
+			via->registers[13] &= ~value;
 			break;
 		case 14: // IER
 			if (value & 0x80) {
