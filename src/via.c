@@ -132,7 +132,7 @@ via_write(via_t *via, uint8_t reg, uint8_t value)
 			via->registers[10] = value;
 			break;
 		case 13: // IFR
-			via->registers[13] &= ~value;
+			via->registers[13] &= ~(value & 0x7f);
 			break;
 		case 14: // IER
 			if (value & 0x80) {
