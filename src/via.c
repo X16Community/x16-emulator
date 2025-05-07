@@ -366,10 +366,10 @@ via2_init(char const *user_perhipheral_path)
 	}
 	// TODO Do we really want to reset the user perhipherals every time?
 	if (user_port_init) {
-		if (user_port_init(&user_port) < 0) {
+		if (user_port_init(X16_USER_PORT_API_VERSION, &user_port) < 0) {
 			user_port_init = NULL;
 			memset(&user_port, 0, sizeof(user_port));
-			printf("error initializing user port");
+			printf("error initializing user port\n");
 		}
 	}
 }

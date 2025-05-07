@@ -2,6 +2,11 @@
 
 #include <stdint.h>
 
+// This will be passed to the user-port library's [user_port_init] function, so
+// it can give an error on version mismatch, rather than (probably) segfault or
+// behave strangely.
+#define X16_USER_PORT_API_VERSION 1
+
 #define PA0_PIN (1 << 0)
 #define PA1_PIN (1 << 1)
 #define PA2_PIN (1 << 2)
@@ -54,4 +59,4 @@ typedef struct {
 	void (*step)(double nanos);
 } user_port_t;
 
-typedef int (*user_port_init_t)(user_port_t *);
+typedef int (*user_port_init_t)(int api_version, user_port_t *);
