@@ -357,11 +357,10 @@ via2_init(char const *user_perhipheral_path)
 		if (user_perhipheral_dl) {
 			user_port_init = dlsym(user_perhipheral_dl, "user_port_init");
 		}
-		if (!(user_perhipheral_dl && user_port_init)) {
+		if (user_perhipheral_dl == NULL || user_port_init == NULL) {
 			printf("failed to load user perhipheral %s:\n\t%s\n",
 			       user_perhipheral_path, dlerror());
 			printf("continuing with empty user port.\n");
-
 		}
 	}
 	// TODO Do we really want to reset the user perhipherals every time?
@@ -436,7 +435,7 @@ void
 via2_step(unsigned clocks)
 {
 	via_step(&via[1], clocks);
-	if (user_port.step) user_port.step((double)clocks * (1000.0 / MHZ));
+	if (user_port.step) user_port.step((double)clocks * 1000.0 / MHZ);
 }
 
 bool
