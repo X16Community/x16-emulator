@@ -212,6 +212,24 @@ static int loadBlock(uint8_t *dest)
 	return response_length;
 }
 
+// Return length of reply
+// Fake, to measure timing difference
+static int loadBlockFake(uint8_t *dest)
+{
+	int response_length = 0;
+
+	dest[0] = 0xFE; // Data token for CMD17/18
+
+	dest++;
+	for (int i = 0; i < 512+2; ++i) {
+		dest[i] = (uint8_t)i;
+	}
+
+	response_length = 1 + 512 + 2;
+	return response_length;
+}
+
+
 uint8_t
 sdcard_handle(uint8_t inbyte)
 {
@@ -231,7 +249,7 @@ sdcard_handle(uint8_t inbyte)
 					static uint8_t read_multiblock_next_response[1 + 512 + 2];
 					// Prepare next multiblock reply
 					lba++;
-					response_length = loadBlock(&read_multiblock_next_response[0]);
+					response_length = loadBlockFake(&read_multiblock_next_response[0]);
 					// Stop multiblock read if error
 					if (response_length == 1) {
 						ongoing_multiblock_read = false;
