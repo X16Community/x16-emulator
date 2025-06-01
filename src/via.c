@@ -98,7 +98,6 @@ via_read(via_t *via, uint8_t reg, bool debug)
 static void
 via_write(via_t *via, uint8_t reg, uint8_t value)
 {
-	uint8_t pcr;
 	switch (reg) {
 		case 0: // ORB
 			via_clear_prb_irqs(via);
