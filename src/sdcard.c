@@ -59,14 +59,15 @@ static int response_length = 0;
 static int response_counter = 0;
 
 static bool selected = false;
-/*
+
 // Cache for fast read
 #define LOAD_CACHE_SIZE 1024
+//#define LOAD_CACHE_SIZE 2
 #define SECTOR_SIZE 512
 static uint8_t readCache[SECTOR_SIZE*LOAD_CACHE_SIZE];
 static uint32_t cacheStartLba = 0;
 static bool cacheValid = false;
-*/
+
 
 void
 sdcard_set_path(char const *path)
@@ -196,7 +197,7 @@ set_response_r7(void)
 	response = r7;
 	response_length = sizeof(r7);
 }
-/*
+
 // This function reads a larger chunk of data, assuming that
 // the next call have a significant chance of also being cached.
 // This is to reduce the overhead of waiting for disk IO.
@@ -220,7 +221,8 @@ static int loadBlockWithCache(uint8_t *dest)
 		{
 			// Cache miss. Read from file to cache
 			x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
-			int bytes_read = x16read(sdcard_file, &dest[1], 1, SECTOR_SIZE * LOAD_CACHE_SIZE);
+			//int bytes_read = x16read(sdcard_file, &dest[1], 1, SECTOR_SIZE * LOAD_CACHE_SIZE);
+			int bytes_read = x16read(sdcard_file, readCache, 1, SECTOR_SIZE * LOAD_CACHE_SIZE);
 			if (bytes_read != SECTOR_SIZE * LOAD_CACHE_SIZE) {
 				printf("Warning: short read!\n");
 			}
@@ -235,11 +237,11 @@ static int loadBlockWithCache(uint8_t *dest)
 	}
 	return response_length;
 }
-*/
+
 // Return length of reply
 static int loadBlock(uint8_t *dest)
 {
-	//if (ongoing_multiblock_read) return loadBlockWithCache(dest);
+	if (ongoing_multiblock_read) return loadBlockWithCache(dest);
 
 	int response_length = 0;
 
@@ -299,8 +301,8 @@ sdcard_handle(uint8_t inbyte)
 					// Prepare next multiblock reply
 					lba++; 
 					//response_length = loadBlockFake(&read_multiblock_next_response[0]);
-					//response_length = loadBlockWithCache(&read_multiblock_next_response[0]);
-					response_length = loadBlock(&read_multiblock_next_response[0]);
+					response_length = loadBlockWithCache(&read_multiblock_next_response[0]);
+					//response_length = loadBlock(&read_multiblock_next_response[0]);
 					// Stop multiblock read if error
 					if (response_length == 1) {
 						ongoing_multiblock_read = false;
@@ -458,7 +460,7 @@ sdcard_handle(uint8_t inbyte)
 						printf("Warning: short write!\n");
 					}
 				}
-				//cacheValid = false;
+				cacheValid = false;
 			}
 		}
 	}
