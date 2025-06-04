@@ -52,12 +52,22 @@ static uint8_t last_cmd;
 static bool is_acmd = false;
 static bool is_idle = true;
 static bool is_initialized = false;
+static bool ongoing_multiblock_read = false;
 
 static const uint8_t *response = NULL;
 static int response_length = 0;
 static int response_counter = 0;
 
 static bool selected = false;
+
+// Cache for fast read
+#define LOAD_CACHE_SIZE 1024
+//#define LOAD_CACHE_SIZE 2
+#define SECTOR_SIZE 512
+static uint8_t readCache[SECTOR_SIZE*LOAD_CACHE_SIZE];
+static uint32_t cacheStartLba = 0;
+static bool cacheValid = false;
+
 
 void
 sdcard_set_path(char const *path)
@@ -188,6 +198,89 @@ set_response_r7(void)
 	response_length = sizeof(r7);
 }
 
+// This function reads a larger chunk of data, assuming that
+// the next call have a significant chance of also being cached.
+// This is to reduce the overhead of waiting for disk IO.
+// Return length of reply
+static int loadBlockWithCache(uint8_t *dest)
+{
+	int response_length = 0;
+
+	dest[0] = 0xFE; // Data token for CMD17/18
+#ifdef VERBOSE
+	printf("*** SD Reading LBA %d\n", lba);
+#endif
+
+	if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
+		dest[0] = 0x08; // Error token: out of range
+		response_length = 1;
+	} else {
+		// Is this sector already in cache, or do we have to fetch it from the file?
+		uint32_t sectorOffsetInCache = lba - cacheStartLba;
+		if (!cacheValid || sectorOffsetInCache >= LOAD_CACHE_SIZE)
+		{
+			// Cache miss. Read from file to cache
+			x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
+			//int bytes_read = x16read(sdcard_file, &dest[1], 1, SECTOR_SIZE * LOAD_CACHE_SIZE);
+			int bytes_read = x16read(sdcard_file, readCache, 1, SECTOR_SIZE * LOAD_CACHE_SIZE);
+			if (bytes_read != SECTOR_SIZE * LOAD_CACHE_SIZE) {
+				printf("Warning: short read!\n");
+			}
+			cacheStartLba = lba;
+			cacheValid = true;
+			sectorOffsetInCache = 0;
+		}
+
+		// Sector is inside cache, load it
+		memcpy(&dest[1], &readCache[SECTOR_SIZE * sectorOffsetInCache], SECTOR_SIZE);
+		response_length = 1 + 512 + 2;
+	}
+	return response_length;
+}
+
+// Return length of reply
+static int loadBlock(uint8_t *dest)
+{
+	if (ongoing_multiblock_read) return loadBlockWithCache(dest);
+
+	int response_length = 0;
+
+	dest[0] = 0xFE; // Data token for CMD17/18
+#ifdef VERBOSE
+	printf("*** SD Reading LBA %d\n", lba);
+#endif
+	if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
+		dest[0] = 0x08; // Error token: out of range
+		response_length = 1;
+	} else {
+		x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
+		int bytes_read = x16read(sdcard_file, &dest[1], 1, 512);
+		if (bytes_read != 512) {
+			printf("Warning: short read!\n");
+		}
+		response_length = 1 + 512 + 2;
+	}
+	return response_length;
+}
+/*
+// Return length of reply
+// Fake, to measure timing difference
+static int loadBlockFake(uint8_t *dest)
+{
+	int response_length = 0;
+
+	dest[0] = 0xFE; // Data token for CMD17/18
+
+	dest++;
+	for (int i = 0; i < 512+2; ++i) {
+		dest[i] = (uint8_t)i;
+	}
+
+	response_length = 1 + 512 + 2;
+	return response_length;
+}
+*/
+
 uint8_t
 sdcard_handle(uint8_t inbyte)
 {
@@ -203,7 +296,23 @@ sdcard_handle(uint8_t inbyte)
 		if (response) {
 			outbyte = response[response_counter++];
 			if (response_counter == response_length) {
-				response = NULL;
+				if (ongoing_multiblock_read) {
+					static uint8_t read_multiblock_next_response[1 + 512 + 2];
+					// Prepare next multiblock reply
+					lba++; 
+					//response_length = loadBlockFake(&read_multiblock_next_response[0]);
+					response_length = loadBlockWithCache(&read_multiblock_next_response[0]);
+					//response_length = loadBlock(&read_multiblock_next_response[0]);
+					// Stop multiblock read if error
+					if (response_length == 1) {
+						ongoing_multiblock_read = false;
+					}
+					response = read_multiblock_next_response;
+					response_counter = 0;
+				} else  {
+					response = NULL;
+					ongoing_multiblock_read = false;
+				}
 			}
 		}
 
@@ -259,6 +368,13 @@ sdcard_handle(uint8_t inbyte)
 					break;
 				}
 
+				case CMD12: {
+					// STOP_TRANSMISSION: Abort ongoing multiple block read
+					ongoing_multiblock_read = false;
+					set_response_r1();
+					break;
+				}
+
 				case CMD13: {
 					// SEND_STATUS: Asks the selected card to send its status register
 					set_response_r2();
@@ -269,28 +385,22 @@ sdcard_handle(uint8_t inbyte)
 					set_response_r1();
 					break;
 				}
+				case CMD18: {
+					// READ_MULTIPLE_BLOCK
+					ongoing_multiblock_read = true;
+					// Fallthrough
+				}
 				case CMD17: {
 					// READ_SINGLE_BLOCK
-					uint32_t lba = (rxbuf[1] << 24) | (rxbuf[2] << 16) | (rxbuf[3] << 8) | rxbuf[4];
+					lba = (rxbuf[1] << 24) | (rxbuf[2] << 16) | (rxbuf[3] << 8) | rxbuf[4];
 					static uint8_t read_block_response[2 + 512 + 2];
-					read_block_response[0] = 0;
-					read_block_response[1] = 0xFE;
-#ifdef VERBOSE
-					printf("*** SD Reading LBA %d\n", lba);
-#endif
-					if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
-						read_block_response[1] = 0x08; // out of range
-						response_length = 2;
-					} else {
-						x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
-						int bytes_read = x16read(sdcard_file, &read_block_response[2], 1, 512);
-						if (bytes_read != 512) {
-							printf("Warning: short read!\n");
-						}
-
-						response = read_block_response;
-						response_length = 2 + 512 + 2;
+					read_block_response[0] = 0; // R1 response to command
+					response_length = 1 + loadBlock(&read_block_response[1]);
+					// Stop multiblock read if error
+					if (response_length == 2) {
+						ongoing_multiblock_read = false;
 					}
+					response = read_block_response;
 					break;
 				}
 
@@ -350,6 +460,7 @@ sdcard_handle(uint8_t inbyte)
 						printf("Warning: short write!\n");
 					}
 				}
+				cacheValid = false;
 			}
 		}
 	}
