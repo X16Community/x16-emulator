@@ -248,7 +248,7 @@ sdcard_handle(uint8_t inbyte)
 				if (ongoing_multiblock_read) {
 					static uint8_t read_multiblock_next_response[1 + 512 + 2];
 					// Prepare next multiblock reply
-					lba++;
+					lba++; 
 					response_length = loadBlockFake(&read_multiblock_next_response[0]);
 					// Stop multiblock read if error
 					if (response_length == 1) {
