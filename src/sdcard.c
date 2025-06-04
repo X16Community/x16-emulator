@@ -60,6 +60,14 @@ static int response_counter = 0;
 
 static bool selected = false;
 
+// Cache for fast read
+#define LOAD_CACHE_SIZE 1024
+#define SECTOR_SIZE 512
+static uint8_t readCache[SECTOR_SIZE*LOAD_CACHE_SIZE];
+static uint32_t cacheStartLba = 0;
+static bool cacheValid = false;
+
+
 void
 sdcard_set_path(char const *path)
 {
@@ -189,9 +197,50 @@ set_response_r7(void)
 	response_length = sizeof(r7);
 }
 
+// This function reads a larger chunk of data, assuming that
+// the next call have a significant chance of also being cached.
+// This is to reduce the overhead of waiting for disk IO.
+// Return length of reply
+static int loadBlockWithCache(uint8_t *dest)
+{
+	int response_length = 0;
+
+	dest[0] = 0xFE; // Data token for CMD17/18
+#ifdef VERBOSE
+	printf("*** SD Reading LBA %d\n", lba);
+#endif
+
+	if ((Sint64)lba * 512 >= x16size(sdcard_file)) {
+		dest[0] = 0x08; // Error token: out of range
+		response_length = 1;
+	} else {
+		// Is this sector already in cache, or do we have to fetch it from the file?
+		uint32_t sectorOffsetInCache = lba - cacheStartLba;
+		if (!cacheValid || sectorOffsetInCache >= LOAD_CACHE_SIZE)
+		{
+			// Cache miss. Read from file to cache
+			x16seek(sdcard_file, (Sint64)lba * 512, XSEEK_SET);
+			int bytes_read = x16read(sdcard_file, &dest[1], 1, SECTOR_SIZE * LOAD_CACHE_SIZE);
+			if (bytes_read != SECTOR_SIZE * LOAD_CACHE_SIZE) {
+				printf("Warning: short read!\n");
+			}
+			cacheStartLba = lba;
+			cacheValid = true;
+			sectorOffsetInCache = 0;
+		}
+
+		// Sector is inside cache, load it
+		memcpy(&dest[1], &readCache[SECTOR_SIZE * sectorOffsetInCache], SECTOR_SIZE);
+		response_length = 1 + 512 + 2;
+	}
+	return response_length;
+}
+
 // Return length of reply
 static int loadBlock(uint8_t *dest)
 {
+	if (ongoing_multiblock_read) return loadBlockWithCache(dest);
+
 	int response_length = 0;
 
 	dest[0] = 0xFE; // Data token for CMD17/18
@@ -211,7 +260,7 @@ static int loadBlock(uint8_t *dest)
 	}
 	return response_length;
 }
-
+/*
 // Return length of reply
 // Fake, to measure timing difference
 static int loadBlockFake(uint8_t *dest)
@@ -228,7 +277,7 @@ static int loadBlockFake(uint8_t *dest)
 	response_length = 1 + 512 + 2;
 	return response_length;
 }
-
+*/
 
 uint8_t
 sdcard_handle(uint8_t inbyte)
@@ -249,7 +298,8 @@ sdcard_handle(uint8_t inbyte)
 					static uint8_t read_multiblock_next_response[1 + 512 + 2];
 					// Prepare next multiblock reply
 					lba++; 
-					response_length = loadBlockFake(&read_multiblock_next_response[0]);
+					//response_length = loadBlockFake(&read_multiblock_next_response[0]);
+					response_length = loadBlockWithCache(&read_multiblock_next_response[0]);
 					// Stop multiblock read if error
 					if (response_length == 1) {
 						ongoing_multiblock_read = false;
@@ -407,6 +457,7 @@ sdcard_handle(uint8_t inbyte)
 						printf("Warning: short write!\n");
 					}
 				}
+				cacheValid = false;
 			}
 		}
 	}
