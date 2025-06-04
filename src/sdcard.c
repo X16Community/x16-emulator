@@ -59,14 +59,14 @@ static int response_length = 0;
 static int response_counter = 0;
 
 static bool selected = false;
-
+/*
 // Cache for fast read
 #define LOAD_CACHE_SIZE 1024
 #define SECTOR_SIZE 512
 static uint8_t readCache[SECTOR_SIZE*LOAD_CACHE_SIZE];
 static uint32_t cacheStartLba = 0;
 static bool cacheValid = false;
-
+*/
 
 void
 sdcard_set_path(char const *path)
@@ -458,7 +458,7 @@ sdcard_handle(uint8_t inbyte)
 						printf("Warning: short write!\n");
 					}
 				}
-				cacheValid = false;
+				//cacheValid = false;
 			}
 		}
 	}
