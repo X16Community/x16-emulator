@@ -54,9 +54,9 @@ typedef uint32_t user_pin_t;
 
 typedef struct {
 	user_pin_t connected_pins;
-	user_pin_t (*read)();	
+	user_pin_t (*read)();
 	void (*write)(user_pin_t pins);
-	void (*step)(double nanos);
+	user_pin_t (*step)(double nanos);
 } user_port_t;
 
 typedef int (*user_port_init_t)(int api_version, user_port_t *);

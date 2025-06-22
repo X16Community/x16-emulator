@@ -16,6 +16,11 @@
 #include "joystick.h"
 #include "user_pins.h"
 
+#define CA1 (1 << 0)
+#define CA2 (1 << 1)
+#define CB1 (1 << 2)
+#define CB2 (1 << 3)
+
 typedef struct {
 	unsigned timer_count[2];
 	unsigned pb6_pulse_counts;
@@ -23,6 +28,7 @@ typedef struct {
 	bool timer1_m1;
 	bool timer_running[2];
 	bool pb7_output;
+	uint8_t cacb;
 } via_t;
 
 static via_t via[2];
@@ -40,6 +46,7 @@ via_init(via_t *via)
 	via->timer_running[1] = false;
 	via->timer1_m1 = false;
 	via->pb7_output = true;
+	via->cacb = 0;
 }
 
 static void
@@ -434,8 +441,34 @@ via2_write(uint8_t reg, uint8_t value)
 void
 via2_step(unsigned clocks)
 {
-	via_step(&via[1], clocks);
-	if (user_port.step) user_port.step((double)clocks * 1000.0 / MHZ);
+	static uint8_t last_ifr = 0xFF;
+	if (last_ifr & 0x80) last_ifr = 0;
+ 	via_step(&via[1], clocks);
+	if (user_port.step) {
+		user_pin_t pins = user_port.step((double)clocks * 1000.0 / MHZ);
+		// TODO CA2/CB2
+		pins &= user_port.connected_pins;
+		uint8_t ca = (pins & CA1_PIN) ? CA1 : 0;
+		// CB1 shares a user pin with PB6, so only check if it's an input
+		// TODO: Is that actually true? Verify on hardware
+		uint8_t cb = (pins & CB1_PIN & ~via[1].registers[2]) ? CB1 : 0;
+		if (ca != (via[1].cacb & CA1)) {
+			bool high_edge = (via[1].registers[12] & 0x01);
+			if ((high_edge && ca) || (!high_edge && !ca))
+				via[1].registers[13] |= 0x02;
+		}
+		if (cb != (via[1].cacb & CB1)) {
+			bool high_edge = (via[1].registers[12] & 0x10);
+			if ((high_edge && cb) || (!high_edge && !cb))
+				via[1].registers[13] |= 0x10;
+		}
+		via[1].cacb &= ~(CA1 | CB1);
+		via[1].cacb |= (ca | cb);
+		if (via[1].registers[13] != last_ifr) {
+			printf("ifr changed: old: $%02hhx, new: $%02hhx\n", last_ifr, via[1].registers[13]);
+			last_ifr = via[1].registers[13];
+		}
+	}
 }
 
 bool
