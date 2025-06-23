@@ -465,7 +465,7 @@ via2_step(unsigned clocks)
 		via[1].cacb &= ~(CA1 | CB1);
 		via[1].cacb |= (ca | cb);
 		if (via[1].registers[13] != last_ifr) {
-			printf("ifr changed: old: $%02hhx, new: $%02hhx\n", last_ifr, via[1].registers[13]);
+			// printf("ifr changed: old: $%02hhx, new: $%02hhx\n", last_ifr, via[1].registers[13]);
 			last_ifr = via[1].registers[13];
 		}
 	}
