@@ -441,8 +441,6 @@ via2_write(uint8_t reg, uint8_t value)
 void
 via2_step(unsigned clocks)
 {
-	static uint8_t last_ifr = 0xFF;
-	if (last_ifr & 0x80) last_ifr = 0;
  	via_step(&via[1], clocks);
 	if (user_port.step) {
 		user_pin_t pins = user_port.step((double)clocks * 1000.0 / MHZ);
@@ -464,10 +462,6 @@ via2_step(unsigned clocks)
 		}
 		via[1].cacb &= ~(CA1 | CB1);
 		via[1].cacb |= (ca | cb);
-		if (via[1].registers[13] != last_ifr) {
-			// printf("ifr changed: old: $%02hhx, new: $%02hhx\n", last_ifr, via[1].registers[13]);
-			last_ifr = via[1].registers[13];
-		}
 	}
 }
 
