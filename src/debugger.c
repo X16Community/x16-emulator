@@ -111,24 +111,23 @@ const SDL_Color col_vram_tiledata = {0, 255, 0, 255};
 const SDL_Color col_vram_special  = {255, 92, 92, 255};
 const SDL_Color col_vram_other  = {128, 128, 128, 255};
 
-int showDebugOnRender = 0;                               // Used to trigger rendering in video.c
-int showFullDisplay = 0;                                 // If non-zero show the whole thing.
-int currentPC = -1;                                      // Current PC value.
-uint8_t currentPCBank = 0;                               // Current PC bank value.
-int currentData = 0;                                     // Current data display address.
-int currentPCX16Bank = -1;
-int currentX16Bank = -1;
-int currentMode = DMODE_RUN;                             // Start running.
+int showDebugOnRender = 0;                            // Used to trigger rendering in video.c
+int showFullDisplay = 0;                              // If non-zero show the whole thing.
+int currentPC = -1;                                   // Current disassembly PC value (16-bit).
+uint8_t currentPCBank = 0;                            // Current disassembly PC bank (like regs.k) value.
+int currentData = 0;                                  // Current data display address (RAM or VRAM).
+int currentPCX16Bank = -1;                            // Current disassembly X16 RAM/ROM bank, -1 unless $A000-$FFFF, .K = 0
+int currentX16Bank = -1;                              // Current data display (memory dump) X16 RAM/ROM bank
+int currentMode = DMODE_RUN;                          // Start running.
 uint32_t debugCPUClocks = 0;
 
 int dumpmode          = DDUMP_RAM;
 
-struct breakpoint breakPoint = { -1, 0, -1 };            // User Break
-struct breakpoint stepBreakPoint = { -1, 0, -1 };        // Single step break.
-
-char cmdLine[64]= "";                                    // command line buffer
-int currentPosInLine= 0;                                 // cursor position in the buffer (NOT USED _YET_)
-int currentLineLen= 0;                                   // command line buffer length
+struct breakpoint breakPoint = { -1, 0, -1 };         // User Break
+struct breakpoint stepBreakPoint = { -1, 0, -1 };     // Single step break.
+char cmdLine[64]= "";                                 // command line buffer
+int currentPosInLine= 0;                              // cursor position in the buffer (NOT USED _YET_)
+int currentLineLen= 0;                                // command line buffer length
 
 int    oldRegisters[DBGMAX_ZERO_PAGE_REGISTERS];      // Old ZP Register values, for change detection
 char * oldRegChange[DBGMAX_ZERO_PAGE_REGISTERS];      // Change notification flags for output
@@ -175,37 +174,37 @@ int  DEBUGGetCurrentStatus(void) {
 	SDL_Event event;
 	if (currentPC < 0) currentPC = regs.pc;                                      // Initialise current PC displayed.
 
-	if (currentMode == DMODE_STEP) {                                        // Single step before
-		if (currentPC != regs.pc || currentPCX16Bank != getCurrentBank(regs.pc, regs.k)) {   // Ensure that the PC moved
-			currentPC = regs.pc;                                         // Update current PC
+	if (currentMode == DMODE_STEP) {                                // Single step before
+		if (currentPC != regs.pc || currentPCBank != regs.k || currentPCX16Bank != getCurrentBank(regs.pc, regs.k)) { // Ensure that the PC moved
+			currentPC = regs.pc;                                    // Update current PC
 			currentPCBank = regs.k;
-			currentPCX16Bank = getCurrentBank(regs.pc, regs.k);                     // Update the bank if we are in upper memory.
+			currentPCX16Bank = getCurrentBank(regs.pc, regs.k);     // Update the bank if we are in upper memory.
 			currentMode = DMODE_STOP;                               // So now stop, as we've done it.
 		}
 	}
 
 	if ((currentMode != DMODE_STOP) && (hitBreakpoint(regs.pc, regs.k, breakPoint) || hitBreakpoint(regs.pc, regs.k, stepBreakPoint))) {       // Hit a breakpoint.
-		currentPC = regs.pc;                                                         // Update current PC
+		currentPC = regs.pc;                                    // Update current PC
 		currentPCBank = regs.k;
-		currentPCX16Bank = getCurrentBank(regs.pc, regs.k);                     // Update the bank if we are in upper memory.
-		currentMode = DMODE_STOP;                                               // So now stop, as we've done it.
-		stepBreakPoint.pc = -1;                                                 // Clear step breakpoint.
+		currentPCX16Bank = getCurrentBank(regs.pc, regs.k);     // Update the bank if we are in upper memory.
+		currentMode = DMODE_STOP;                               // So now stop, as we've done it.
+		stepBreakPoint.pc = -1;                                 // Clear step breakpoint.
 		stepBreakPoint.bank = 0;
 		stepBreakPoint.x16Bank = -1;
 	}
 
-	if (SDL_GetKeyboardState(NULL)[DBGSCANKEY_BRK]) {                       // Stop on break pressed.
+	if (SDL_GetKeyboardState(NULL)[DBGSCANKEY_BRK]) {            // Stop on break pressed.
 		currentMode = DMODE_STOP;
-		currentPC = regs.pc;                                                 // Set the PC to what it is.                                                      // Update current PC
+		currentPC = regs.pc;                                     // Set the PC to what it is.
 		currentPCBank = regs.k;
-		currentPCX16Bank = getCurrentBank(regs.pc, regs.k);                 // Update the bank if we are in upper memory.
+		currentPCX16Bank = getCurrentBank(regs.pc, regs.k);      // Update the bank if we are in upper memory.
 	}
 
 	if (currentPCX16Bank<0 && currentPC >= 0xA000 && currentPCBank == 0) {
 		currentPCX16Bank = currentPC < 0xC000 ? memory_get_ram_bank() : memory_get_rom_bank();
 	}
 
-	if (currentMode != DMODE_RUN) {                                         // Not running, we own the keyboard.
+	if (currentMode != DMODE_RUN) {                                     // Not running, we own the keyboard.
 		showFullDisplay =                                               // Check showing screen.
 					SDL_GetKeyboardState(NULL)[DBGSCANKEY_SHOW];
 		while (SDL_PollEvent(&event)) {                                 // We now poll events here.
@@ -286,45 +285,51 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 
 	switch(key) {
 
-		case DBGKEY_STEP:								// Single step (F11 by default)
-			currentMode = DMODE_STEP; 						// Runs once, then switches back.
+		case DBGKEY_STEP:      // Single step (F11 by default)
+			currentMode = DMODE_STEP;  // Runs once, then switches back.
+			currentPC = regs.pc;
+			currentPCBank = regs.k;
+			currentPCX16Bank = getCurrentBank(regs.pc, regs.k);
 			debugCPUClocks = clockticks6502;
 			break;
 
-		case DBGKEY_STEPOVER:								// Step over (F10 by default)
-			opcode = debug_read6502(regs.pc, regs.k, currentPCX16Bank); 	// What opcode is it ?
-			if (opcode == 0x20 || opcode == 0xFC || opcode == 0x22) { 		// Is it JSR or JSL ?
-				stepBreakPoint.pc = regs.pc + 3 + (opcode == 0x22);			// Then break 3 / 4 on.
+		case DBGKEY_STEPOVER:  // Step over (F10 by default)
+			opcode = debug_read6502(regs.pc, regs.k, currentPCX16Bank); // What opcode is it ?
+			if (opcode == 0x20 || opcode == 0xFC || opcode == 0x22) {   // Is it JSR or JSL ?
+				stepBreakPoint.pc = regs.pc + 3 + (opcode == 0x22);  // Then break 3 / 4 on.
 				stepBreakPoint.bank = regs.k;
 				stepBreakPoint.x16Bank = getCurrentBank(regs.pc, regs.k);
-				currentMode = DMODE_RUN;					// And run.
+				currentMode = DMODE_RUN;                // And run.
 				debugCPUClocks = clockticks6502;
 				timing_init();
 			} else {
-				currentMode = DMODE_STEP;					// Otherwise single step.
+				currentMode = DMODE_STEP;               // Otherwise single step.
+				currentPC = regs.pc;
+				currentPCBank = regs.k;
+				currentPCX16Bank = getCurrentBank(regs.pc, regs.k);
 				debugCPUClocks = clockticks6502;
 			}
 			break;
 
-		case DBGKEY_RUN:								// F5 Runs until Break.
+		case DBGKEY_RUN:                                // F5 Runs until Break.
 			currentMode = DMODE_RUN;
 			debugCPUClocks = clockticks6502;
 			timing_init();
 			break;
 
-		case DBGKEY_SETBRK:								// F9 Set breakpoint to displayed.
+		case DBGKEY_SETBRK:                             // F9 Set breakpoint to displayed.
 			breakPoint.pc = currentPC;
 			breakPoint.bank = currentPCBank;
 			breakPoint.x16Bank = currentPCX16Bank;
 			break;
 
-		case DBGKEY_HOME:								// F1 sets the display PC to the actual one.
+		case DBGKEY_HOME:                               // F1 sets the display PC to the actual one.
 			currentPC = regs.pc;
 			currentPCBank = regs.k;
 			currentPCX16Bank = getCurrentBank(regs.pc, regs.k);
 			break;
 
-		case DBGKEY_RESET:								// F2 reset the 6502
+		case DBGKEY_RESET:                              // F2 reset the 6502
 			reset6502(regs.is65c816);
 			currentPC = regs.pc;
 			currentPCBank = regs.k;
@@ -474,7 +479,7 @@ static void DEBUGExecCmd() {
 				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
-			currentData= addr;
+			currentData = addr;
 			dumpmode    = DDUMP_RAM;
 			break;
 
@@ -528,8 +533,10 @@ static void DEBUGExecCmd() {
 				currentPCX16Bank = (number >= 0xA000 && number < 0x10000) ? bnumber & 0xFF : -1;
 			} else {
 				sscanf(line, "%x", &number);
-				if (!is_gen2 || number < 0xA000) {
+				if (!is_gen2) {
 					currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
+				} else if (number < 0xA000) {
+					currentPCX16Bank = -1;
 				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
