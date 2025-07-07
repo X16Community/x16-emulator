@@ -321,14 +321,14 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 		case DBGKEY_HOME:								// F1 sets the display PC to the actual one.
 			currentPC = regs.pc;
 			currentPCBank = regs.k;
-			currentPCX16Bank= getCurrentBank(regs.pc, regs.k);
+			currentPCX16Bank = getCurrentBank(regs.pc, regs.k);
 			break;
 
 		case DBGKEY_RESET:								// F2 reset the 6502
 			reset6502(regs.is65c816);
 			currentPC = regs.pc;
 			currentPCBank = regs.k;
-			currentPCX16Bank= -1;
+			currentPCX16Bank = -1;
 			break;
 
 		case DBGKEY_BANK_NEXT:
@@ -342,6 +342,9 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 		case SDLK_PAGEDOWN:
 			if (isShift) {
 				currentPC = (currentPC + 0x10) & 0xFFFF;
+				if (currentPCBank == 0 && currentPC < 0xA000) {
+					currentPCX16Bank = -1;
+				}
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData + 0x100) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -354,6 +357,9 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 		case SDLK_PAGEUP:
 			if (isShift) {
 				currentPC = (currentPC - 0x10) & 0xFFFF;
+				if (currentPCBank == 0 && currentPC < 0xA000) {
+					currentPCX16Bank = -1;
+				}
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData - 0x100) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -366,6 +372,9 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 		case SDLK_DOWN:
 			if (isShift) {
 				currentPC = (currentPC + 1) & 0xFFFF;
+				if (currentPCBank == 0 && currentPC < 0xA000) {
+					currentPCX16Bank = -1;
+				}
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData + 0x08) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -378,6 +387,9 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 		case SDLK_UP:
 			if (isShift) {
 				currentPC = (currentPC - 1) & 0xFFFF;
+				if (currentPCBank == 0 && currentPC < 0xA000) {
+					currentPCX16Bank = -1;
+				}
 			} else {
 				if (dumpmode == DDUMP_RAM) {
 					currentData = (currentData - 0x08) & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -513,17 +525,19 @@ static void DEBUGExecCmd() {
 
 		case CMD_DISASM:
 			if (sscanf(line, "%x:%x", &bnumber, &number) == 2) {
-				currentPCX16Bank = bnumber & 0xFF;
+				currentPCX16Bank = (number >= 0xA000 && number < 0x10000) ? bnumber & 0xFF : -1;
 			} else {
 				sscanf(line, "%x", &number);
-				if (!is_gen2) {
-					currentPCX16Bank = (number >> 16) & 0xFF;
+				if (!is_gen2 || number < 0xA000) {
+					currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
 				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
 
 			currentPC = addr & 0xFFFF;
-			currentPCBank = (addr >> 16) & 0xFF;
+			if (is_gen2) {
+				currentPCBank = (addr >> 16) & 0xFF;
+			}
 			break;
 
 		case CMD_SET_BANK:
@@ -739,9 +753,10 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 	uint8_t implied_status = regs.status;
 	uint8_t implied_e = regs.e;
 	uint8_t opcode, operand, carry;
+	int implied_x16_bank = currentPCX16Bank;
 
 	for (int y = 0; y < lines; y++) { 							// Each line
-		DEBUGAddress(DBG_ASMX, y, currentPCX16Bank, initialPC, currentPCBank, col_label);
+		DEBUGAddress(DBG_ASMX, y, implied_x16_bank, initialPC, currentPCBank, col_label);
 		int32_t eff_addr;
 
 		// Attempt to display the disassembly correctly more often
@@ -781,7 +796,7 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 			if (implied_e) implied_status |= FLAG_INDEX_WIDTH | FLAG_MEMORY_WIDTH;
 
 		}
-		int size = disasm(initialPC, currentPCBank, RAM, buffer, sizeof(buffer), currentPCX16Bank, implied_status, &eff_addr);	// Disassemble code
+		int size = disasm(initialPC, currentPCBank, RAM, buffer, sizeof(buffer), implied_x16_bank, implied_status, &eff_addr);	// Disassemble code
 		// Output assembly highlighting PC
 		DEBUGString(dbgRenderer, DBG_ASMX+8, y, buffer, initialPC == regs.pc ? col_highlight : col_data);
 		// Populate effective address
@@ -793,6 +808,9 @@ static void DEBUGRenderCode(int lines, int initialPC) {
 			}
 		}
 		initialPC = (initialPC + size) & 0xFFFF;										// Forward to next
+		if (currentPCBank == 0 && initialPC >= 0xA000 && implied_x16_bank == -1) {
+			implied_x16_bank = memory_get_ram_bank();
+		}
 	}
 }
 
@@ -876,10 +894,16 @@ static int DEBUGRenderRegisters(void) {
 
 	if (breakPoint.pc < 0) {
 		DEBUGString(dbgRenderer, DBG_DATX, yc++, "----", col_data);
-	} else if (breakPoint.x16Bank < 0) {
-		DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
+	} else if (breakPoint.x16Bank < 0 || breakPoint.bank > 0) {
+		if (is_gen2) {
+			DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc | (breakPoint.bank << 16), 6, col_data);
+		} else {
+			DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
+		}
 	} else {
-		DEBUGNumber(DBG_DATX, yc++, (breakPoint.x16Bank << 16) | breakPoint.pc, 6, col_data);
+		DEBUGNumber(DBG_DATX, yc, breakPoint.x16Bank, 2, col_data);
+		DEBUGString(dbgRenderer, DBG_DATX+2, yc, ":", col_data);
+		DEBUGNumber(DBG_DATX+3, yc++, breakPoint.pc, 4, col_data);
 	}
 	yc++;
 
