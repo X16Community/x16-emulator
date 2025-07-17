@@ -472,14 +472,12 @@ static void DEBUGExecCmd() {
 		case CMD_DUMP_MEM:
 			if (sscanf(line, "%x:%x", &bnumber, &number) == 2) {
 				currentX16Bank = bnumber & 0xFF;
-			} else {
-				if (sscanf(line, "%x", &number) == 1) {
-					if (!is_gen2) {
-						currentX16Bank = (number >> 16) & 0xFF;
-					}
-				} else {
-					break;
+			} else if (sscanf(line, "%x", &number) == 1) {
+				if (!is_gen2) {
+					currentX16Bank = (number >> 16) & 0xFF;
 				}
+			} else {
+				break;
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
 			currentData = addr;
@@ -534,17 +532,16 @@ static void DEBUGExecCmd() {
 		case CMD_DISASM:
 			if (sscanf(line, "%x:%x", &bnumber, &number) == 2) {
 				currentPCX16Bank = (number >= 0xA000 && number <= 0xFFFF) ? bnumber & 0xFF : -1;
-			} else {
-				if (sscanf(line, "%x", &number) == 1) {
-					if (!is_gen2) {
-						currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
-					} else if (number < 0xA000 || number >= 0x010000) {
-						currentPCX16Bank = -1;
-					}
-				} else {
-					break;
+			} else if (sscanf(line, "%x", &number) == 1) {
+				if (!is_gen2) {
+					currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
+				} else if (number < 0xA000 || number >= 0x010000) {
+					currentPCX16Bank = -1;
 				}
+			} else {
+				break;
 			}
+
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
 
 			currentPC = addr & 0xFFFF;
@@ -906,13 +903,14 @@ static int DEBUGRenderRegisters(void) {
 	}
 
 	if (breakPoint.pc < 0) {
-		DEBUGString(dbgRenderer, DBG_DATX, yc++, "----", col_data);
+		DEBUGString(dbgRenderer, DBG_DATX, yc++, "--:----", col_data);
 	} else if (breakPoint.x16Bank < 0) {
 		if (is_gen2) {
 			DEBUGNumber(DBG_DATX, yc, breakPoint.bank, 2, col_data);
 			DEBUGNumber(DBG_DATX+3, yc++, breakPoint.pc, 4, col_data);
 		} else {
-			DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
+			DEBUGString(dbgRenderer, DBG_DATX, yc, "--:", col_data);
+			DEBUGNumber(DBG_DATX+3, yc++, (uint16_t)breakPoint.pc, 4, col_data);
 		}
 	} else {
 		DEBUGNumber(DBG_DATX, yc, breakPoint.x16Bank, 2, col_data);
