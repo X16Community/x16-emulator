@@ -530,12 +530,12 @@ static void DEBUGExecCmd() {
 
 		case CMD_DISASM:
 			if (sscanf(line, "%x:%x", &bnumber, &number) == 2) {
-				currentPCX16Bank = (number >= 0xA000 && number < 0x10000) ? bnumber & 0xFF : -1;
+				currentPCX16Bank = (number >= 0xA000 && number <= 0xFFFF) ? bnumber & 0xFF : -1;
 			} else {
 				sscanf(line, "%x", &number);
 				if (!is_gen2) {
 					currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
-				} else if (number < 0xA000) {
+				} else if (number < 0xA000 || number >= 0x010000) {
 					currentPCX16Bank = -1;
 				}
 			}
@@ -901,9 +901,10 @@ static int DEBUGRenderRegisters(void) {
 
 	if (breakPoint.pc < 0) {
 		DEBUGString(dbgRenderer, DBG_DATX, yc++, "----", col_data);
-	} else if (breakPoint.x16Bank < 0 || breakPoint.bank > 0) {
+	} else if (breakPoint.x16Bank < 0) {
 		if (is_gen2) {
-			DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc | (breakPoint.bank << 16), 6, col_data);
+			DEBUGNumber(DBG_DATX, yc, breakPoint.bank, 2, col_data);
+			DEBUGNumber(DBG_DATX+3, yc++, breakPoint.pc, 4, col_data);
 		} else {
 			DEBUGNumber(DBG_DATX, yc++, (uint16_t)breakPoint.pc, 4, col_data);
 		}
