@@ -536,8 +536,8 @@ static void DEBUGExecCmd() {
 			} else if (sscanf(line, "%x", &number) == 1) {
 				if (!is_gen2) {
 					currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
-				} else if (number < 0xA000 || number >= 0x010000) {
-					currentPCX16Bank = -1;
+				} else if (number < 0x00A000 || number >= 0x010000) { // treat input as 24-bit (K+PC)
+					currentPCX16Bank = -1; // if outside of the X16 banked range, set to undef (-1)
 				}
 			} else {
 				break;
