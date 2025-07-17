@@ -485,10 +485,11 @@ static void DEBUGExecCmd() {
 			break;
 
 		case CMD_DUMP_VERA:
-			sscanf(line, "%x", &number);
-			addr = number & 0x1FFFF;
-			currentData = addr;
-			dumpmode    = DDUMP_VERA;
+			if (sscanf(line, "%x", &number) == 1) {
+				addr = number & 0x1FFFF;
+				currentData = addr;
+				dumpmode    = DDUMP_VERA;
+			}
 			break;
 
 		case CMD_FILL_MEMORY:
@@ -551,18 +552,21 @@ static void DEBUGExecCmd() {
 			break;
 
 		case CMD_SET_BANK:
-			sscanf(line, "%s %d", reg, &number);
-
-			if(!strcmp(reg, "rom")) {
-				memory_set_rom_bank(number & 0x00FF);
+			if (sscanf(line, "%s %d", reg, &number) != 2) {
+				break;
 			}
-			if(!strcmp(reg, "ram")) {
+
+			if (!strcmp(reg, "rom")) {
+				memory_set_rom_bank(number & 0x00FF);
+			} else if (!strcmp(reg, "ram")) {
 				memory_set_ram_bank(number & 0x00FF);
 			}
 			break;
 
 		case CMD_SET_REGISTER:
-			sscanf(line, "%s %x", reg, &number);
+			if (sscanf(line, "%s %x", reg, &number) != 2) {
+				break;
+			}
 
 			if(!strcmp(reg, "pc")) {
 				regs.pc= number & 0xFFFF;
