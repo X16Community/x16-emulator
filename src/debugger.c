@@ -318,9 +318,16 @@ static void DEBUGHandleKeyEvent(SDL_Keycode key, int isShift) {
 			break;
 
 		case DBGKEY_SETBRK:                             // F9 Set breakpoint to displayed.
-			breakPoint.pc = currentPC;
-			breakPoint.bank = currentPCBank;
-			breakPoint.x16Bank = currentPCX16Bank;
+			if (breakPoint.pc == currentPC && breakPoint.bank == currentPCBank && breakPoint.x16Bank == currentPCX16Bank) {
+				// Clear (unset) breakpoint by pressing DBGKEY_SETBRK twice
+				breakPoint.pc = -1;
+				breakPoint.bank = 0;
+				breakPoint.x16Bank = -1;
+			} else {
+				breakPoint.pc = currentPC;
+				breakPoint.bank = currentPCBank;
+				breakPoint.x16Bank = currentPCX16Bank;
+			}
 			break;
 
 		case DBGKEY_HOME:                               // F1 sets the display PC to the actual one.
