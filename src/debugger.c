@@ -473,9 +473,12 @@ static void DEBUGExecCmd() {
 			if (sscanf(line, "%x:%x", &bnumber, &number) == 2) {
 				currentX16Bank = bnumber & 0xFF;
 			} else {
-				sscanf(line, "%x", &number);
-				if (!is_gen2) {
-					currentX16Bank = (number >> 16) & 0xFF;
+				if (sscanf(line, "%x", &number) == 1) {
+					if (!is_gen2) {
+						currentX16Bank = (number >> 16) & 0xFF;
+					}
+				} else {
+					break;
 				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
@@ -532,11 +535,14 @@ static void DEBUGExecCmd() {
 			if (sscanf(line, "%x:%x", &bnumber, &number) == 2) {
 				currentPCX16Bank = (number >= 0xA000 && number <= 0xFFFF) ? bnumber & 0xFF : -1;
 			} else {
-				sscanf(line, "%x", &number);
-				if (!is_gen2) {
-					currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
-				} else if (number < 0xA000 || number >= 0x010000) {
-					currentPCX16Bank = -1;
+				if (sscanf(line, "%x", &number) == 1) {
+					if (!is_gen2) {
+						currentPCX16Bank = (number & 0xFFFF) >= 0xA000 ? (number >> 16) & 0xFF : -1;
+					} else if (number < 0xA000 || number >= 0x010000) {
+						currentPCX16Bank = -1;
+					}
+				} else {
+					break;
 				}
 			}
 			addr = number & (is_gen2 ? 0xFFFFFF : 0xFFFF);
