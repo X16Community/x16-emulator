@@ -30,7 +30,7 @@ jobs:
           path: artifacts/*
   build-win-x86_64:
     needs: [README]
-    runs-on: windows-2019
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}
@@ -113,7 +113,7 @@ jobs:
           path: emu_binaries/*
   build-win-i686:
     needs: [README]
-    runs-on: windows-2019
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}
