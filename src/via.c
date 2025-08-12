@@ -434,23 +434,27 @@ via2_step(unsigned clocks)
 	if (user_port.step) {
 		user_pin_t pins = user_port.step((double)clocks * 1000.0 / MHZ);
 		// TODO CA2/CB2
-		pins &= user_port.connected_pins;
-		uint8_t ca = (pins & CA1_PIN) ? CA1 : 0;
+		if (user_port.connected_pins & CA1_PIN) {
+			uint8_t new_ca1 = pins & CA1_PIN ? CA1 : 0;
+			if (new_ca1 != (via[1].cacb & CA1)) {
+				bool ca1_positive_active_edge = via[1].registers[12] & 0x01;
+				if ((ca1_positive_active_edge && new_ca1) || (!ca1_positive_active_edge && !new_ca1))
+					via[1].registers[13] |= 0x02;
+			}
+			via[1].cacb &= ~CA1;
+			via[1].cacb |= new_ca1;
+		}
 		// CB1 shares a user pin with PB6, so only check if it's an input
-		// TODO: Is that actually true? Verify on hardware
-		uint8_t cb = (pins & CB1_PIN & ~via[1].registers[2]) ? CB1 : 0;
-		if (ca != (via[1].cacb & CA1)) {
-			bool high_edge = (via[1].registers[12] & 0x01);
-			if ((high_edge && ca) || (!high_edge && !ca))
-				via[1].registers[13] |= 0x02;
+		if ((user_port.connected_pins & CB1_PIN) && !(via[1].registers[2] & 0x40)) {
+			uint8_t new_cb1 = pins & CB1_PIN ? CB1 : 0;
+			if (new_cb1 != (via[1].cacb & CB1)) {
+				bool cb1_positive_active_edge = via[1].registers[12] & 0x10;
+				if ((cb1_positive_active_edge && new_cb1) || (!cb1_positive_active_edge && !new_cb1))
+					via[1].registers[13] |= 0x10;
+			}
+			via[1].cacb &= ~CB1;
+			via[1].cacb |= new_cb1;
 		}
-		if (cb != (via[1].cacb & CB1)) {
-			bool high_edge = (via[1].registers[12] & 0x10);
-			if ((high_edge && cb) || (!high_edge && !cb))
-				via[1].registers[13] |= 0x10;
-		}
-		via[1].cacb &= ~(CA1 | CB1);
-		via[1].cacb |= (ca | cb);
 	}
 }
 
