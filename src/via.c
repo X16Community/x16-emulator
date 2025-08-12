@@ -358,9 +358,9 @@ via2_init(char const *user_perhipheral_path)
 			user_port_init = GET_FUNCTION(user_perhipheral_dl, "user_port_init");
 		}
 		if (user_perhipheral_dl == NULL || user_port_init == NULL) {
-			printf("failed to load user perhipheral %s:\n\t%s\n",
+			fprintf(stderr, "failed to load user perhipheral %s:\n\t%s\n",
 			       user_perhipheral_path, LIBRARY_ERROR());
-			printf("continuing with empty user port.\n");
+			fprintf(stderr, "continuing with empty user port.\n");
 			if (user_perhipheral_dl) CLOSE_LIBRARY(user_perhipheral_dl);
 		}
 	}
@@ -368,11 +368,12 @@ via2_init(char const *user_perhipheral_path)
 	if (user_port_init) {
 		bool error = false;
 		if (user_port_init(&user_port) < 0) {
-			printf("error initializing user perhipheral\n");
+			fprintf(stderr, "error initializing user perhipheral\n");
 			error = true;
 		}
 		else if (user_port.api_version != X16_USER_PORT_API_VERSION) {
-			printf("user perhipheral version mismatch: expected: %d, got: %d\n", X16_USER_PORT_API_VERSION, user_port.api_version);
+			fprintf(stderr, "user perhipheral version mismatch: expected: %d, got: %d\n",
+					X16_USER_PORT_API_VERSION, user_port.api_version);
 			error = true;
 		}
 		if (error) {
@@ -390,8 +391,6 @@ via2_read(uint8_t reg, bool debug)
 		switch (reg) {
 			case 0: {
 				uint8_t mask = user_port.connected_pins >> 8; // PB is 2nd byte
-				// printf("via2 read mask: %02hhu, connected_pins: %06x\n", mask, user_por
-				//        t.connected_pins);
 				if (mask) {
 					uint8_t user_pins = user_port.read() >> 8;
 					// PB only returns pin values on inputs
