@@ -128,6 +128,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-sound <device>` can be used to specify the output sound device. If 'none', no audio is generated.
 * `-abufs` can be used to specify the number of audio buffers (defaults to 8 when using the SD card, 32 when using HostFS). If you're experiencing stuttering in the audio, try increasing this number. This will result in additional audio latency though.
 * `-via2` installs the second VIA chip expansion at $9F10.
+* `-user-perhipheral <my_perhipheral.{so|dll}>` connects an emulated user perhipheral built as a dynamically linked library. implies `-via2`
 * `-midline-effects` enables mid-scanline raster effects at the cost of vastly increased host CPU usage.
 * `-mhz <integer>` sets the emulated CPU's speed. Range is from 1-40. This option is mainly for testing and benchmarking.
 * `-enable-ym2151-irq` connects the YM2151's IRQ pin to the system's IRQ line with a modest increase in host CPU usage.
