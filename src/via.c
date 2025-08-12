@@ -424,10 +424,6 @@ via2_write(uint8_t reg, uint8_t value)
 			}
 			break;
 		}
-		case 13:
-			// I think this should be the behavior in [via_write], but at least do it for the user via
-			via[1].registers[13] &= ~value;
-			break;
 	}
 }
 
