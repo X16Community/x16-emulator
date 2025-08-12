@@ -341,38 +341,38 @@ via1_irq()
 // and reads return output register (open bus behavior)
 
 
-static bool attempt_perhipheral_load = true;
-static LIBRARY_TYPE user_perhipheral_dl = NULL;
+static bool attempt_peripheral_load = true;
+static LIBRARY_TYPE user_peripheral_dl = NULL;
 static user_port_init_t user_port_init = NULL;
 
 static user_port_t user_port;
 
 void
-via2_init(char const *user_perhipheral_path)
+via2_init(char const *user_peripheral_path)
 {
 	via_init(&via[1]);
-	if (attempt_perhipheral_load && user_perhipheral_path) {
-		attempt_perhipheral_load = false;
-		user_perhipheral_dl = LOAD_LIBRARY(user_perhipheral_path);
-		if (user_perhipheral_dl) {
-			user_port_init = GET_FUNCTION(user_perhipheral_dl, "x16_user_port_init");
+	if (attempt_peripheral_load && user_peripheral_path) {
+		attempt_peripheral_load = false;
+		user_peripheral_dl = LOAD_LIBRARY(user_peripheral_path);
+		if (user_peripheral_dl) {
+			user_port_init = GET_FUNCTION(user_peripheral_dl, "x16_user_port_init");
 		}
-		if (user_perhipheral_dl == NULL || user_port_init == NULL) {
-			fprintf(stderr, "failed to load user perhipheral %s:\n\t%s\n",
-			       user_perhipheral_path, LIBRARY_ERROR());
+		if (user_peripheral_dl == NULL || user_port_init == NULL) {
+			fprintf(stderr, "failed to load user peripheral %s:\n\t%s\n",
+			       user_peripheral_path, LIBRARY_ERROR());
 			fprintf(stderr, "continuing with empty user port.\n");
-			if (user_perhipheral_dl) CLOSE_LIBRARY(user_perhipheral_dl);
+			if (user_peripheral_dl) CLOSE_LIBRARY(user_peripheral_dl);
 		}
 	}
-	// TODO Do we really want to reset the user perhipherals every time?
+	// TODO Do we really want to reset the user peripherals every time?
 	if (user_port_init) {
 		bool error = false;
 		if (user_port_init(&user_port) < 0) {
-			fprintf(stderr, "error initializing user perhipheral\n");
+			fprintf(stderr, "error initializing user peripheral\n");
 			error = true;
 		}
 		else if (user_port.api_version != X16_USER_PORT_API_VERSION) {
-			fprintf(stderr, "user perhipheral version mismatch: expected: %d, got: %d\n",
+			fprintf(stderr, "user peripheral version mismatch: expected: %d, got: %d\n",
 					X16_USER_PORT_API_VERSION, user_port.api_version);
 			error = true;
 		}
