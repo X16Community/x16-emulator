@@ -2,9 +2,8 @@
 
 #include <stdint.h>
 
-// This will be passed to the user-port library's [user_port_init] function, so
-// it can give an error on version mismatch, rather than (probably) segfault or
-// behave strangely.
+// This must be assigned to the [api_version] field of [user_port_t] by the perhipheral
+// library so that version mismatches can be detected.
 #define X16_USER_PORT_API_VERSION 1
 
 #define PA0_PIN (1 << 0)
@@ -53,10 +52,11 @@
 typedef uint32_t user_pin_t;
 
 typedef struct {
+	int api_version; // Must be set to X16_USER_PORT_API_VERSION
 	user_pin_t connected_pins;
 	user_pin_t (*read)();
 	void (*write)(user_pin_t pins);
 	user_pin_t (*step)(double nanos);
 } user_port_t;
 
-typedef int (*user_port_init_t)(int api_version, user_port_t *);
+typedef int (*user_port_init_t)(user_port_t *);
