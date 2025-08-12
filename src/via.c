@@ -355,7 +355,7 @@ via2_init(char const *user_perhipheral_path)
 		attempt_perhipheral_load = false;
 		user_perhipheral_dl = LOAD_LIBRARY(user_perhipheral_path);
 		if (user_perhipheral_dl) {
-			user_port_init = GET_FUNCTION(user_perhipheral_dl, "user_port_init");
+			user_port_init = GET_FUNCTION(user_perhipheral_dl, "x16_user_port_init");
 		}
 		if (user_perhipheral_dl == NULL || user_port_init == NULL) {
 			fprintf(stderr, "failed to load user perhipheral %s:\n\t%s\n",
