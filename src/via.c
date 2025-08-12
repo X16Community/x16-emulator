@@ -10,10 +10,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include <dlfcn.h>
 //XXX
 #include "glue.h"
 #include "joystick.h"
+#include "dylib.h"
 #include "user_pins.h"
 
 #define CA1 (1 << 0)
@@ -342,7 +342,7 @@ via1_irq()
 
 
 static bool attempt_perhipheral_load = true;
-static void *user_perhipheral_dl = NULL;
+static LIBRARY_TYPE user_perhipheral_dl = NULL;
 static user_port_init_t user_port_init = NULL;
 
 static user_port_t user_port;
@@ -353,14 +353,15 @@ via2_init(char const *user_perhipheral_path)
 	via_init(&via[1]);
 	if (attempt_perhipheral_load && user_perhipheral_path) {
 		attempt_perhipheral_load = false;
-		user_perhipheral_dl = dlopen(user_perhipheral_path, RTLD_NOW);
+		user_perhipheral_dl = LOAD_LIBRARY(user_perhipheral_path);
 		if (user_perhipheral_dl) {
-			user_port_init = dlsym(user_perhipheral_dl, "user_port_init");
+			user_port_init = GET_FUNCTION(user_perhipheral_dl, "user_port_init");
 		}
 		if (user_perhipheral_dl == NULL || user_port_init == NULL) {
 			printf("failed to load user perhipheral %s:\n\t%s\n",
-			       user_perhipheral_path, dlerror());
+			       user_perhipheral_path, LIBRARY_ERROR());
 			printf("continuing with empty user port.\n");
+			if (user_perhipheral_dl) CLOSE_LIBRARY(user_perhipheral_dl);
 		}
 	}
 	// TODO Do we really want to reset the user perhipherals every time?
