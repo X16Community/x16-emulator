@@ -1,10 +1,20 @@
 #pragma once
 
+// Include this header in a user perhipheral library.
+//
+// A user perhipheral library must export a [user_port_init_t x16_user_port_init] to be
+// consumed at runtime by the emulator during initialization of via2. [x16_user_port_init]
+// should return 0 on success, and <0 on error. 
+
 #include <stdint.h>
 
 // This must be assigned to the [api_version] field of [user_port_t] by the perhipheral
 // library so that version mismatches can be detected.
 #define X16_USER_PORT_API_VERSION 1
+
+// Bit assignments for each 65c22 pin exposed to the user port, for use with
+// [user_pin_t]. For convenience, all Port A pins are in the low byte, in bit order, and
+// Port B pins are likewise in the second byte.
 
 #define PA0_PIN (1 << 0)
 #define PA1_PIN (1 << 1)
@@ -26,6 +36,8 @@
 #define CA2_PIN PB3_PIN
 #define CB1_PIN PB6_PIN
 #define CB2_PIN PB7_PIN
+
+// USER_PINn macros map the 65C22 pins (above) to the exposed pins on the X16's user port.
 
 // Left column
 #define USER_PIN1 PB0_PIN
@@ -49,14 +61,44 @@
 #define USER_PIN8 PB7_PIN
 // 10-24 (even) are GND, 26 is VCC
 
+// [user_pin_t] is a bitmask of pin values. Port A is the first byte, Port B is the second
+// byte, and CA1 is bit 16. Bits above 16 must always be 0. The above *_PIN macros define
+// the appropriate bits to use with [user_pin_t].
+//
+// Note that in this implementation, all pins are either high (1) or low (0). If your
+// device uses pull-up/down, you'll need to factor that into [read] or [step] pin values
+// manually. However, unless the data direction of the pins on the via stays constant it
+// will be quite difficult to keep the via's and perhipheral's states in sync, since there
+// is no signal that a via pin has switched from being actively driven to hi-Z, or vice
+// versa.
 typedef uint32_t user_pin_t;
 
 typedef struct {
-	int api_version; // Must be set to X16_USER_PORT_API_VERSION
+    // Must be set to X16_USER_PORT_API_VERSION
+	int api_version;
+
+	// A mask of pins actually connected to the user perhipheral.
 	user_pin_t connected_pins;
+
+	// Return the values of the connected pins based on the perhipheral's internal
+	// state. Any pin values not in [connected_pins] will be ignored.
 	user_pin_t (*read)();
+
+	// New pin values pushed from the via to the perhipheral. Pins not in the
+	// [connected_pins] mask do not contain meaningful values (but should be zeroes).
 	void (*write)(user_pin_t pins);
+
+	// Step the state machine of the connected perhipheral. [nanos] is the number of
+	// nanoseconds which has passed since the last step. Returns the pin state so that any
+	// interrupts based on CA1 and CB1 can be triggered. CA2 and CB2 are not presently
+	// implemented in the via code.
 	user_pin_t (*step)(double nanos);
 } user_port_t;
 
+// Populates the provided [user_port_t *]. If any of [read], [write] or [step] is NULL, it
+// will be ignored.
+//
+// A perhipheral library's exposed [user_port_init_t] function MUST be named "x16_user_port_init".
+// 
+// Returns 0 on success and <0 on error.
 typedef int (*user_port_init_t)(user_port_t *);

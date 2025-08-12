@@ -463,6 +463,10 @@ via2_step(unsigned clocks)
 			via[1].cacb &= ~CB1;
 			via[1].cacb |= new_cb1;
 		}
+
+		// We could update input pin values here, but it doesn't really matter unless they
+		// fire interrupts. The state of the pins is invisible until the cpu invokes
+		// [via2_read].
 	}
 }
 
