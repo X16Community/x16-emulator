@@ -82,7 +82,7 @@ typedef struct user_port_t {
 
 	// Return the values of the connected pins based on the peripheral's internal
 	// state. Any pin values not in [connected_pins] will be ignored.
-	user_pin_t (*read)();
+	user_pin_t (*read)(void);
 
 	// New pin values pushed from the via to the peripheral. Pins not in the
 	// [connected_pins] mask will be zeroes, but that does not imply those pins are low
