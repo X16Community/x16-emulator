@@ -106,5 +106,5 @@ typedef struct __attribute__((aligned(sizeof(void *)))) user_port_init_args_t {
 //
 // A peripheral library's exposed [user_port_init_t] function MUST be named "x16_user_port_init".
 //
-// Returns 0 on success and <0 on error.
+// Returns 0 on success and -1 on error.
 typedef int (*user_port_init_t)(user_port_init_args_t *, user_port_t *);
