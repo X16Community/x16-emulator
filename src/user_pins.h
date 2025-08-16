@@ -3,8 +3,8 @@
 // Include this header in a user peripheral library.
 //
 // A user peripheral library must export a [user_port_init_t x16_user_port_init] to be
-// consumed at runtime by the emulator during initialization of via2. [x16_user_port_init]
-// should return 0 on success, and <0 on error. 
+// called at runtime by the emulator during initialization of via2. [x16_user_port_init]
+// should return 0 on success, and -1 on error.
 
 #include <stdint.h>
 
@@ -12,7 +12,7 @@
 // library so that version mismatches can be detected.
 #define X16_USER_PORT_API_VERSION 1
 
-// Bit assignments for each 65c22 pin exposed to the user port, for use with
+// Bit assignments for each 65C22 pin exposed to the user port, for use with
 // [user_pin_t]. For convenience, all Port A pins are in the low byte, in bit order, and
 // Port B pins are likewise in the second byte.
 
@@ -74,7 +74,7 @@
 typedef uint32_t user_pin_t;
 
 typedef struct {
-    // Must be set to X16_USER_PORT_API_VERSION
+	// Must be set to X16_USER_PORT_API_VERSION
 	int api_version;
 
 	// A mask of pins actually connected to the user peripheral.
@@ -85,7 +85,7 @@ typedef struct {
 	user_pin_t (*read)();
 
 	// New pin values pushed from the via to the peripheral. Pins not in the
-	// [connected_pins] mask do not contain meaningful values (but should be zeroes).
+	// [connected_pins] mask will be zeroes, but that does not imply those pins are low
 	void (*write)(user_pin_t pins);
 
 	// Step the state machine of the connected peripheral. [nanos] is the number of
@@ -99,6 +99,6 @@ typedef struct {
 // will be ignored.
 //
 // A peripheral library's exposed [user_port_init_t] function MUST be named "x16_user_port_init".
-// 
+//
 // Returns 0 on success and <0 on error.
 typedef int (*user_port_init_t)(user_port_t *);
