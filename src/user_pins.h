@@ -99,6 +99,10 @@ typedef struct user_port_t {
 // downgrade, if necessary.
 typedef struct __attribute__((aligned(sizeof(void *)))) user_port_init_args_t {
 	int api_version;
+
+	// Callback for setting an error message from the plugin
+	// Errors longer than 256 chars (including null) will be truncated
+	void (*set_error)(char const *);
 } user_port_init_args_t;
 
 // Populates the provided [user_port_t *]. If any of [read], [write] or [step] is NULL, it

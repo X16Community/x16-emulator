@@ -347,6 +347,20 @@ static user_port_init_t user_port_init = NULL;
 
 static user_port_t user_port;
 
+static char const *user_port_last_error = "OK";
+
+static void
+user_port_set_error(char const *err)
+{
+	static char last_error_buf[256];
+	if (err) {
+		strncpy(last_error_buf, err, sizeof(last_error_buf));
+		user_port_last_error = last_error_buf;
+	} else {
+		user_port_last_error = "OK";
+	}
+}
+
 void
 via2_init(char const *user_peripheral_plugin_path)
 {
@@ -369,9 +383,10 @@ via2_init(char const *user_peripheral_plugin_path)
 		bool error = false;
 		user_port_init_args_t init_args = {
 			.api_version = X16_USER_PORT_API_VERSION,
+			.set_error = user_port_set_error,
 		};
 		if (user_port_init(&init_args, &user_port) < 0) {
-			fprintf(stderr, "error initializing user peripheral\n");
+			fprintf(stderr, "error initializing user peripheral: %s\n", user_port_last_error);
 			error = true;
 		}
 		else if (user_port.api_version != X16_USER_PORT_API_VERSION) {
