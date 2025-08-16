@@ -131,7 +131,7 @@ bool testbench = false;
 bool enable_midline = false;
 bool ym2151_irq_support = false;
 char *cartridge_path = NULL;
-char *user_peripheral_path = NULL;
+char *user_peripheral_plugin_path = NULL;
 
 bool has_midi_card = false;
 uint16_t midi_card_addr;
@@ -334,7 +334,7 @@ machine_reset()
 	vera_spi_init();
 	via1_init();
 	if (has_via2) {
-		via2_init(user_peripheral_path);
+		via2_init(user_peripheral_plugin_path);
 	}
 	video_reset();
 	mouse_state_init();
@@ -1099,7 +1099,7 @@ main(int argc, char **argv)
 				usage();
 			}
 			has_via2 = true;
-			user_peripheral_path = argv[0];
+			user_peripheral_plugin_path = argv[0];
 			argc--;
 			argv++;
 		} else if (!strcmp(argv[0], "-version")){
