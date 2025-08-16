@@ -73,7 +73,7 @@
 // versa.
 typedef uint32_t user_pin_t;
 
-typedef struct {
+typedef struct user_port_t {
 	// Must be set to X16_USER_PORT_API_VERSION
 	int api_version;
 
@@ -95,10 +95,16 @@ typedef struct {
 	user_pin_t (*step)(double nanos);
 } user_port_t;
 
+// Extensible init args struct. Includes api_version so perhipheral libraries can abort or
+// downgrade, if necessary.
+typedef struct __attribute__((aligned(sizeof(void *)))) user_port_init_args_t {
+	int api_version;
+} user_port_init_args_t;
+
 // Populates the provided [user_port_t *]. If any of [read], [write] or [step] is NULL, it
 // will be ignored.
 //
 // A peripheral library's exposed [user_port_init_t] function MUST be named "x16_user_port_init".
 //
 // Returns 0 on success and <0 on error.
-typedef int (*user_port_init_t)(user_port_t *);
+typedef int (*user_port_init_t)(user_port_init_args_t *, user_port_t *);

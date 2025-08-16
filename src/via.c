@@ -367,7 +367,10 @@ via2_init(char const *user_peripheral_plugin_path)
 	// TODO Do we really want to reset the user peripherals every time?
 	if (user_port_init) {
 		bool error = false;
-		if (user_port_init(&user_port) < 0) {
+		user_port_init_args_t init_args = {
+			.api_version = X16_USER_PORT_API_VERSION,
+		};
+		if (user_port_init(&init_args, &user_port) < 0) {
 			fprintf(stderr, "error initializing user peripheral\n");
 			error = true;
 		}
