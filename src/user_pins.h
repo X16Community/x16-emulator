@@ -80,19 +80,22 @@ typedef struct user_port_t {
 	// A mask of pins actually connected to the user peripheral.
 	user_pin_t connected_pins;
 
+	// Arbitrary user data which is passed to the various callbacks.
+	void *userdata;
+
 	// Return the values of the connected pins based on the peripheral's internal
 	// state. Any pin values not in [connected_pins] will be ignored.
-	user_pin_t (*read)(void);
+	user_pin_t (*read)(void *userdata);
 
 	// New pin values pushed from the via to the peripheral. Pins not in the
 	// [connected_pins] mask will be zeroes, but that does not imply those pins are low
-	void (*write)(user_pin_t pins);
+	void (*write)(user_pin_t pins, void *userdata);
 
 	// Step the state machine of the connected peripheral. [nanos] is the number of
 	// nanoseconds which has passed since the last step. Returns the pin state so that any
 	// interrupts based on CA1 and CB1 can be triggered. CA2 and CB2 are not presently
 	// implemented in the via code.
-	user_pin_t (*step)(double nanos);
+	user_pin_t (*step)(double nanos, void *userdata);
 } user_port_t;
 
 // Extensible init args struct. Includes api_version so perhipheral libraries can abort or

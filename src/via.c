@@ -410,7 +410,7 @@ via2_read(uint8_t reg, bool debug)
 			case 0: {
 				uint8_t mask = user_port.connected_pins >> 8; // PB is 2nd byte
 				if (mask) {
-					uint8_t user_pins = user_port.read() >> 8;
+					uint8_t user_pins = user_port.read(user_port.userdata) >> 8;
 					// PB only returns pin values on inputs
 					mask &= ~via[1].registers[2];
 					return (regval & ~mask) | (user_pins & mask);
@@ -421,7 +421,7 @@ via2_read(uint8_t reg, bool debug)
 			case 15: {
 				uint8_t mask = user_port.connected_pins; // PA is 1st byte
 				if (mask) {
-					uint8_t user_pins = user_port.read();
+					uint8_t user_pins = user_port.read(user_port.userdata);
 					// Port A always returns pin values on a read, even on output pins
 					return (regval & ~mask) | (user_pins & mask);
 				}
@@ -446,7 +446,7 @@ via2_write(uint8_t reg, uint8_t value)
 				user_pin_t pa = via[1].registers[1] & via[1].registers[3];
 				user_pin_t pb = via[1].registers[0] & via[1].registers[2];
 				user_pin_t pins = (pa | (pb << 8)) & user_port.connected_pins;
-				user_port.write(pins);
+				user_port.write(pins, user_port.userdata);
 			}
 			break;
 		}
@@ -458,7 +458,7 @@ via2_step(unsigned clocks)
 {
  	via_step(&via[1], clocks);
 	if (user_port.step) {
-		user_pin_t pins = user_port.step((double)clocks * 1000.0 / MHZ);
+		user_pin_t pins = user_port.step((double)clocks * 1000.0 / MHZ, user_port.userdata);
 		// TODO CA2/CB2
 		if (user_port.connected_pins & CA1_PIN) {
 			uint8_t new_ca1 = pins & CA1_PIN ? CA1 : 0;
