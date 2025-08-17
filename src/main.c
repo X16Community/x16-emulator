@@ -1323,6 +1323,7 @@ void main_shutdown() {
 		cartridge_save_nvram();
 		cartridge_unload();
 	}
+	via2_shutdown();
 	files_shutdown();
 
 #ifdef PERFSTAT

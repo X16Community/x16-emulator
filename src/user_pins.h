@@ -96,6 +96,10 @@ typedef struct user_port_t {
 	// interrupts based on CA1 and CB1 can be triggered. CA2 and CB2 are not presently
 	// implemented in the via code.
 	user_pin_t (*step)(double nanos, void *userdata);
+
+	// Called on reset and shutdown. is_poweroff is true for final shutdown, to
+	// differentiate from a reset
+	void (*cleanup)(bool is_poweroff, void *userdata);
 } user_port_t;
 
 // Extensible init args struct. Includes api_version so perhipheral libraries can abort or

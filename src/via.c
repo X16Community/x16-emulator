@@ -380,6 +380,7 @@ via2_init(char const *user_peripheral_plugin_path)
 	}
 	// TODO Do we really want to reset the user peripherals every time?
 	if (user_port_init) {
+		if (user_port.cleanup) user_port.cleanup(false, user_port.userdata);
 		bool error = false;
 		user_port_init_args_t init_args = {
 			.api_version = X16_USER_PORT_API_VERSION,
@@ -492,4 +493,15 @@ bool
 via2_irq()
 {
 	return (via[1].registers[13] & via[1].registers[14]) != 0;
+}
+
+void
+via2_shutdown()
+{
+	if (user_peripheral_dl) {
+		if (user_port.cleanup) user_port.cleanup(true, user_port.userdata);
+		user_port_init = NULL;
+		CLOSE_LIBRARY(user_peripheral_dl);
+		user_peripheral_dl = NULL;
+	}
 }
