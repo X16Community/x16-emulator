@@ -197,7 +197,7 @@ jobs:
           name: x16emu_win32
           path: emu_binaries/*
   build-linux-x86_64:
-    needs: [README]  
+    needs: [README]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -371,12 +371,12 @@ jobs:
           path: emu_binaries/*
   build-macos-x86_64:
     needs: [README]
-    # this is currently macos-13, Ventura
-    runs-on: macos-13
+    # this is currently macos-15, Sequoia
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: | 
+        run: |
           brew install make sdl2 fluid-synth
       - uses: actions/setup-python@v5
         with:
