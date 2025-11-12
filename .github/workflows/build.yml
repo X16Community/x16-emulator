@@ -371,8 +371,8 @@ jobs:
           path: emu_binaries/*
   build-macos-x86_64:
     needs: [README]
-    # this is currently macos-14, Sonoma
-    runs-on: macos-14-large
+    # this is currently macos-15, Sequoia
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
