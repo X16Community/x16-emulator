@@ -28,8 +28,8 @@ vera_spi_step(int mhz, int clocks)
 {
 	if (busy) {
 		outcounter += (float)clocks * SPI_CLOCK_RATE_MHZ / (float)mhz;
-		if (outcounter >= 10) { // a value of 9 here is closer to reality, but hardware
-		                        // can take slightly longer depending on clock-alignment
+		if (outcounter >= 10) { // A value of 9 here is closer to reality, but hardware
+		                        // can take slightly longer depending on clock-alignment.
 								// 10 cycles here should be safe and won't succeed in emulation
 								// while failing on hardware.
 			busy = false;
