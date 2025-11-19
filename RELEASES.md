@@ -5,6 +5,28 @@
 
 ## Releases
 
+### Release R49 ("Pyrite")
+
+* Features/Fixes
+	* VERA: Add warnings when reading to write-only and when writing to read-only registers [irmen]
+	* VERA: Make SPI busy time more true to hardware
+	* VERA: Fix wrong behavior of 8bpp sprites when palette offset is nonzero
+	* VERA PSG: Fix noise frequency being double that of hardware
+	* SDCARD: add READ_MULTIPLE_BLOCK support [stople]
+	* VIA: Fix for IFR flag handling [catharinejm]
+	* Let emulator exit with Alt+F4 even if SDL does not handle it [JimmyDansbo]
+	* Only free clipboard memory buffer when it comes from SDL's paste handler
+	* Added serial MIDI emulation via FluidSynth
+	* Exclude threading (needed for FluidSynth) in wasm build
+	* Added `-gs` support, which implements a system with 24-bit addressable RAM and a 65C816 processor, in anticipation of the planned X16 GS with this feature. [Fulgen301]
+	* Vastly improved performance of the HostFS's implementation of MACPTR
+	* Added HostFS implementations of XMACPTR and XMCIOUT to mirror the CMDR-DOS implementations
+	* 65C816 emulation fixes for MVN, MVP [Fulgen301, cnelson20]
+	* Move from C99 to C11, some C syntax and header fixes [skeeto]
+	* Additional web emulator options, including those to support CPU type and speed [JimmyDansbo]
+	* Emulator debugger fixes, including support for GS, and pressing F9 a second time to clear the breakpoint
+	* More changes in the [ROM](https://github.com/X16Community/x16-rom/tree/r49#release-49-pyrite).
+
 ### Release R48 ("Cadmium")
 
 * Features/Fixes

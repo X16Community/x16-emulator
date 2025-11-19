@@ -3,5 +3,5 @@
 // All rights reserved. License: 2-clause BSD
 
 #define VER "49"
-#define VER_NAME "next"
-#define VER_INFO "### Release 49 (\"next\")"
+#define VER_NAME "Pyrite"
+#define VER_INFO "### Release 49 (\"Pyrite\")"
