@@ -11,53 +11,41 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+if(ENABLE_LTO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
 
 # Common compiler warnings/flags
 add_compile_options(-Wall -Werror)
 if(MSVC)
-    add_compile_options(/W4) # Windows MSVC equivalent
+    add_compile_options(/WX) # Windows MSVC equivalent
 endif()
 
-# Handle Git Revision
+set(GIT_REV_HEADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(GIT_REV_HEADER "${GIT_REV_HEADER_DIR}/git_rev.h")
+file(MAKE_DIRECTORY ${GIT_REV_HEADER_DIR})
+
 find_package(Git)
-if(GIT_FOUND)
-    # Check for dirty repo
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD --
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE GIT_DIFF_EXIT_CODE
-        ERROR_QUIET
-    )
 
-    # 0 = Clean, 1 = Dirty
-    if(GIT_DIFF_EXIT_CODE EQUAL 0)
-        set(HASH_LEN 8)
-        set(REV_SUFFIX "")
-    else()
-        set(HASH_LEN 7)
-        set(REV_SUFFIX "+")
-    endif()
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/GetGitRevision.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/GetGitRevision.cmake"
+    @ONLY
+)
 
-    # XXXXXXXX if clean, XXXXXXX+ if dirty
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short=${HASH_LEN} HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_REV
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-    if(GIT_REV)
-        string(APPEND GIT_REV "${REV_SUFFIX}")
-    endif()
-else()
-    # If no git command found
-    set(GIT_REV "00000000")
-endif()
-if(NOT GIT_REV)
-    # Perhaps this is not a git repo
-    set(GIT_REV "00000000")
-endif()
-add_compile_definitions(GIT_REV="${GIT_REV}")
+# Create a custom target that runs EVERY build
+add_custom_target(
+    update_git_rev
+    ALL # Ensures this runs by default
+    COMMAND ${CMAKE_COMMAND}
+        -DCMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DOUTPUT_FILE=${GIT_REV_HEADER}
+        -P ${CMAKE_CURRENT_BINARY_DIR}/GetGitRevision.cmake
+    BYPRODUCTS ${GIT_REV_HEADER}
+    COMMENT "Checking Git revision..."
+)
 
 # --- Dependencies ---
 if(EMSCRIPTEN)
@@ -177,12 +165,15 @@ add_executable(x16emu ${X16_SOURCES})
 # Ensure the Python script runs before compiling x16emu
 add_dependencies(x16emu gen_cpu_tables)
 
+# Add git revision header
+add_dependencies(x16emu update_git_rev)
+
 # Includes
 target_include_directories(x16emu PRIVATE
     src
     src/extern/include
     src/extern/ymfm/src
-    ${SDL2_INCLUDE_DIRS}
+    ${GIT_REV_HEADER_DIR}
 )
 
 if(ENABLE_TRACE)
@@ -199,18 +190,7 @@ if(FLUIDSYNTH_FOUND)
     target_link_libraries(x16emu PRIVATE PkgConfig::FLUIDSYNTH)
 endif()
 
-# --- Platform Specific Configuration ---
-
-# 1. Link Time Optimization
-if(ENABLE_LTO)
-    include(CheckIPOSupported)
-    check_ipo_supported(RESULT result)
-    if(result)
-        set_property(TARGET x16emu PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-    endif()
-endif()
-
-# 2. Windows Specifics
+# Windows Specifics
 if(WIN32)
     # MinGW Linker flags
     if(MINGW)
@@ -223,33 +203,35 @@ if(WIN32)
     target_link_libraries(x16emu PRIVATE dwmapi)
 endif()
 
-# 3. macOS Specifics
+# macOS Specifics
 if(APPLE)
-    find_library(COREAUDIO CoreAudio)
-    find_library(AUDIOTOOLBOX AudioToolbox)
-    find_library(FORCEFEEDBACK ForceFeedback)
-    find_library(COREVIDEO CoreVideo)
-    find_library(COCOA Cocoa)
-    find_library(CARBON Carbon)
-    find_library(IOKIT IOKit)
-    find_library(ICONV iconv)
+
+    find_library(COREAUDIO CoreAudio REQUIRED)
+    find_library(AUDIOTOOLBOX AudioToolbox REQUIRED)
+    find_library(FORCEFEEDBACK ForceFeedback REQUIRED)
+    find_library(COREVIDEO CoreVideo REQUIRED)
+    find_library(COCOA Cocoa REQUIRED)
+    find_library(CARBON Carbon REQUIRED)
+    find_library(IOKIT IOKit REQUIRED)
+    find_library(ICONV iconv REQUIRED)
+    find_library(QUARTZCORE QuartzCore REQUIRED)
+    find_library(METAL Metal REQUIRED)
+    find_library(COREHAPTICS CoreHaptics REQUIRED)
+    find_library(GAMECONTROLLER GameController REQUIRED)
 
     target_link_libraries(x16emu PRIVATE
         ${COREAUDIO} ${AUDIOTOOLBOX} ${FORCEFEEDBACK}
         ${COREVIDEO} ${COCOA} ${CARBON} ${IOKIT} ${ICONV}
-        "-framework QuartzCore"
-        "-framework Metal"
-        "-framework CoreHaptics"
-        "-framework GameController"
+        ${QUARTZCORE} ${METAL} ${COREHAPTICS} ${GAMECONTROLLER}
     )
 endif()
 
-# 4. Linux/Default Specifics
+# Linux/Default Specifics
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     target_link_libraries(x16emu PRIVATE dl pthread m)
 endif()
 
-# 5. Emscripten
+# Emscripten
 if(EMSCRIPTEN)
     set_target_properties(x16emu PROPERTIES SUFFIX ".html")
     target_link_options(x16emu PRIVATE
@@ -273,11 +255,14 @@ add_executable(makecart
     src/makecart_javascript_interface.c
 )
 
+add_dependencies(makecart update_git_rev)
+
 # Makecart dependencies
 target_include_directories(makecart PRIVATE
     src
     src/extern/include
     ${SDL2_INCLUDE_DIRS}
+    ${GIT_REV_HEADER_DIR}
 )
 target_link_libraries(makecart PRIVATE
     ZLIB::ZLIB

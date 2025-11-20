@@ -2,6 +2,7 @@
 
 #include "cartridge.h"
 #include "files.h"
+#include "git_rev.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,6 +71,9 @@ static int x16_getline(char **line, size_t *n, FILE *f)
 void
 usage()
 {
+#ifdef GIT_REV
+	printf("Version: "GIT_REV"\n");
+#endif
 	printf("-help\n");
 	printf("\tPrint this message and exit.\n");
 	printf("\n");

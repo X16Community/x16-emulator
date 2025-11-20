@@ -43,6 +43,7 @@
 #include "testbench.h"
 #include "cartridge.h"
 #include "midi.h"
+#include "git_rev.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
