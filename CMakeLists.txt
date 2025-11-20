@@ -11,6 +11,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15") # disable rounded corners as much as we can
 
 # Common compiler warnings/flags
 add_compile_options(-Wall -Werror)
@@ -37,7 +38,22 @@ endif()
 add_compile_definitions(GIT_REV="${GIT_REV}")
 
 # --- Dependencies ---
-find_package(SDL2 REQUIRED)
+if(EMSCRIPTEN)
+    # Emscripten: SDL2 is a built-in port, not a package we search for.
+    # We create a "Dummy" target that passes the compiler flags (-s USE_SDL=2)
+    # to any target that links against it.
+    add_library(SDL2::SDL2 INTERFACE IMPORTED)
+    target_compile_options(SDL2::SDL2 INTERFACE "SHELL:-s USE_SDL=2")
+    target_link_options(SDL2::SDL2 INTERFACE "SHELL:-s USE_SDL=2")
+
+    set(SDL2_FOUND TRUE)
+    set(SDL2_INCLUDE_DIRS "") # Emscripten handles the include path implicitly
+    set(SDL2_LIBRARIES SDL2::SDL2)
+else()
+    # Other targets: Find the installed library standard way
+    find_package(SDL2 REQUIRED)
+endif()
+
 find_package(ZLIB REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 find_package(PkgConfig)
