@@ -528,12 +528,10 @@ jobs:
       - name: Copy ROM symbols
         run: |
           cp latest_rom/*.h src/.
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin .
       - name: Build Emulator
         run: |
           mkdir build
+          cp latest_rom/rom.bin build
           cd build
           emcmake cmake ..
           emmake make

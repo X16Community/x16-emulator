@@ -218,7 +218,7 @@ if(EMSCRIPTEN)
     set_target_properties(x16emu PROPERTIES SUFFIX ".html")
     target_link_options(x16emu PRIVATE
         --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/webassembly/x16emu-template.html
-        --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/rom.bin
+        --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/build/rom.bin
         "SHELL:-s TOTAL_MEMORY=32MB"
         "SHELL:-s ASSERTIONS=1"
         "SHELL:-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=1"
