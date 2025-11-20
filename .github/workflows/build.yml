@@ -535,7 +535,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          emcmake ..
+          emcmake cmake ..
           emmake make
       - name: Package Emulator
         run: |
