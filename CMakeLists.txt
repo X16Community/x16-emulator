@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.15)
 project(x16emu LANGUAGES C CXX)
 
 # --- Options (Replacements for Env Vars) ---
-option(ENABLE_FLUIDSYNTH "Enable FluidSynth support" OFF)
 option(ENABLE_LTO "Enable Link Time Optimization" ON)
 option(ENABLE_TRACE "Enable Trace logging" OFF)
 
@@ -41,12 +40,18 @@ add_compile_definitions(GIT_REV="${GIT_REV}")
 find_package(SDL2 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+find_package(PkgConfig)
 
-# FluidSynth (Optional)
-if(ENABLE_FLUIDSYNTH)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(FLUIDSYNTH REQUIRED fluidsynth)
+# --- FluidSynth Auto-Detection ---
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(FLUIDSYNTH QUIET fluidsynth)
+endif()
+
+if(FLUIDSYNTH_FOUND)
+    message(STATUS "FluidSynth found via PkgConfig. Enabling MIDI support.")
     add_compile_definitions(HAS_FLUIDSYNTH)
+else()
+    message(STATUS "FluidSynth not found. MIDI support disabled.")
 endif()
 
 # --- Code Generation (Python Script) ---
@@ -130,7 +135,7 @@ target_link_libraries(x16emu PRIVATE
     ZLIB::ZLIB
 )
 
-if(ENABLE_FLUIDSYNTH)
+if(FLUIDSYNTH_FOUND)
     target_include_directories(x16emu PRIVATE ${FLUIDSYNTH_INCLUDE_DIRS})
     target_link_libraries(x16emu PRIVATE ${FLUIDSYNTH_LIBRARIES})
 endif()
