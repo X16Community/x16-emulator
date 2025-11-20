@@ -422,6 +422,7 @@ jobs:
       - name: Build Emulator
         run: |
           mkdir build
+          cd build
           cmake ..
           cmake --build .
       - name: Package Emulator
@@ -533,6 +534,7 @@ jobs:
       - name: Build Emulator
         run: |
           mkdir build
+          cd build
           emcmake ..
           emmake make
       - name: Package Emulator
