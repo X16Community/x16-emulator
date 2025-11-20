@@ -44,7 +44,7 @@ find_package(PkgConfig)
 
 # --- FluidSynth Auto-Detection ---
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(FLUIDSYNTH QUIET fluidsynth)
+    pkg_check_modules(FLUIDSYNTH QUIET IMPORTED_TARGET fluidsynth)
 endif()
 
 if(FLUIDSYNTH_FOUND)
@@ -136,8 +136,7 @@ target_link_libraries(x16emu PRIVATE
 )
 
 if(FLUIDSYNTH_FOUND)
-    target_include_directories(x16emu PRIVATE ${FLUIDSYNTH_INCLUDE_DIRS})
-    target_link_libraries(x16emu PRIVATE ${FLUIDSYNTH_LIBRARIES})
+    target_link_libraries(x16emu PRIVATE PkgConfig::FLUIDSYNTH)
 endif()
 
 # --- Platform Specific Configuration ---
