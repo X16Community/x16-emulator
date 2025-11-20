@@ -57,8 +57,6 @@ if(EMSCRIPTEN)
     target_link_options(SDL2::SDL2 INTERFACE "SHELL:-s USE_SDL=2")
 
     set(SDL2_FOUND TRUE)
-    set(SDL2_INCLUDE_DIRS "") # Emscripten handles the include path implicitly
-    set(SDL2_LIBRARIES SDL2::SDL2)
 
     # Emscripten ZLIB (Built-in port)
     add_library(ZLIB::ZLIB INTERFACE IMPORTED)
@@ -173,7 +171,6 @@ target_include_directories(x16emu PRIVATE
     src
     src/extern/include
     src/extern/ymfm/src
-    ${SDL2_INCLUDE_DIRS}
     ${GIT_REV_HEADER_DIR}
 )
 
@@ -183,9 +180,13 @@ endif()
 
 # Linking
 target_link_libraries(x16emu PRIVATE
-    ${SDL2_LIBRARIES}
+    SDL2::SDL2
     ZLIB::ZLIB
 )
+
+if(TARGET SDL2::SDL2main)
+    target_link_libraries(x16emu PRIVATE SDL2::SDL2main)
+endif()
 
 if(FLUIDSYNTH_FOUND)
     target_link_libraries(x16emu PRIVATE PkgConfig::FLUIDSYNTH)
@@ -262,13 +263,16 @@ add_dependencies(makecart update_git_rev)
 target_include_directories(makecart PRIVATE
     src
     src/extern/include
-    ${SDL2_INCLUDE_DIRS}
     ${GIT_REV_HEADER_DIR}
 )
 target_link_libraries(makecart PRIVATE
     ZLIB::ZLIB
-    ${SDL2_LIBRARIES}
+    SDL2::SDL2
 )
+
+if(TARGET SDL2::SDL2main)
+    target_link_libraries(makecart PRIVATE SDL2::SDL2main)
+endif()
 
 if(EMSCRIPTEN)
     set_target_properties(makecart PROPERTIES SUFFIX ".html")
