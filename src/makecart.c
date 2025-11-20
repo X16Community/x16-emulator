@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <SDL.h>
 
 extern uint8_t *CART;
 

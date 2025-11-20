@@ -220,10 +220,7 @@ target_include_directories(makecart PRIVATE
 )
 target_link_libraries(makecart PRIVATE
     ZLIB::ZLIB
-    ${SDL2_LIBRARIES}
 )
-
-target_compile_definitions(makecart PRIVATE SDL_MAIN_HANDLED)
 
 if(EMSCRIPTEN)
     set_target_properties(makecart PROPERTIES SUFFIX ".html")
