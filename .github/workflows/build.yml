@@ -303,6 +303,7 @@ jobs:
             apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev cmake
             mkdir build
             cd build
+            git reset --hard
             cmake ..
             cmake --build .
             cd ..
@@ -367,6 +368,7 @@ jobs:
             apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev cmake
             mkdir build
             cd build
+            git reset --hard
             cmake ..
             cmake --build .
             cd ..
