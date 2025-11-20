@@ -201,9 +201,6 @@ if(EMSCRIPTEN)
     )
 endif()
 
-
-
-
 # --- Secondary Target: Makecart ---
 add_executable(makecart
     src/makecart.c
@@ -220,6 +217,7 @@ target_include_directories(makecart PRIVATE
 )
 target_link_libraries(makecart PRIVATE
     ZLIB::ZLIB
+    ${SDL2_LIBRARIES}
 )
 
 if(EMSCRIPTEN)
