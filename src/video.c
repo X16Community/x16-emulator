@@ -3,6 +3,11 @@
 // Copyright (c) 2020 Frank van den Hoef
 // All rights reserved. License: 2-clause BSD
 
+#ifndef __APPLE__
+#define _XOPEN_SOURCE   600
+#define _POSIX_C_SOURCE 1
+#endif
+
 #include "video.h"
 #include "memory.h"
 #include "glue.h"
