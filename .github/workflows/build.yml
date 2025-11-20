@@ -538,7 +538,7 @@ jobs:
       - name: Package Emulator
         run: |
           mkdir emu_binaries
-          cp x16emu.data x16emu.html x16emu.js x16emu.wasm emu_binaries/
+          cp build/x16emu.data build/x16emu.html build/x16emu.js build/x16emu.wasm emu_binaries/
           mkdir emu_binaries/webassembly
           cp webassembly/styles.css webassembly/main.js webassembly/jszip.min.js emu_binaries/webassembly/
           file emu_binaries/*
