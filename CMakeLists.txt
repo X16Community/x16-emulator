@@ -37,17 +37,9 @@ if(NOT GIT_REV)
 endif()
 add_compile_definitions(GIT_REV="${GIT_REV}")
 
-find_package(PkgConfig)
-if(PKG_CONFIG_FOUND)
-    pkg_check_modules(PC_ZLIB QUIET zlib)
-endif()
-
 # --- Dependencies ---
 find_package(SDL2 REQUIRED)
-find_package(ZLIB REQUIRED HINTS
-    ${PC_ZLIB_INCLUDEDIR}
-    ${PC_ZLIB_LIBDIR}
-)
+find_package(ZLIB REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 # FluidSynth (Optional)
