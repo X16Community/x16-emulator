@@ -4,13 +4,19 @@
 #
 ##################################################################################################
 
-.PHONY: all clean
+BUILD_DIR = build
+
+.PHONY: all clean distclean
 
 all:
-	@echo "Building with CMake"
-	[[ -e build ]] || mkdir build
-	cd build && cmake .. && cmake --build .
+	@cmake -E echo "Building with CMake"
+	cmake -E make_directory $(BUILD_DIR)
+	cmake -S . -B $(BUILD_DIR)
+	cmake --build $(BUILD_DIR) $(ARGS)
 
-	@echo "x16emu and makecart executables can be found in ./build"
+	@cmake -E echo "x16emu and makecart executables can be found in ./$(BUILD_DIR)"
 clean:
-	rm -rf build
+	-cmake --build $(BUILD_DIR) --target clean
+
+distclean:
+	cmake -E remove_directory $(BUILD_DIR)
