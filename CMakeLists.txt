@@ -4,14 +4,12 @@ project(x16emu LANGUAGES C CXX)
 
 # --- Options (Replacements for Env Vars) ---
 option(ENABLE_LTO "Enable Link Time Optimization" ON)
-option(ENABLE_TRACE "Enable Trace logging" OFF)
 
 # --- Configuration & Standards ---
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15") # disable rounded corners as much as we can
 
 # Common compiler warnings/flags
 add_compile_options(-Wall -Werror)
@@ -76,6 +74,20 @@ elseif(FLUIDSYNTH_FOUND)
     add_compile_definitions(HAS_FLUIDSYNTH)
 else()
     message(STATUS "FluidSynth not found. MIDI support disabled.")
+endif()
+
+# --- Trace Logging Auto-Detection ---
+# Check if the specific ROM debug headers exist in the source tree
+if(EMSCRIPTEN)
+    message(STATUS "Trace logging disabled in wasm builds.")
+    set(ENABLE_TRACE OFF)
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_lst.h" AND
+       EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_labels.h")
+    set(ENABLE_TRACE ON)
+    message(STATUS "Trace headers found (rom_lst.h, rom_labels.h). Enabling TRACE.")
+else()
+    set(ENABLE_TRACE OFF)
+    message(STATUS "Trace headers not found. TRACE disabled.")
 endif()
 
 # --- Code Generation (Python Script) ---
