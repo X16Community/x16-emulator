@@ -5,6 +5,7 @@ project(x16emu LANGUAGES C CXX)
 # --- Options (Replacements for Env Vars) ---
 option(ENABLE_LTO "Enable Link Time Optimization" ON)
 
+
 # --- Configuration & Standards ---
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -17,20 +18,43 @@ if(MSVC)
     add_compile_options(/W4) # Windows MSVC equivalent
 endif()
 
-# Handle Git Revision (Replaces shell execution in Makefile)
+# Handle Git Revision
 find_package(Git)
 if(GIT_FOUND)
+    # Check for dirty repo
     execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short=8 HEAD
+        COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD --
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE GIT_DIFF_EXIT_CODE
+        ERROR_QUIET
+    )
+
+    # 0 = Clean, 1 = Dirty
+    if(GIT_DIFF_EXIT_CODE EQUAL 0)
+        set(HASH_LEN 8)
+        set(REV_SUFFIX "")
+    else()
+        set(HASH_LEN 7)
+        set(REV_SUFFIX "+")
+    endif()
+
+    # XXXXXXXX if clean, XXXXXXX+ if dirty
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short=${HASH_LEN} HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE GIT_REV
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET
     )
+    if(GIT_REV)
+        string(APPEND GIT_REV "${REV_SUFFIX}")
+    endif()
 else()
+    # If no git command found
     set(GIT_REV "00000000")
 endif()
 if(NOT GIT_REV)
+    # Perhaps this is not a git repo
     set(GIT_REV "00000000")
 endif()
 add_compile_definitions(GIT_REV="${GIT_REV}")
