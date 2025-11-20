@@ -58,6 +58,7 @@ if(EMSCRIPTEN)
 
     set(SDL2_FOUND TRUE)
     set(SDL2_INCLUDE_DIRS "") # Emscripten handles the include path implicitly
+    set(SDL2_LIBRARIES SDL2::SDL2)
 
     # Emscripten ZLIB (Built-in port)
     add_library(ZLIB::ZLIB INTERFACE IMPORTED)
@@ -182,7 +183,7 @@ endif()
 
 # Linking
 target_link_libraries(x16emu PRIVATE
-    SDL2::SDL2
+    ${SDL2_LIBRARIES}
     ZLIB::ZLIB
 )
 
@@ -266,7 +267,7 @@ target_include_directories(makecart PRIVATE
 )
 target_link_libraries(makecart PRIVATE
     ZLIB::ZLIB
-    SDL2::SDL2
+    ${SDL2_LIBRARIES}
 )
 
 if(EMSCRIPTEN)
