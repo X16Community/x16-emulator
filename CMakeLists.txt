@@ -49,12 +49,18 @@ if(EMSCRIPTEN)
     set(SDL2_FOUND TRUE)
     set(SDL2_INCLUDE_DIRS "") # Emscripten handles the include path implicitly
     set(SDL2_LIBRARIES SDL2::SDL2)
+
+    # Emscripten ZLIB (Built-in port)
+    add_library(ZLIB::ZLIB INTERFACE IMPORTED)
+    target_compile_options(ZLIB::ZLIB INTERFACE "SHELL:-s USE_ZLIB=1")
+    target_link_options(ZLIB::ZLIB INTERFACE "SHELL:-s USE_ZLIB=1")
+
+    set(ZLIB_FOUND TRUE)
 else()
-    # Other targets: Find the installed library standard way
     find_package(SDL2 REQUIRED)
+    find_package(ZLIB REQUIRED)
 endif()
 
-find_package(ZLIB REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 find_package(PkgConfig)
 
@@ -63,7 +69,9 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(FLUIDSYNTH QUIET IMPORTED_TARGET fluidsynth)
 endif()
 
-if(FLUIDSYNTH_FOUND)
+if(EMSCRIPTEN)
+    message(STATUS "FluidSynth not supported in the wasm build. MIDI support disabled.")
+elseif(FLUIDSYNTH_FOUND)
     message(STATUS "FluidSynth found via PkgConfig. Enabling MIDI support.")
     add_compile_definitions(HAS_FLUIDSYNTH)
 else()
