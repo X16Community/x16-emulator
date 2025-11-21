@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 
+string(ASCII 27 Esc)
+set(ColorReset  "${Esc}[m")
+set(ColorYellow "${Esc}[33m")
+set(ColorGreen  "${Esc}[32m")
+set(ColorRed    "${Esc}[31m")
+
 project(x16emu LANGUAGES C CXX)
 
 # --- Options (Replacements for Env Vars) ---
@@ -324,3 +330,29 @@ if(EMSCRIPTEN)
     set_target_properties(makecart PROPERTIES SUFFIX ".html")
     target_link_options(makecart PRIVATE "SHELL:-s USE_ZLIB=1")
 endif()
+
+# Build summary
+
+if(ENABLE_FLUIDSYNTH STREQUAL "AUTO" AND NOT USE_FLUIDSYNTH)
+    set(FLUID_EN_MSG "${ColorYellow}DISABLED (Missing Dependency)${ColorReset}")
+elseif(USE_FLUIDSYNTH)
+    set(FLUID_EN_MSG "${ColorGreen}ENABLED${ColorReset}")
+else()
+    set(FLUID_EN_MSG "DISABLED (Explicit)")
+endif()
+
+if(ENABLE_TRACE STREQUAL "AUTO" AND NOT USE_TRACE)
+    set(TRACE_EN_MSG "${ColorYellow}DISABLED (Missing ROM Headers)${ColorReset}")
+elseif(USE_TRACE)
+    set(TRACE_EN_MSG "${ColorGreen}ENABLED${ColorReset}")
+else()
+    set(TRACE_EN_MSG "DISABLED (Explicit)")
+endif()
+
+message(STATUS "\n")
+message(STATUS "=========================================================================")
+message(STATUS "   x16-emulator Build Options Summary")
+message(STATUS "=========================================================================")
+message(STATUS "   Fluidsynth Support : ${FLUID_EN_MSG}")
+message(STATUS "   Trace Support      : ${TRACE_EN_MSG}")
+message(STATUS "=========================================================================\n")
