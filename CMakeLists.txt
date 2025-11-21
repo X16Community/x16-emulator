@@ -5,7 +5,6 @@ project(x16emu LANGUAGES C CXX)
 # --- Options (Replacements for Env Vars) ---
 option(ENABLE_LTO "Enable Link Time Optimization" ON)
 
-
 # --- Configuration & Standards ---
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -70,34 +69,79 @@ else()
 endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
-find_package(PkgConfig)
+find_package(PkgConfig QUIET)
 
-# --- FluidSynth Auto-Detection ---
-if(PKG_CONFIG_FOUND)
-    pkg_check_modules(FLUIDSYNTH QUIET IMPORTED_TARGET fluidsynth)
+# Fluidsynth
+
+set(ENABLE_FLUIDSYNTH "AUTO" CACHE STRING "Enable FluidSynth MIDI support (ON/OFF/AUTO)")
+set_property(CACHE ENABLE_FLUIDSYNTH PROPERTY STRINGS ON OFF AUTO)
+
+set(USE_FLUIDSYNTH FALSE)
+
+if(ENABLE_FLUIDSYNTH STREQUAL "OFF")
+    message(STATUS "[x16] FluidSynth support explicitly disabled.")
+elseif(EMSCRIPTEN)
+    if (ENABLE_FLUIDSYNTH STREQUAL "ON")
+        message(FATAL_ERROR "[x16] FluidSynth cannot be enabled for wasm builds.")
+    elseif (ENABLE_FLUIDSYNTH STREQUAL "AUTO")
+        message(STATUS "[x16] FluidSynth disabled for wasm builds.")
+    endif()
+else()
+    if(NOT PKG_CONFIG_FOUND)
+        if(ENABLE_FLUIDSYNTH STREQUAL "ON")
+            message(FATAL_ERROR "FluidSynth requested (ON), but pkg-config is missing on this system.")
+        else()
+            message(WARNING "pkg-config missing. Skipping FluidSynth auto-detection.")
+        endif()
+    else()
+        if(ENABLE_FLUIDSYNTH STREQUAL "ON")
+            pkg_check_modules(FLUIDSYNTH REQUIRED IMPORTED_TARGET fluidsynth>=2.0)
+            set(USE_FLUIDSYNTH TRUE)
+        else() 
+            pkg_check_modules(FLUIDSYNTH IMPORTED_TARGET fluidsynth>=2.0)
+            if(FLUIDSYNTH_FOUND)
+                set(USE_FLUIDSYNTH TRUE)
+                message(STATUS "[x16] FluidSynth found and enabled (auto).")
+            else()
+                message(WARNING "[x16] FluidSynth not found. MIDI support disabled (auto).")
+            endif()
+        endif()
+    endif()
 endif()
 
-if(EMSCRIPTEN)
-    message(STATUS "FluidSynth not supported in the wasm build. MIDI support disabled.")
-elseif(FLUIDSYNTH_FOUND)
-    message(STATUS "FluidSynth found via PkgConfig. Enabling MIDI support.")
-    add_compile_definitions(HAS_FLUIDSYNTH)
-else()
-    message(STATUS "FluidSynth not found. MIDI support disabled.")
-endif()
+# Trace Logging
 
-# --- Trace Logging Auto-Detection ---
-# Check if the specific ROM debug headers exist in the source tree
-if(EMSCRIPTEN)
-    message(STATUS "Trace logging disabled in wasm builds.")
-    set(ENABLE_TRACE OFF)
-elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_lst.h" AND
-       EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_labels.h")
-    set(ENABLE_TRACE ON)
-    message(STATUS "Trace headers found (rom_lst.h, rom_labels.h). Enabling TRACE.")
+set(ENABLE_TRACE "AUTO" CACHE STRING "Enable trace logging support (ON/OFF/AUTO)")
+set_property(CACHE ENABLE_TRACE PROPERTY STRINGS ON OFF AUTO)
+
+set(USE_TRACE FALSE)
+
+if(ENABLE_TRACE STREQUAL "OFF")
+    message(STATUS "[x16] Trace support explicitly disabled.")
+elseif(EMSCRIPTEN)
+    if (ENABLE_TRACE STREQUAL "ON")
+        message(FATAL_ERROR "[x16] Trace cannot be enabled for wasm builds.")
+    elseif (ENABLE_TRACE STREQUAL "AUTO")
+        message(STATUS "[x16] Trace disabled for wasm builds.")
+    endif()
 else()
-    set(ENABLE_TRACE OFF)
-    message(STATUS "Trace headers not found. TRACE disabled.")
+    if(ENABLE_TRACE STREQUAL "ON")
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_lst.h" AND
+        EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_labels.h")
+            set(USE_TRACE ON)
+            message(STATUS "[x16] Trace enabled and headers found (rom_lst.h, rom_labels.h).")
+        else()
+            message(FATAL_ERROR "[x16] Trace enabled but headers (rom_lst.h, rom_labels.h) not found.")
+        endif()
+    else()
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_lst.h" AND
+        EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rom_labels.h")
+            set(USE_TRACE ON)
+            message(STATUS "[x16] Trace enabled (auto) and headers found (rom_lst.h, rom_labels.h).")
+        else()
+            message(STATUS "[x16] Trace disabled (auto). Headers (rom_lst.h, rom_labels.h) not found.")
+        endif()
+    endif()
 endif()
 
 # --- Code Generation (Python Script) ---
@@ -174,7 +218,7 @@ target_include_directories(x16emu PRIVATE
     ${GIT_REV_HEADER_DIR}
 )
 
-if(ENABLE_TRACE)
+if(USE_TRACE)
     target_compile_definitions(x16emu PRIVATE TRACE)
 endif()
 
@@ -188,7 +232,8 @@ if(TARGET SDL2::SDL2main)
     target_link_libraries(x16emu PRIVATE SDL2::SDL2main)
 endif()
 
-if(FLUIDSYNTH_FOUND)
+if(USE_FLUIDSYNTH)
+    add_compile_definitions(HAS_FLUIDSYNTH)
     target_link_libraries(x16emu PRIVATE PkgConfig::FLUIDSYNTH)
 endif()
 
