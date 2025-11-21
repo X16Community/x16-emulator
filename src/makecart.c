@@ -72,7 +72,7 @@ void
 usage()
 {
 #ifdef GIT_REV
-	printf("Version: "GIT_REV"\n");
+	printf("makecart version: "GIT_REV"\n\n");
 #endif
 	printf("-help\n");
 	printf("\tPrint this message and exit.\n");
