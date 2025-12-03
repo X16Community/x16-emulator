@@ -685,7 +685,7 @@ static int DEBUGRenderZeroPageRegisters(int y) {
 #define LAST_R 15
 	unsigned char reg = 0;
 	int y_start = y;
-	char lbl[6];
+	char lbl[12];
 	while (reg < DBGMAX_ZERO_PAGE_REGISTERS) {
 		if (((y-y_start) % 5) != 0) {           // Break registers into groups of 5, easier to locate
 			if (reg <= LAST_R)
