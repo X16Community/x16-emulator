@@ -33,7 +33,7 @@ static void immm() { //immediate, 16bit if M = 0
     }
 }
 
-static void immx() { //immediate, 16bit if M = 0
+static void immx() { //immediate, 16bit if X = 0
     ea = as_bank_byte(regs.k) | regs.pc++;
 
     if (index_16bit()) {
