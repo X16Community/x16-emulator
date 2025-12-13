@@ -22,11 +22,11 @@ static void acc() { //accumulator
 }
 
 static void imm8() { //immediate, 8bit
-    ea = regs.pc++;
+    ea = as_bank_byte(regs.k) | regs.pc++;
 }
 
 static void immm() { //immediate, 16bit if M = 0
-    ea = regs.pc++;
+    ea = as_bank_byte(regs.k) | regs.pc++;
 
     if (memory_16bit()) {
         regs.pc++;
@@ -34,7 +34,7 @@ static void immm() { //immediate, 16bit if M = 0
 }
 
 static void immx() { //immediate, 16bit if M = 0
-    ea = regs.pc++;
+    ea = as_bank_byte(regs.k) | regs.pc++;
 
     if (index_16bit()) {
         regs.pc++;
@@ -42,7 +42,7 @@ static void immx() { //immediate, 16bit if M = 0
 }
 
 static void imm16() {
-    ea = regs.pc;
+    ea = as_bank_byte(regs.k) | regs.pc;
     regs.pc += 2;
 }
 
