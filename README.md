@@ -190,16 +190,18 @@ The following keys can be used for controlling games:
 Options for the WebEmulator
 --------
 
-The following options are available for the WebEmulator. With the exception of manifest, they all work exactly the same as in the normal emulator.
+The following options are available for the WebEmulator. With the exception of manifest and model, they all work exactly the same as in the normal emulator.
 * `manifest`
 * `ram`
 * `cpu`
 * `mhz`
 * `keymap`
+* `model`
 * `longpwron`
 * `widescreen`
 * `capture`
 * `midlineeffects`
+* `joyX` (where X is a digit, 1 through 4. I.E. joy1, joy2, joy3, joy4)
 
 #### The Address Line
 `manifest` tells the emulator what should be loaded as a startup program. If the file is a .bas or .prg, the emulator will load it and try to execute it. If the file is a .zip, the WebEmulator will get access to all the files inside that zip-file. When using a zip-file you may add a manifest file to provide additional information - See section below for more information on `manifest.json`
@@ -213,7 +215,7 @@ Set the CPU speed at 10 MHz
 Set the keyboard layout to Danish  
 Show the emulator in widescreen mode  
 Capture the mouse and keyboard input 
-The options `longpwron`, `widescreen`, `capture` & `midlineeffects` do not have any values, it is enough to have them on the address line to enable the feature.
+The options `longpwron`, `widescreen`, `capture`, `midlineeffects` and the `joyX` options do not have any values, it is enough to have them on the address line to enable the feature. The `model` option is only used if set to `gs`, then the `-gs` option will be passed to the emulator.
 
 #### The manifest.json File
 If an application requires more than a single file to function, for example graphics or audio assets, it is necessary to package the needed files in a zip file. If there are more than one start file (BAS or PRG) the `manifest.json` file can be used to specify the default start file with `start_prg` or `start_bas` otherwise the WebEmulator will start the .prg or .bas it finds in the zip file.  
