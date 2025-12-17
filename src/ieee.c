@@ -1387,7 +1387,7 @@ crename(uint8_t *f)
 	}
 
 	*(s++) = 0; // null-terminate d and advance s
-	
+
 	uint8_t *src;
 	uint8_t *dst;
 
@@ -1409,7 +1409,10 @@ crename(uint8_t *f)
 
 	free(tmp); // we're now done with d and s (part of tmp)
 
-	if (rename((char *)src, (char *)dst)) {
+	struct stat st;
+	if (stat((char *)dst, &st) == 0) { // if dst file exists, fail rename
+		set_error(0x63, 0, 0);
+	} else if (rename((char *)src, (char *)dst)) {
 		if (errno == EACCES) {
 			set_error(0x63, 0, 0);
 		} else if (errno == EINVAL) {
