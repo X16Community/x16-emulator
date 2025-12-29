@@ -22,19 +22,19 @@ static void acc() { //accumulator
 }
 
 static void imm8() { //immediate, 8bit
-    ea = regs.pc++;
+    ea = addr_with_k(regs.pc++);
 }
 
 static void immm() { //immediate, 16bit if M = 0
-    ea = regs.pc++;
+    ea = addr_with_k(regs.pc++);
 
     if (memory_16bit()) {
         regs.pc++;
     }
 }
 
-static void immx() { //immediate, 16bit if M = 0
-    ea = regs.pc++;
+static void immx() { //immediate, 16bit if X = 0
+    ea = addr_with_k(regs.pc++);
 
     if (index_16bit()) {
         regs.pc++;
@@ -42,7 +42,7 @@ static void immx() { //immediate, 16bit if M = 0
 }
 
 static void imm16() {
-    ea = regs.pc;
+    ea = addr_with_k(regs.pc);
     regs.pc += 2;
 }
 
@@ -60,7 +60,7 @@ static void _zp_long_with_offset(uint16_t offset) {
     uint16_t eahelp;
     eahelp = (uint16_t)read6502(regs.pc++, regs.k);
 
-    ea = (uint16_t)read6502(regs.dp + eahelp, regs.k) | ((uint16_t)read6502(regs.dp + eahelp + 1, regs.k) << 8) | ((uint16_t)read6502(regs.dp + eahelp + 2, regs.k) << 16);
+    ea = (uint32_t)read6502(direct_page_add(eahelp), 0) | ((uint32_t)read6502(direct_page_add(eahelp + 1), 0) << 8) | ((uint32_t)read6502(direct_page_add(eahelp + 2), 0) << 16);
     ea = mask_long_addr(ea + offset);
 
     if (regs.dp & 0x00FF) {

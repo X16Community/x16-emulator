@@ -43,6 +43,7 @@
 #include "testbench.h"
 #include "cartridge.h"
 #include "midi.h"
+#include "git_rev.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -594,8 +595,7 @@ void no_fluidsynth_warning(void)
 		fprintf(stderr, "install the mingw-w64-i686-fluidsynth package before\n");
 		fprintf(stderr, "building x16emu.\n\n");
 #endif
-		fprintf(stderr, "Then build x16emu with FLUIDSYNTH=1. For example:\n");
-		fprintf(stderr, "FLUIDSYNTH=1 make\n");
+		fprintf(stderr, "Then rebuild x16emu from scratch.\n");
 		already_warned = true;
 	}
 }

@@ -3,6 +3,11 @@
 // Copyright (c) 2020 Frank van den Hoef
 // All rights reserved. License: 2-clause BSD
 
+#ifndef __APPLE__
+#define _XOPEN_SOURCE   600
+#define _POSIX_C_SOURCE 1
+#endif
+
 #include "video.h"
 #include "memory.h"
 #include "glue.h"
@@ -18,6 +23,7 @@
 #include "i2c.h"
 #include "audio.h"
 
+#include <stdbool.h>
 #include <limits.h>
 #include <stdint.h>
 #include <time.h>
@@ -1855,10 +1861,90 @@ uint8_t video_get_dc_value(uint8_t reg) {
 //
 // if debugOn, read without any side effects (registers & memory unchanged)
 
+static void check_not_readonly(uint8_t reg) {
+	bool wrong = false;
+	switch(io_dcsel) {
+		case 5: {
+			switch(reg) {
+				case 0x0b:		// DCSEL=5 FX_POLY_FILL_L
+				case 0x0c:		// DCSEL=5 FX_POLY_FILL_H
+					wrong=true;
+					break;
+			}
+			break;
+		}
+		case 63: {
+			switch(reg) {
+				case 0x09:		// DCSEL=63 DC_VER0
+				case 0x0a:		// DCSEL=63 DC_VER1
+				case 0x0b:		// DCSEL=63 DC_VER2
+				case 0x0c:		// DCSEL=63 DC_VER3
+					wrong=true;
+					break;
+			}
+			break;
+		}
+	}
+
+	if(wrong)
+		printf("Warning: %04X wrote to read-only VERA register at 9F%02X (DCSEL=%d)\n", opcode_addr, reg+0x20, io_dcsel);
+}
+
+static void check_not_writeonly(uint8_t reg) {
+	bool wrong = false;
+	switch(io_dcsel) {
+		case 2: {
+			switch(reg) {
+				case 0x0a:		// DCSEL=2 FX_TILEBASE
+				case 0x0b:		// DCSEL=2 FX_MAPBASE
+				case 0x0c:		// DCSEL=2 FX_MULT
+					wrong=true;
+					break;
+			}
+			break;
+		}
+		case 3:
+		case 4: {
+			switch(reg) {
+				case 0x09:		// DCSEL=3/4 FX_X_INCR_L/FX_X_POS_L
+				case 0x0a:		// DCSEL=3/4 FX_X_INCR_H/FX_X_POS_H
+				case 0x0b:		// DCSEL=3/4 FX_Y_INCR_L/FX_Y_POS_L
+				case 0x0c:		// DCSEL=3/4 FX_Y_INCR_H/FX_Y_POS_H
+					wrong=true;
+					break;
+			}
+			break;
+		}
+		case 5: {
+			switch(reg) {
+				case 0x09:		// DCSEL=5 FX_X_POS_S
+				case 0x0a:		// DCSEL=5 FX_Y_POS_S
+					wrong=true;
+					break;
+			}
+			break;
+		}
+		case 6: {
+			switch(reg) {
+				case 0x0b:		// DCSEL=6 FX_CACHE_H
+				case 0x0c:		// DCSEL=6 FX_CACHE_U
+					wrong=true;
+					break;
+			}
+			break;
+		}
+	}
+
+	if(wrong)
+		printf("Warning: %04X read from write-only VERA register at 9F%02X (DCSEL=%d)\n", opcode_addr, reg+0x20, io_dcsel);
+}
+
 uint8_t video_read(uint8_t reg, bool debugOn) {
 	bool ntsc_mode = reg_composer[0] & 2;
 	uint16_t scanline = ntsc_mode ? ntsc_scan_pos_y % SCAN_HEIGHT : vga_scan_pos_y;
 	if (scanline >= 512) scanline=511;
+
+	check_not_writeonly(reg);
 
 	switch (reg & 0x1F) {
 		case 0x00: return io_addr[io_addrsel] & 0xff;
@@ -1984,6 +2070,9 @@ void video_write(uint8_t reg, uint8_t value) {
 	// 	printf("ioregisters[0x%02X] = 0x%02X\n", reg, value);
 	// }
 	//	printf("ioregisters[%d] = $%02X\n", reg, value);
+
+	check_not_readonly(reg);
+
 	switch (reg & 0x1F) {
 		case 0x00:
 			if (fx_2bit_poly && fx_4bit_mode && fx_addr1_mode == 2 && io_addrsel == 1) {

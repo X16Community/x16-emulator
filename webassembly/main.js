@@ -74,17 +74,34 @@ var ram_val = url.searchParams.get("ram");
 var cpu_val = url.searchParams.get("cpu");
 var mhz_val = url.searchParams.get("mhz");
 var lang_val = url.searchParams.get("keymap");
+var model_val = url.searchParams.get("model");
 var diag = url.searchParams.get("longpwron");
 var wide = url.searchParams.get("widescreen");
 var capture = url.searchParams.get("capture");
 var midline = url.searchParams.get("midlineeffects");
+var joy1 = url.searchParams.get("joy1");
+var joy2 = url.searchParams.get("joy2");
+var joy3 = url.searchParams.get("joy3");
+var joy4 = url.searchParams.get("joy4");
+
+var gen1 = true;
+
+if (lang_val) {
+    lang = lang_val;
+}
 
 var emuArguments = ['-keymap', lang, '-rtc'];
 
+if (model_val) {
+    if (model_val === 'gs') {
+        gen1 = false;
+        emuArguments.push('-gs');
+    }
+}
 if (ram_val) {
     emuArguments.push('-ram', ram_val);
 }
-if (cpu_val) {
+if (cpu_val && gen1) {
     if (cpu_val == 'c816') {
         emuArguments.push('-c816');
     } else if (cpu_val == 'c02') {
@@ -93,9 +110,6 @@ if (cpu_val) {
 }
 if (mhz_val) {
     emuArguments.push('-mhz', mhz_val);
-}
-if (lang_val) {
-    emuArguments.push('-keymap', lang_val);
 }
 if (diag != null) {
     emuArguments.push('-longpwron');
@@ -109,6 +123,19 @@ if (capture != null) {
 if (midline != null) {
     emuArguments.push('-midline-effects');
 }
+if (joy1 != null) {
+    emuArguments.push('-joy1');
+}
+if (joy2 != null) {
+    emuArguments.push('-joy2');
+}
+if (joy3 != null) {
+    emuArguments.push('-joy3');
+}
+if (joy4 != null) {
+    emuArguments.push('-joy4');
+}
+logOutput("Emulator arguments: "+emuArguments);
 
 if (manifest_link) {
     openFs();
@@ -338,8 +365,6 @@ function extractManifestFromBuffer(zip) {
                     emuArguments.push('-ram', manifestObject.ram);
                 }
 
-                let gen1 = true;
-
                 if (manifestObject.model) {
                     console.log('Found model: '+manifestObject.model);
                     if (manifestObject.model === 'gs') {
@@ -348,7 +373,7 @@ function extractManifestFromBuffer(zip) {
                     }
                 }
 
-                if (gen1 === true && manifestObject.cpu) {
+                if (gen1 && manifestObject.cpu) {
                     console.log('Found CPU type: '+manifestObject.cpu);
                     if (manifestObject.cpu == 'c816') {
                         emuArguments.push('-c816');
@@ -379,6 +404,22 @@ function extractManifestFromBuffer(zip) {
                 if (manifestObject.midlineeffects) {
                     console.log('Found midlineeffects variable');
                     emuArguments.push('-midline-effects');
+                }
+                if (manifestObject.joy1) {
+                    console.log('Found joy1 variable');
+                    emuArguments.push('-joy1');
+                }
+                if (manifestObject.joy2) {
+                    console.log('Found joy2 variable');
+                    emuArguments.push('-joy2');
+                }
+                if (manifestObject.joy3) {
+                    console.log('Found joy3 variable');
+                    emuArguments.push('-joy3');
+                }
+                if (manifestObject.joy4) {
+                    console.log('Found joy4 variable');
+                    emuArguments.push('-joy4');
                 }
 
                 const promises = [];

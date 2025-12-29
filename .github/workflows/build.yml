@@ -40,7 +40,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2 mingw-w64-x86_64-fluidsynth
+          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2 mingw-w64-x86_64-fluidsynth mingw-w64-x86_64-cmake
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
@@ -65,7 +65,12 @@ jobs:
         run: |
           git reset --hard
           git diff
-          TRACE=1 FLUIDSYNTH=1 CROSS_COMPILE_WINDOWS=1 SDL2CONFIG=sdl2-config make V=1 -j2
+          mkdir build
+          cd build
+          cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+          cmake --build .
+      - name: Package Emulator
+        run: |
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
           cp $(which zlib1.dll) emu_binaries/.
@@ -91,8 +96,8 @@ jobs:
           cp $(which libvorbis-0.dll) emu_binaries/.
           cp $(which libvorbisenc-2.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
-          cp x16emu.exe emu_binaries/.
-          cp makecart.exe emu_binaries/.
+          cp build/x16emu.exe emu_binaries/.
+          cp build/makecart.exe emu_binaries/.
           file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -121,15 +126,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: MINGW32
           update: true
-          install: make git mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2 mingw-w64-i686-fluidsynth
+          install: make git mingw-w64-i686-toolchain mingw-w64-i686-libelf mingw-w64-i686-SDL2 mingw-w64-i686-fluidsynth mingw-w64-i686-cmake
           path-type: inherit
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Add /mingw32/bin to path
-        run: echo "/mingw32/bin" >> $GITHUB_PATH
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
@@ -151,7 +154,12 @@ jobs:
         run: |
           git reset --hard
           git diff
-          TRACE=1 FLUIDSYNTH=1 WIN_SDL2=/mingw32 TARGET_CPU=x86 CROSS_COMPILE_WINDOWS=1 make V=1 -j2
+          mkdir build
+          cd build
+          cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+          cmake --build .
+      - name: Package Emulator
+        run: |
           mkdir emu_binaries
           cp $(which SDL2.dll) emu_binaries/.
           cp $(which zlib1.dll) emu_binaries/.
@@ -177,8 +185,8 @@ jobs:
           cp $(which libvorbis-0.dll) emu_binaries/.
           cp $(which libvorbisenc-2.dll) emu_binaries/.
           cp sdcard.img.zip emu_binaries/.
-          cp x16emu.exe emu_binaries/.
-          cp makecart.exe emu_binaries/.
+          cp build/x16emu.exe emu_binaries/.
+          cp build/makecart.exe emu_binaries/.
           file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -197,7 +205,7 @@ jobs:
           name: x16emu_win32
           path: emu_binaries/*
   build-linux-x86_64:
-    needs: [README]  
+    needs: [README]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -209,7 +217,7 @@ jobs:
           sudo cp /etc/apt/sources.list /etc/apt/sources.list~
           sudo sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list
           sudo apt-get update
-          sudo apt-get install -y build-essential make libsdl2-dev libfluidsynth-dev
+          sudo apt-get install -y build-essential make libsdl2-dev libfluidsynth-dev cmake
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
@@ -227,11 +235,18 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 FLUIDSYNTH=1 make V=1 -j3
+          git reset --hard
+          git diff
+          mkdir build
+          cd build
+          cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+          cmake --build .
+      - name: Package Emulator
+        run: |
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
+          cp build/x16emu emu_binaries/.
+          cp build/makecart emu_binaries/.
           file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -285,12 +300,17 @@ jobs:
           copy_artifact_path: emu_binaries
           commands: |
             apt-get update
-            apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev
-            TRACE=1 FLUIDSYNTH=1 make V=1 -j3
+            apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev cmake
+            mkdir build
+            cd build
+            git reset --hard
+            cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+            cmake --build .
+            cd ..
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
-            cp x16emu emu_binaries/.
-            cp makecart emu_binaries/.
+            cp build/x16emu emu_binaries/.
+            cp build/makecart emu_binaries/.
             file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -345,12 +365,17 @@ jobs:
           copy_artifact_path: emu_binaries
           commands: |
             apt-get update
-            apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev
-            TRACE=1 FLUIDSYNTH=1 make V=1 -j3
+            apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev cmake
+            mkdir build
+            cd build
+            git reset --hard
+            cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+            cmake --build .
+            cd ..
             mkdir emu_binaries
             cp sdcard.img.zip emu_binaries/.
-            cp x16emu emu_binaries/.
-            cp makecart emu_binaries/.
+            cp build/x16emu emu_binaries/.
+            cp build/makecart emu_binaries/.
             file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -371,13 +396,13 @@ jobs:
           path: emu_binaries/*
   build-macos-x86_64:
     needs: [README]
-    # this is currently macos-13, Ventura
-    runs-on: macos-13
+    # this is currently macos-15, Sequoia
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: | 
-          brew install make sdl2 fluid-synth
+        run: |
+          brew install make sdl2 fluid-synth # cmake is likely here or pulled in
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
@@ -398,11 +423,16 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/usr/local/Cellar/sdl2/*/lib/libSDL2.a HOMEBREW_LIB=/usr/local/lib make V=1 -j3
+          mkdir build
+          cd build
+          cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+          cmake --build .
+      - name: Package Emulator
+        run: |
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
+          cp build/x16emu emu_binaries/.
+          cp build/makecart emu_binaries/.
           file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -448,11 +478,16 @@ jobs:
           cp latest_rom/*.h src/.
       - name: Build Emulator
         run: |
-          TRACE=1 MAC_STATIC=1 LIBSDL_FILE=/opt/homebrew/Cellar/sdl2/*/lib/libSDL2.a ADDL_INCLUDE=/opt/homebrew/include HOMEBREW_LIB=/opt/homebrew/lib FLUIDSYNTH=1 make V=1 -j3
+          mkdir build
+          cd build
+          cmake .. -DENABLE_FLUIDSYNTH=ON -DENABLE_TRACE=ON
+          cmake --build .
+      - name: Package Emulator
+        run: |
           mkdir emu_binaries
           cp sdcard.img.zip emu_binaries/.
-          cp x16emu emu_binaries/.
-          cp makecart emu_binaries/.
+          cp build/x16emu emu_binaries/.
+          cp build/makecart emu_binaries/.
           file emu_binaries/*
       - name: Copy ROM
         run: |
@@ -475,7 +510,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev
+        run: sudo apt-get update && sudo apt-get install -y build-essential make libsdl2-dev cmake
       - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-python@v5
         with:
@@ -495,14 +530,17 @@ jobs:
       - name: Copy ROM symbols
         run: |
           cp latest_rom/*.h src/.
-      - name: Copy ROM
-        run: |
-          cp latest_rom/rom.bin .
       - name: Build Emulator
         run: |
-          make V=1 -j3 wasm
+          mkdir build
+          cp latest_rom/rom.bin build
+          cd build
+          emcmake cmake .. -DENABLE_FLUIDSYNTH=OFF -DENABLE_TRACE=OFF
+          emmake make
+      - name: Package Emulator
+        run: |
           mkdir emu_binaries
-          cp x16emu.data x16emu.html x16emu.js x16emu.wasm emu_binaries/
+          cp build/x16emu.data build/x16emu.html build/x16emu.js build/x16emu.wasm emu_binaries/
           mkdir emu_binaries/webassembly
           cp webassembly/styles.css webassembly/main.js webassembly/jszip.min.js emu_binaries/webassembly/
           file emu_binaries/*

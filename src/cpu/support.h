@@ -206,3 +206,6 @@ static uint32_t addr_with_db(uint16_t addr) {
     return mask_long_addr(as_bank_byte(regs.db) | addr);
 }
 
+static uint32_t addr_with_k(uint16_t addr) {
+    return mask_long_addr(as_bank_byte(regs.k) | addr);
+}
