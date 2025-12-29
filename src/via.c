@@ -13,6 +13,13 @@
 //XXX
 #include "glue.h"
 #include "joystick.h"
+#include "dylib.h"
+#include "user_pins.h"
+
+#define CA1 (1 << 0)
+#define CA2 (1 << 1)
+#define CB1 (1 << 2)
+#define CB2 (1 << 3)
 
 typedef struct {
 	unsigned timer_count[2];
@@ -21,6 +28,7 @@ typedef struct {
 	bool timer1_m1;
 	bool timer_running[2];
 	bool pb7_output;
+	uint8_t cacb;
 } via_t;
 
 static via_t via[2];
@@ -38,6 +46,7 @@ via_init(via_t *via)
 	via->timer_running[1] = false;
 	via->timer1_m1 = false;
 	via->pb7_output = true;
+	via->cacb = 0;
 }
 
 static void
@@ -331,32 +340,168 @@ via1_irq()
 // for now, just assume that all user ports are not connected
 // and reads return output register (open bus behavior)
 
+
+static bool attempt_peripheral_load = true;
+static LIBRARY_TYPE user_peripheral_dl = NULL;
+static user_port_init_t user_port_init = NULL;
+
+static user_port_t user_port;
+
+static char const *user_port_last_error = "OK";
+
+static void
+user_port_set_error(char const *err)
+{
+	static char last_error_buf[256];
+	if (err) {
+		strncpy(last_error_buf, err, sizeof(last_error_buf));
+		user_port_last_error = last_error_buf;
+	} else {
+		user_port_last_error = "OK";
+	}
+}
+
 void
-via2_init()
+via2_init(char const *user_peripheral_plugin_path)
 {
 	via_init(&via[1]);
+	if (attempt_peripheral_load && user_peripheral_plugin_path) {
+		attempt_peripheral_load = false;
+		user_peripheral_dl = LOAD_LIBRARY(user_peripheral_plugin_path);
+		if (user_peripheral_dl) {
+			user_port_init = GET_FUNCTION(user_peripheral_dl, "x16_user_port_init");
+		}
+		if (user_peripheral_dl == NULL || user_port_init == NULL) {
+			fprintf(stderr, "failed to load user peripheral %s:\n\t%s\n",
+			       user_peripheral_plugin_path, LIBRARY_ERROR());
+			fprintf(stderr, "continuing with empty user port.\n");
+			if (user_peripheral_dl) CLOSE_LIBRARY(user_peripheral_dl);
+		}
+	}
+	// TODO Do we really want to reset the user peripherals every time?
+	if (user_port_init) {
+		if (user_port.cleanup) user_port.cleanup(false, user_port.userdata);
+		bool error = false;
+		user_port_init_args_t init_args = {
+			.api_version = X16_USER_PORT_API_VERSION,
+			.set_error = user_port_set_error,
+		};
+		if (user_port_init(&init_args, &user_port) < 0) {
+			fprintf(stderr, "error initializing user peripheral: %s\n", user_port_last_error);
+			error = true;
+		}
+		else if (user_port.api_version != X16_USER_PORT_API_VERSION) {
+			fprintf(stderr, "user peripheral version mismatch: expected: %d, got: %d\n",
+					X16_USER_PORT_API_VERSION, user_port.api_version);
+			error = true;
+		}
+		if (error) {
+			user_port_init = NULL;
+			memset(&user_port, 0, sizeof(user_port));
+		}
+	}
 }
 
 uint8_t
 via2_read(uint8_t reg, bool debug)
 {
-	return via_read(&via[1], reg, debug);
+	uint8_t regval = via_read(&via[1], reg, debug);
+	if (user_port.read) {
+		switch (reg) {
+			case 0: {
+				uint8_t mask = user_port.connected_pins >> 8; // PB is 2nd byte
+				if (mask) {
+					uint8_t user_pins = user_port.read(user_port.userdata) >> 8;
+					// PB only returns pin values on inputs
+					mask &= ~via[1].registers[2];
+					return (regval & ~mask) | (user_pins & mask);
+				}
+				break;
+			}
+			case 1:
+			case 15: {
+				uint8_t mask = user_port.connected_pins; // PA is 1st byte
+				if (mask) {
+					uint8_t user_pins = user_port.read(user_port.userdata);
+					// Port A always returns pin values on a read, even on output pins
+					return (regval & ~mask) | (user_pins & mask);
+				}
+				break;
+			}
+		}
+	}
+	return regval;
 }
 
 void
 via2_write(uint8_t reg, uint8_t value)
 {
 	via_write(&via[1], reg, value);
+	switch (reg) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 15: {
+			if (user_port.write) {
+				user_pin_t pa = via[1].registers[1] & via[1].registers[3];
+				user_pin_t pb = via[1].registers[0] & via[1].registers[2];
+				user_pin_t pins = (pa | (pb << 8)) & user_port.connected_pins;
+				user_port.write(pins, user_port.userdata);
+			}
+			break;
+		}
+	}
 }
 
 void
 via2_step(unsigned clocks)
 {
-	via_step(&via[1], clocks);
+ 	via_step(&via[1], clocks);
+	if (user_port.step) {
+		user_pin_t pins = user_port.step((double)clocks * 1000.0 / MHZ, user_port.userdata);
+		// TODO CA2/CB2
+		if (user_port.connected_pins & CA1_PIN) {
+			uint8_t new_ca1 = pins & CA1_PIN ? CA1 : 0;
+			if (new_ca1 != (via[1].cacb & CA1)) {
+				bool ca1_positive_active_edge = via[1].registers[12] & 0x01;
+				if ((ca1_positive_active_edge && new_ca1) || (!ca1_positive_active_edge && !new_ca1))
+					via[1].registers[13] |= 0x02;
+			}
+			via[1].cacb &= ~CA1;
+			via[1].cacb |= new_ca1;
+		}
+		// CB1 shares a user pin with PB6, so only check if it's an input
+		if ((user_port.connected_pins & CB1_PIN) && !(via[1].registers[2] & 0x40)) {
+			uint8_t new_cb1 = pins & CB1_PIN ? CB1 : 0;
+			if (new_cb1 != (via[1].cacb & CB1)) {
+				bool cb1_positive_active_edge = via[1].registers[12] & 0x10;
+				if ((cb1_positive_active_edge && new_cb1) || (!cb1_positive_active_edge && !new_cb1))
+					via[1].registers[13] |= 0x10;
+			}
+			via[1].cacb &= ~CB1;
+			via[1].cacb |= new_cb1;
+		}
+
+		// We could update input pin values here, but it doesn't really matter unless they
+		// fire interrupts. The state of the pins is invisible until the cpu invokes
+		// [via2_read].
+	}
 }
 
 bool
 via2_irq()
 {
 	return (via[1].registers[13] & via[1].registers[14]) != 0;
+}
+
+void
+via2_shutdown()
+{
+	if (user_peripheral_dl) {
+		if (user_port.cleanup) user_port.cleanup(true, user_port.userdata);
+		user_port_init = NULL;
+		CLOSE_LIBRARY(user_peripheral_dl);
+		user_peripheral_dl = NULL;
+	}
 }
