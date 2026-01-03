@@ -128,6 +128,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-sound <device>` can be used to specify the output sound device. If 'none', no audio is generated.
 * `-abufs` can be used to specify the number of audio buffers (defaults to 8 when using the SD card, 32 when using HostFS). If you're experiencing stuttering in the audio, try increasing this number. This will result in additional audio latency though.
 * `-via2` installs the second VIA chip expansion at $9F10.
+* `-via2-socket <socket>` Use a socket to emulate VIA2 I/O. Currently only UNIX / POSIX are supported. The emulator opens this socket as a client, so it must be set up in advance. The -via2 option must be specified along with this option. See [Using -via2-socket](#via2-socket) for sample server and client code.
 * `-midline-effects` enables mid-scanline raster effects at the cost of vastly increased host CPU usage.
 * `-mhz <integer>` sets the emulated CPU's speed. Range is from 1-40. This option is mainly for testing and benchmarking.
 * `-enable-ym2151-irq` connects the YM2151's IRQ pin to the system's IRQ line with a modest increase in host CPU usage.
@@ -449,6 +450,113 @@ The debugger keys are similar to the Microsoft Debugger shortcut keys, and work 
 When `-debug` is selected the STP instruction (opcode $DB) will break into the debugger automatically.
 
 Keyboard routines only work when the emulator is running normally. Single stepping through keyboard code will not work at present.
+
+<a name="via2-socket"></a>
+Using -via2-socket
+------------------
+
+Reads from and writes to both `$9F10` and `$9F11` (VIA ports A and B) are forwarded to the socket.
+
+There are no restrictions to the protocols used except that a value of `255` is reserved for "no data yet" when reading in the emulator.
+
+The following example demonstrates a simple bidirectional chat interface implemented using the `-via2-socket` option. It uses a protocol where `0` indicates the end of a line. Note the special handling of `255` in the client.
+
+### Sample server (Python)
+
+Save as `via2.py`:
+
+```python
+#!/usr/bin/env python3
+import os
+import socket
+import subprocess
+import sys
+
+SOCKET_PATH = "/tmp/via2.sock"
+CHAT_EOL = b'\x00'
+
+# Remove old socket if present
+try:
+    os.unlink(SOCKET_PATH)
+except FileNotFoundError:
+    pass
+
+# Create UNIX domain socket
+server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+server.bind(SOCKET_PATH)
+server.listen(1)
+
+print("Waiting for emulator...")
+
+# Launch emulator AFTER socket is ready
+subprocess.Popen([
+    "./x16emu",
+    "-scale", "2",
+    "-via2",
+    "-via2-socket", SOCKET_PATH,
+    "-bas", "VIA2.BAS",
+    "-run"
+], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+# Accept connection
+conn, _ = server.accept()
+print("Emulator connected.")
+
+try:
+    while True:
+        # ---- RECEIVE STRING ----
+        buf = bytearray()
+        while True:
+            b = conn.recv(1)
+            if not b:
+                raise ConnectionError("Socket closed")
+            if b == CHAT_EOL:
+                break
+            buf += b
+
+        text = buf.decode(errors="replace")
+        print("> " + text)
+
+        if text == "":
+            break
+
+        # ---- SEND RESPONSE ----
+        reply = input("MESSAGE? ").upper().encode() + CHAT_EOL
+        conn.sendall(reply)
+
+finally:
+    try:
+        conn.close()
+    except Exception:
+        pass
+    server.close()
+    try:
+        os.unlink(SOCKET_PATH)
+    except FileNotFoundError:
+        pass
+```
+
+### Sample client (Commander X16 BASIC)
+
+Save as `VIA2.BAS`:
+
+```basic
+100 REM VIA2 ACTS AS A BYTE-SERIAL DEVICE VIA SOCKET BRIDGE
+110 T$ = ""
+120 INPUT "MESSAGE (EMPTY LINE TO QUIT)"; T$
+130 REM WRITE T$ TO VIA2
+140 IF T$ = "" THEN GOTO 160
+150 FOR I = 1 TO LEN(T$): POKE $9F10, ASC(MID$(T$, I, 1)): NEXT I
+160 POKE $9F10, 0: REM END OF LINE
+170 IF T$ = "" THEN END
+180 REM READ T$ FROM VIA2
+190 T$ = ""
+200 B = PEEK($9F10)
+210 IF B = 255 THEN FOR I = 1 TO 20: NEXT I: GOTO 200: REM NO DATA YET
+220 IF B = 0 THEN GOTO 240: REM END OF LINE
+230 T$ = T$ + CHR$(B): GOTO 200
+240 PRINT "> "; T$: GOTO 110
+```
 
 CRT File Format
 ---------------
