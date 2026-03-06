@@ -1027,6 +1027,7 @@ render_line(uint16_t y, float scan_pos_x)
 
 	uint8_t dc_video = reg_composer[0];
 	uint16_t vstart = reg_composer[6] << 1;
+	uint16_t vstop = reg_composer[7] << 1;
 
 	if (y != y_prev) {
 		y_prev = y;
@@ -1051,13 +1052,13 @@ render_line(uint16_t y, float scan_pos_x)
 		if ((dc_video & 3) > 1) { // 480i or 240p
 			if ((y >> 1) == 0) {
 				eff_y_fp = y*(prev_reg_composer[1][2] << 9);
-			} else if ((y & 0xfffe) > vstart) {
+			} else if ( ((y & 0xfffe) >= vstart) && ((y & 0xfffe) < vstop) ) {
 				eff_y_fp += (prev_reg_composer[1][2] << 10);
 			}
 		} else {
 			if (y == 0) {
 				eff_y_fp = 0;
-			} else if (y > vstart) {
+			} else if ( (y >= vstart) && (y < vstop) ) {
 				eff_y_fp += (prev_reg_composer[1][2] << 9);
 			}
 		}
@@ -1090,7 +1091,6 @@ render_line(uint16_t y, float scan_pos_x)
 	uint8_t border_color = reg_composer[3];
 	uint16_t hstart = reg_composer[4] << 2;
 	uint16_t hstop = reg_composer[5] << 2;
-	uint16_t vstop = reg_composer[7] << 1;
 
 	uint16_t eff_y = (eff_y_fp >> 16);
 	if (eff_y >= 480) eff_y = 480 - (y & 1);
