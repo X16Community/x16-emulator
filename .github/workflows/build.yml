@@ -514,7 +514,7 @@ jobs:
       - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.14'
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
         run: |
