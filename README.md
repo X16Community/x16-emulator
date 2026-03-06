@@ -420,6 +420,7 @@ The debugger uses its own command line with the following syntax:
 |d %x|Change the code panel to view disassembly starting from the address %x.|
 |m %x|Change the data panel to view memory starting from the address %x.|
 |v %x|Display VERA RAM (VRAM) starting from address %x.|
+|f&#160;%x&#160;%v&#160;[%n]|Fill memory address %x with value %v, optionally for %n number of bytes. In banked memory, the bank currently being displayed in the data panel is used, otherwise bank 0
 |b %s %d|Changes the current memory bank for disassembly and data. The %s param can be either 'ram' or 'rom', the %d is the memory bank to display (but see NOTE below!).|
 |r %s %x|Changes the value in the specified register. Valid registers in the %s param are 'pc', 'a', 'b', 'c', 'd', 'k', 'dbr', 'x', 'y', and 'sp'. %x is the value to store in that register.|
 
