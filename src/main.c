@@ -115,6 +115,7 @@ bool set_system_time = false;
 bool has_serial = false;
 bool no_ieee_intercept = false;
 bool has_via2 = false;
+char *via2_socket = NULL;
 gif_recorder_state_t record_gif = RECORD_GIF_DISABLED;
 char *gif_path = NULL;
 char *wav_path = NULL;
@@ -514,6 +515,11 @@ usage()
 	printf("\tSet the real-time-clock to the current system time and date.\n");
 	printf("-via2\n");
 	printf("\tInstall the second VIA chip expansion at $9F10\n");
+	printf("-via2-socket <socket>\n");
+	printf("\tUse a socket to emulate VIA2 I/O. Currently only UNIX / POSIX are\n");
+	printf("\tsupported. The emulator opens this socket as a client, so it must be\n");
+	printf("\tset up in advance. The -via2 option must be specified along with\n");
+	printf("\tthis option.\n");
 	printf("-testbench\n");
 	printf("\tHeadless mode for unit testing with an external test runner\n");
 	printf("-mhz <integer>\n");
@@ -1088,6 +1094,15 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			has_via2 = true;
+		} else if (!strcmp(argv[0], "-via2-socket")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			via2_socket = argv[0];
+			argc--;
+			argv++;
 		} else if (!strcmp(argv[0], "-version")){
 			printf("%s", VER_INFO);
 #ifdef GIT_REV
@@ -1310,6 +1325,7 @@ void main_shutdown() {
 		cartridge_unload();
 	}
 	files_shutdown();
+	via2_shutdown();
 
 #ifdef PERFSTAT
 	for (int pc = 0xc000; pc < sizeof(stat)/sizeof(*stat); pc++) {
