@@ -974,7 +974,8 @@ render_layer_line_bitmap(uint8_t layer, uint16_t y)
 		int xx = x % props->tilew;
 
 		// extract all information from the map
-		uint8_t palette_offset = reg_layer[layer][4] & 0xf;
+		// palette offset is ignored in 1bpp bitmap mode
+		uint8_t palette_offset = props->bits_per_pixel > 1 ? reg_layer[layer][4] & 0xf : 0;
 
 		// additional bytes to reach the correct column of the tile
 		uint16_t x_add = (xx * props->bits_per_pixel) >> 3;
