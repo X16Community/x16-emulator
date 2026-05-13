@@ -44,6 +44,7 @@
 #include "cartridge.h"
 #include "midi.h"
 #include "git_rev.h"
+#include "extern/serialuart/serialuart_wrapper.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -120,6 +121,8 @@ char *gif_path = NULL;
 char *wav_path = NULL;
 uint8_t *fsroot_path = NULL;
 uint8_t *startin_path = NULL;
+uint8_t *uart1_path = NULL;
+uint8_t *uart2_path = NULL;
 uint8_t keymap = 0; // KERNAL's default
 int window_scale = 1;
 float screen_x_scale = 1.0;
@@ -135,6 +138,15 @@ char *cartridge_path = NULL;
 
 bool has_midi_card = false;
 uint16_t midi_card_addr;
+
+//Serial UART Setup
+bool has_uart1 = false;
+uint16_t uart1_addr = 0x9fe0;
+serialuartTL16C2550Handle uart1 = NULL;
+
+bool has_uart2 = false;
+uint16_t uart2_addr = 0x9fe8;
+serialuartTL16C2550Handle uart2 = NULL;
 
 bool using_hostfs = true;
 
@@ -340,6 +352,41 @@ machine_reset()
 	mouse_state_init();
 	reset6502(regs.is65c816);
 	midi_serial_init();
+	
+	//User requested Serial UART - need to check
+	if(has_uart1){
+		if(uart1 != NULL){
+			uart_destroy(uart1);
+		}
+		uart1 = uartCreate();
+		if(uart1 != NULL){
+			if (uart_init( uart1, (char*)uart1_path ) ){
+					has_uart1=false;
+			}
+			else{
+				printf("UART1 succesuflly mapped to address: $%04x\n", uart1_addr);
+			}
+		} else {
+			has_uart1=false;
+		}
+	}
+	if(has_uart2){
+		if(uart2 != NULL){
+			uart_destroy(uart2);
+		}
+	
+		uart2 = uartCreate();
+		if(uart2 != NULL){
+			if (uart_init( uart2, (char*)uart2_path ) ){
+					has_uart2=false;
+			}
+			else{
+				printf("UART2 succesuflly mapped to address: $%04x\n", uart2_addr);
+			}
+		} else {
+			has_uart2=false;
+		}
+	}
 }
 
 void
@@ -546,6 +593,15 @@ usage()
 	printf("\tConnect the system MIDI input devices to the input of the first UART\n");
 	printf("\tof the emulated MIDI card. The -midicard option is required for this\n");
 	printf("\toption to have any effect.\n");
+	printf("-uart1 [<COM port>]\n\texample: [/dev/ttyUSB0] (Posix) COM1 (Windows)\n");
+	printf("\tConnect the system COM port devices to the the first UART\n");
+	printf("\tThis option is experimental.\n");
+	printf("-uart2 [<COM port>]\n\texample: /dev/ttyACM0 (Posix) COM2 (Windows)\n");
+	printf("\tConnect the system COM port devices to the the second UART\n");
+	printf("\tThis option is experimental.\n");
+	printf("-uartaddr [<address>]\n");
+	printf("\tIf not specified, defaults to '$9FE0'\n\tUART2 is alwasy UART1 address + 8.\n");
+	printf("\tThis option is experimental.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -1145,6 +1201,46 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			warn_rockwell = false;
+		} else if (!strcmp(argv[0], "-uart1")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			uart1_path = (uint8_t *)argv[0];
+			argc--;
+			argv++;
+			has_uart1=true;
+			
+		} else if (!strcmp(argv[0], "-uartaddr")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			
+			if (argc && argv[0][0] != '-') {
+				//Force to memory mapped addresses only
+				uart1_addr = 0x9f00 | ((uint16_t)strtol(argv[0], NULL, 16) & 0xff);
+				argc--;
+				argv++;
+			} else {
+				uart1_addr = 0x9fe0;
+			}
+			
+			uart2_addr = uart1_addr+8;
+
+		} else if (!strcmp(argv[0], "-uart2")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			uart2_path = (uint8_t *)argv[0];
+			argc--;
+			argv++;
+			has_uart2=true;
+
 		} else {
 			usage();
 		}
@@ -1197,6 +1293,20 @@ main(int argc, char **argv)
 	} else if (sf2_path || has_midi_card) {
 		fprintf(stderr, "Warning: -sf2 and -midicard must be specified together in order to enable the MIDI synth.\n");
 		has_midi_card = false;
+	}
+	
+	if (has_uart2 || has_uart1) {
+		//Techincally cannot be less than 0x9f0 due to above code in argument parsing.
+		if (uart1_addr < 0x9f60 || uart1_addr>0x9ff8) {
+			fprintf(stderr, "Warning: Serial UART card address must be in the range of 9F60-9FF8, Unabled to connect\n");
+			has_uart1 = has_uart2 = false;
+		}
+
+		//Make sure to stay in memory mapped range.
+		if(has_uart2 && uart1_addr>0x9ff0){
+			has_uart2=false;
+			fprintf(stderr, "Warning: Serial UART1 card address must be in the range of 9F60-9FF0 when using two UARTs, Unabled to connect\n");
+		}
 	}
 
 	if (cartridge_path) {
@@ -1768,7 +1878,7 @@ emulator_loop(void *param)
 			audio_render();
 		}
 
-		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq()) || (has_midi_card && midi_serial_irq())) {
+		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq()) || (has_midi_card && midi_serial_irq()) || (has_uart1 && uart_irqPending(uart1)) || (has_uart2 && uart_irqPending(uart2)) ) {
 //			printf("IRQ!\n");
 			irq6502();
 		}
