@@ -1220,8 +1220,8 @@ main(int argc, char **argv)
 			}
 			
 			if (argc && argv[0][0] != '-') {
+				//Force to memory mapped addresses only
 				uart1_addr = 0x9f00 | ((uint16_t)strtol(argv[0], NULL, 16) & 0xff);
-				//uart1_addr &= 0xfff0;
 				argc--;
 				argv++;
 			} else {
