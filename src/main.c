@@ -363,6 +363,9 @@ machine_reset()
 			if (uart_init( uart1, (char*)uart1_path ) ){
 					has_uart1=false;
 			}
+			else{
+				printf("UART1 succesuflly mapped to address: $%04x\n", uart1_addr);
+			}
 		} else {
 			has_uart1=false;
 		}
@@ -376,6 +379,9 @@ machine_reset()
 		if(uart2 != NULL){
 			if (uart_init( uart2, (char*)uart2_path ) ){
 					has_uart2=false;
+			}
+			else{
+				printf("UART2 succesuflly mapped to address: $%04x\n", uart2_addr);
 			}
 		} else {
 			has_uart2=false;
@@ -1290,9 +1296,16 @@ main(int argc, char **argv)
 	}
 	
 	if (has_uart2 || has_uart1) {
-		if (uart1_addr < 0x9f60 ) {
-			fprintf(stderr, "Warning: Serial UART card address must be in the range of 9F60-9FF0, Unabled to connect\n");
+		//Techincally cannot be less than 0x9f0 due to above code in argument parsing.
+		if (uart1_addr < 0x9f60 || uart1_addr>0x9ff8) {
+			fprintf(stderr, "Warning: Serial UART card address must be in the range of 9F60-9FF8, Unabled to connect\n");
 			has_uart1 = has_uart2 = false;
+		}
+
+		//Make sure to stay in memory mapped range.
+		if(has_uart2 && uart1_addr>0x9ff0){
+			has_uart2=false;
+			fprintf(stderr, "Warning: Serial UART1 card address must be in the range of 9F60-9FF0 when using two UARTs, Unabled to connect\n");
 		}
 	}
 

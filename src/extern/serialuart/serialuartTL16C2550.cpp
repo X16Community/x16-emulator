@@ -944,7 +944,7 @@ int serialuartTL16C2550::init(char *port){
 #endif
     path += (char *)port;
 
-    std::cout << "Attempting: " << path << ", ";
+    std::cout << "Trying port: " << path << " - ";
     int errorOpening = this->serialPort.openDevice(path.c_str(), 9600);
 
     if (errorOpening != 1) {
