@@ -108,6 +108,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         shell: cmd
         env:
@@ -197,6 +198,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -257,6 +259,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -322,6 +325,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -387,6 +391,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -443,6 +448,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -498,6 +504,7 @@ jobs:
           name: readme-pdf
           path: emu_binaries
       - name: Fetch x16-docs PDFs
+        if: github.event.pull_request.head.repo.fork == false
         run: gh run download -R X16Community/x16-docs -n x16-docs-pdf --dir emu_binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
