@@ -83,6 +83,7 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-prg <app.prg>[,<load_addr>]` lets you specify a `.prg` file that gets loaded after start. It is fetched from the host filesystem, even if an SD card is attached. The override load address is hex without a prefix.
 * `-bas <app.txt>` lets you specify a BASIC program in ASCII format that automatically typed in (and tokenized).
 * `-run` executes the application specified through `-prg` or `-bas` using `RUN`.
+* `-test <number>` runs the specified unit test on startup.
 * `-scale {1|2|3|4}` scales video output to an integer multiple of 640x480
 * `-quality {nearest|linear|best}` change image scaling algorithm quality
     * `nearest`: nearest pixel sampling
@@ -136,8 +137,12 @@ When starting `x16emu` without arguments, it will pick up the system ROM (`rom.b
 * `-version` prints additional version information of the emulator and ROM.
 * `-c02` selects the 65C02 CPU (default).
 * `-c816` selects the 65C816 CPU (experimental).
+* `-gs` selects GS mode (24-bit addressable RAM, 65C816 CPU).
 * `-rockwell` when used while running with the 65C02 CPU, suppresses the console warning emitted on the first occurence when executing a Rockwell instruction. These are the SMBx, RMBx, BBRx, and BBSx instructions. Since these instructions are not supported on the 65C816 processor, such a program using them would not run properly on the 65C816.
 * `-longpwron` Simulate a long press of the power button at system power-on.
+* `-midicard [<address>]` installs a serial MIDI card at the specified address, or at $9F60 by default. The `-sf2` option must be specified along with this option.
+* `-sf2 <SoundFont filename>` initializes the MIDI synth with the specified SoundFont. The `-midicard` option must be specified along with this option.
+* `-midi-in` connects the system MIDI input devices to the input of the first UART of the emulated MIDI card. The `-midicard` option is required for this option to have any effect.
 * When compiled with `#define TRACE`, `-trace` will enable an instruction trace on stdout.
 
 Run `x16emu -h` to see all command line options.
