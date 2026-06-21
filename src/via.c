@@ -25,6 +25,17 @@ typedef struct {
 
 static via_t via[2];
 
+#define VIA2_SOCKET_ERROR 0xFF
+
+#ifdef _WIN32
+// Windows not yet supported
+#else // UNIX / POSIX
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+static int via2_socket_fd = -1;
+#endif
+
 // only internal logic is handled here, see via1/2 calls for external
 // operations specific to each unit
 
@@ -335,18 +346,56 @@ void
 via2_init()
 {
 	via_init(&via[1]);
+	if (via2_socket) {
+#ifdef _WIN32
+		// Windows not yet supported
+		via2_socket = NULL;
+		activity_led = VIA2_SOCKET_ERROR;
+#else // UNIX / POSIX
+		struct sockaddr_un addr;
+		memset(&addr, 0, sizeof(addr));
+		addr.sun_family = AF_UNIX;
+		strncpy(addr.sun_path, via2_socket, sizeof(addr.sun_path) - 1);
+		if ((via2_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0 || connect(via2_socket_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+			via2_shutdown();
+			// Clear to prevent socket I/O
+			via2_socket = NULL;
+			activity_led = VIA2_SOCKET_ERROR;
+		}
+#endif
+	}
 }
 
 uint8_t
 via2_read(uint8_t reg, bool debug)
 {
-	return via_read(&via[1], reg, debug);
+	uint8_t byte = via_read(&via[1], reg, debug);
+	if (via2_socket && reg <= 1) {
+#ifdef _WIN32
+		// Windows not yet supported
+#else // UNIX / POSIX
+		if (recv(via2_socket_fd, &byte, 1, MSG_DONTWAIT) <= 0) {
+			// Use 0xFF for no data
+			byte = 0xFF;
+		}
+#endif
+	}
+	return byte;
 }
 
 void
 via2_write(uint8_t reg, uint8_t value)
 {
 	via_write(&via[1], reg, value);
+	if (via2_socket && reg <= 1) {
+#ifdef _WIN32
+		// Windows not yet supported
+#else // UNIX / POSIX
+		if (send(via2_socket_fd, &value, 1, 0) <= 0) {
+			activity_led = VIA2_SOCKET_ERROR;
+		}
+#endif
+	}
 }
 
 void
@@ -359,4 +408,15 @@ bool
 via2_irq()
 {
 	return (via[1].registers[13] & via[1].registers[14]) != 0;
+}
+
+void
+via2_shutdown()
+{
+#ifdef _WIN32
+	// Windows not yet supported
+#else // UNIX / POSIX
+	close(via2_socket_fd);
+	via2_socket_fd = -1;
+#endif
 }
