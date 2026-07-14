@@ -61,13 +61,6 @@ const layouts = [
 
 lang = getFirstBrowserLanguage().toLowerCase().trim();
 
-if (layouts.includes(lang)) {
-    logOutput('Using keyboard map: ' + lang);
-} else {
-    logOutput('Language (' + lang + ') not found in keymaps so using keyboard map: en-us');
-    lang = 'en-us';
-}
-
 var url = new URL(window.location.href);
 var manifest_link = url.searchParams.get("manifest");
 var ram_val = url.searchParams.get("ram");
@@ -83,11 +76,19 @@ var joy1 = url.searchParams.get("joy1");
 var joy2 = url.searchParams.get("joy2");
 var joy3 = url.searchParams.get("joy3");
 var joy4 = url.searchParams.get("joy4");
+var run_val = url.searchParams.get("run");
 
 var gen1 = true;
 
 if (lang_val) {
     lang = lang_val;
+}
+
+if (layouts.includes(lang)) {
+    logOutput('Using keyboard map: ' + lang);
+} else {
+    logOutput('Language (' + lang + ') not found in keymaps so using keyboard map: en-us');
+    lang = 'en-us';
 }
 
 var emuArguments = ['-keymap', lang, '-rtc'];
@@ -254,6 +255,9 @@ function loadManifestLink() {
                     } else if (filename.toLowerCase().endsWith('.prg')) {
                         console.log("Loading from PRG.");
                         loadPrg(manifest_link, filename);
+                    } else if (filename.toLowerCase().endsWith('.img')) {
+                        console.log("Loading from IMG.");
+                        loadSD(manifest_link, filename);
                     } else if (filename.toLowerCase().endsWith('.zip')) {
                         console.log("Loading from ZIP.");
                         loadZip(manifest_link);
@@ -268,6 +272,10 @@ function loadManifestLink() {
                     var filename = manifest_link.replace(/^.*[\\\/]/, '');
                     console.log("Loading from PRG.");
                     loadPrg(manifest_link, filename);
+                } else if (manifest_link.toLowerCase().endsWith('.img')) {
+                    var filename = manifest_link.replace(/^.*[\\\/]/, '');
+                    console.log("Loading from IMG.");
+                    loadSD(manifest_link, filename);
                 } else if (manifest_link.toLowerCase().endsWith('.zip')) {
                     console.log("Loading from ZIP.");
                     loadZip(manifest_link);
@@ -321,6 +329,19 @@ function loadPrg(prgFileUrl, filename) {
     FS.createPreloadedFile('/', filename, prgFileUrl, true, true);
     console.log("Starting Emulator...")
     console.log("Emulator arguments: ", emuArguments)
+}
+
+function loadSD(SDFileUrl, filename) {
+    console.log('Adding start IMG:', filename);
+    emuArguments.push('-sdcard', filename);
+    if (run_val!=null) {
+        emuArguments.push('-bas', 'run.bas');
+        if (run_val!='') FS.writeFile('/run.bas', 'LOAD "'+run_val+'",8\nRUN\n');
+        else             FS.writeFile('/run.bas', 'LOAD "*",8\nRUN\n');
+    }
+    FS.createPreloadedFile('/', filename, SDFileUrl, true, true);
+    console.log("Starting Emulator...");
+    console.log("Emulator arguments: ", emuArguments);
 }
 
 function loadZip(zipFileUrl) {
