@@ -202,6 +202,9 @@ set(X16_SOURCES
     src/ymglue.cpp
     src/midi.c
     src/extern/ymfm/src/ymfm_opm.cpp
+    src/extern/serialuart/serialib/serialib.cpp
+	src/extern/serialuart/serialuart_wrapper.cpp
+    src/extern/serialuart/serialuartTL16C2550.cpp
 )
 
 if(WIN32)
