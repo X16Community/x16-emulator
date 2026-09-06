@@ -67,6 +67,7 @@ extern uint16_t num_ram_banks;
 extern bool debugger_enabled;
 extern bool log_video;
 extern bool log_keyboard;
+extern bool suppress_kbd_repeat;
 extern bool log_speed;
 extern echo_mode_t echo_mode;
 extern bool save_on_exit;
