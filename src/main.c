@@ -593,11 +593,17 @@ usage()
 	printf("\tConnect the system MIDI input devices to the input of the first UART\n");
 	printf("\tof the emulated MIDI card. The -midicard option is required for this\n");
 	printf("\toption to have any effect.\n");
-	printf("-uart1 [<COM port>]\n\texample: [/dev/ttyUSB0] (Posix) COM1 (Windows)\n");
-	printf("\tConnect the system COM port devices to the the first UART\n");
+	printf("-uart1 <target>\n");
+	printf("\tConnect the first UART ($9FE0) to <target>, one of:\n");
+	printf("\t  <COM port>   a host serial device, e.g. /dev/ttyUSB0 (Posix) or COM1 (Windows)\n");
+#ifdef HAVE_XIMODEM
+	printf("\t  ximodem      built-in Zimodem virtual modem; no hardware needed, it\n");
+	printf("\t               dials out over this host computer's own network connection\n");
+	printf("\t  ximodem:<dir> same, storing config/phonebook in <dir> (default ./ximodem-data)\n");
+#endif
 	printf("\tThis option is experimental.\n");
-	printf("-uart2 [<COM port>]\n\texample: /dev/ttyACM0 (Posix) COM2 (Windows)\n");
-	printf("\tConnect the system COM port devices to the the second UART\n");
+	printf("-uart2 <target>\n");
+	printf("\tConnect the second UART ($9FE8) to <target> (same choices as -uart1).\n");
 	printf("\tThis option is experimental.\n");
 	printf("-uartaddr [<address>]\n");
 	printf("\tIf not specified, defaults to '$9FE0'\n\tUART2 is alwasy UART1 address + 8.\n");

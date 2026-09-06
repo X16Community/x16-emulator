@@ -5,6 +5,7 @@
 \version  0.3
 \date     September 18th of 2025, by Jason Hill
 \modified March 2026 – Added 16-byte RX/TX FIFOs, threading, and full TL16C2550 interrupt system
+\modified September 2026 – AFE RTS resume-hysteresis (halt at trigger, resume at fifo_level/2) on all backends
 
 This Serial library is used for communication of a physical serial device on the X16 emulator. Simulating
 some aspects of the TL16C2550 for use on personal computers.
@@ -44,6 +45,43 @@ This is a licence-free software, it can be used by anyone who try to build a bet
 //#define VERBOSEUART
 
 #include "serialuartTL16C2550.hpp"
+#include <cstdio>
+#include <string>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+// std::this_thread::sleep_for bottoms out at the global timer resolution on
+// Windows (~1-15.6 ms), which would throttle the RX/TX cycle below the wire
+// rate. A per-process high-resolution waitable timer gets ~0.5 ms with no
+// system-wide side effect (needs Win10 1803+; falls back cleanly).
+static void xi_hires_sleep_us(unsigned us) {
+    static thread_local HANDLE t = NULL;
+    static thread_local bool tried = false;
+    if (!tried) {
+        tried = true;
+        t = CreateWaitableTimerExW(NULL, NULL,
+                CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+        if (!t)
+            t = CreateWaitableTimerExW(NULL, NULL, 0, TIMER_ALL_ACCESS);
+    }
+    if (t) {
+        LARGE_INTEGER due;
+        due.QuadPart = -(LONGLONG)us * 10;   // 100 ns units, relative
+        if (SetWaitableTimer(t, &due, 0, NULL, NULL, FALSE)) {
+            WaitForSingleObject(t, (us / 1000) + 2);
+            return;
+        }
+    }
+    std::this_thread::sleep_for(std::chrono::microseconds(us));
+}
+#else
+static inline void xi_hires_sleep_us(unsigned us) {
+    std::this_thread::sleep_for(std::chrono::microseconds(us));
+}
+#endif
 
 // ===========================================================================
 // Constructor / Destructor
@@ -70,7 +108,11 @@ serialuartTL16C2550::~serialuartTL16C2550(){
     if (t.joinable()) {
         t.join();
     }
-    this->serialPort.closeDevice();
+    if (this->backend) {
+        this->backend->closeDevice();
+        delete this->backend;
+        this->backend = nullptr;
+    }
 }
 
 // ===========================================================================
@@ -146,31 +188,39 @@ unsigned char serialuartTL16C2550::computeLSR() const {
     // Start from the 'sticky' error bits (OE/PE/FE/BI survive until LSR read)
     unsigned char lsr = LSR & (LSR_OE | LSR_PE | LSR_FE | LSR_BI);
 
-    // DR – data ready: at least one byte in RX FIFO
-    if (!rxFifo.empty()) {
-        lsr |= LSR_DR;
-        // Per-character errors from the head entry
-        lsr |= rxFifo.front().err & (LSR_PE | LSR_FE | LSR_BI);
-    }
+    // rxFifo / txFifo are mutated by threadCycleUpdate() on the background
+    // thread; this runs on the emulator (CPU) thread. Take the same locks the
+    // push/pop paths use -- without them, iterating the deque here while the
+    // other thread push_back()s it is a data race that corrupts LSR reads under
+    // a sustained inbound burst (e.g. a YMODEM block). The two locks are taken
+    // sequentially, never nested, and nothing else nests them, so no deadlock.
+    {
+        std::lock_guard<std::mutex> lock(rxMutex);
 
-    // THRE – TX FIFO (or holding register) empty
-    if (txFifo.empty()) {
-        lsr |= LSR_THRE;
-    }
+        // DR – data ready: at least one byte in RX FIFO
+        if (!rxFifo.empty()) {
+            lsr |= LSR_DR;
+            // Per-character errors from the head entry
+            lsr |= rxFifo.front().err & (LSR_PE | LSR_FE | LSR_BI);
+        }
 
-    // TEMT – transmitter completely empty (FIFO + shift register)
-    // We don't model the shift register separately; treat TEMT = THRE.
-    if (txFifo.empty()) {
-        lsr |= LSR_TEMT;
-    }
-
-    // RXFE (bit 7) – FIFO mode only: at least one error in any FIFO entry
-    if (FCR & FCR_FIFO_EN) {
-        for (const auto &entry : rxFifo) {
-            if (entry.err) {
-                lsr |= LSR_RXFE;
-                break;
+        // RXFE (bit 7) – FIFO mode only: at least one error in any FIFO entry
+        if (FCR & FCR_FIFO_EN) {
+            for (const auto &entry : rxFifo) {
+                if (entry.err) {
+                    lsr |= LSR_RXFE;
+                    break;
+                }
             }
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(txMutex);
+        // THRE / TEMT – TX FIFO empty. We don't model the shift register
+        // separately; treat TEMT = THRE.
+        if (txFifo.empty()) {
+            lsr |= (LSR_THRE | LSR_TEMT);
         }
     }
 
@@ -329,12 +379,13 @@ void serialuartTL16C2550::updateMSR(bool newCTS, bool newDSR){
 // ===========================================================================
 void serialuartTL16C2550::threadCycleUpdate(){
     while (!this->quit) {
+            bool didWork = false;
 
             // ----------------------------------------------------------------
             // 1. Refresh modem signal states and update MSR / IRQ
             // ----------------------------------------------------------------
-            bool newCTS = this->serialPort.isCTS();
-            bool newDSR = this->serialPort.isDSR();
+            bool newCTS = this->backend->isCTS();
+            bool newDSR = this->backend->isDSR();
             hasCTS = newCTS;
             hasDSR = newDSR;
             updateMSR(newCTS, newDSR);
@@ -345,25 +396,27 @@ void serialuartTL16C2550::threadCycleUpdate(){
             // ----------------------------------------------------------------
             {
                 std::lock_guard<std::mutex> lock(txMutex);
-                if (!txFifo.empty()) {
-                    bool allowSend = true;
-                    if (MCR & MCR_AFE) {
-                        allowSend = hasCTS;
-                    }
-                    if (allowSend) {
-                        unsigned char txByte = txFifo.front();
-                        txFifo.pop_front();
-
-                        // Write to physical port
-                        this->serialPort.writeBytes(&txByte, 1);
-
-                        // If FIFO just became empty, arm THRE interrupt
-                        if (txFifo.empty()) {
-                            irqThrEmpty = true;
-                            LSR |= (LSR_THRE | LSR_TEMT);
-                            updateIIR();
-                        }
-                    }
+                bool allowSend = !(MCR & MCR_AFE) || hasCTS;
+                // Drain the whole FIFO this cycle, not one byte -- one-per-cycle
+                // caps throughput at (FIFO-size / cycle-time), which collapses on
+                // a coarse timer. The backend paces the actual wire rate and
+                // returns 0 when its budget is spent, which stops the loop.
+                while (allowSend && !txFifo.empty()) {
+                    unsigned char txByte = txFifo.front();
+                    // Only consume the byte if the backend actually took it. A
+                    // rate-limited backend returns 0 when its budget is spent;
+                    // leave the byte so THRE stays clear and the CPU waits (real
+                    // TX backpressure -- and a failed physical write used to
+                    // silently drop the byte here).
+                    if (this->backend->writeBytes(&txByte, 1) != 1)
+                        break;
+                    txFifo.pop_front();
+                    didWork = true;
+                }
+                if (txFifo.empty() && !(LSR & LSR_THRE)) {
+                    irqThrEmpty = true;
+                    LSR |= (LSR_THRE | LSR_TEMT);
+                    updateIIR();
                 }
             }
 
@@ -384,13 +437,14 @@ void serialuartTL16C2550::threadCycleUpdate(){
 
                 for (int i = 0; i < canReceive && i < availCount; ++i) {
                     unsigned char rxByte = 0;
-                    int result = this->serialPort.readBytes(&rxByte, 1, 0, 0);
+                    int result = this->backend->readBytes(&rxByte, 1, 0, 0);
                     if (result <= 0)
                         break;
                     // Push with no error flags; physical parity/framing errors
                     // are surfaced by the host OS and could be added here if the
                     // OS API exposes them (platform-specific extension point).
                     rxFifoPush(rxByte, 0);
+                    didWork = true;
                 }
             }
 
@@ -421,20 +475,35 @@ void serialuartTL16C2550::threadCycleUpdate(){
             //    Drop RTS when the RX FIFO reaches the trigger level so the
             //    sender pauses; raise it again once the FIFO drains below trigger.
             // ----------------------------------------------------------------
+            bool afeHolding = false;
             if (MCR & MCR_AFE) {
                 std::lock_guard<std::mutex> lock(rxMutex);
-                if ((int)rxFifo.size() >= (int)fifo_level) {
-                    if (serialPort.isRTS()) {
-                        this->serialPort.clearRTS();
-                    }
-                } else {
-                    if (!serialPort.isRTS()) {
-                        this->serialPort.setRTS();
-                    }
+                const int sz = (int)rxFifo.size();
+                // Deassert RTS at the trigger level (correct high trip point for
+                // real 16C550 autoflow), and reassert only once the FIFO has
+                // drained to <= fifo_level/2 -- a halt/resume gap. Real 16C550
+                // autoflow has one; without it a reader that sits right at the
+                // trigger (e.g. the X16 YMODEM receiver taking one byte per
+                // loop) makes RTS chatter once per byte, and for the virtual
+                // modem each flip is a full round trip through the firmware's
+                // isSerialOut() gate -- that was the YMODEM-download stall.
+                const int resumeLevel = (fifo_level > 1) ? fifo_level / 2 : 0;
+                if (sz >= (int)fifo_level) {
+                    if (backend->isRTS()) this->backend->clearRTS();
+                } else if (sz <= resumeLevel) {
+                    if (!backend->isRTS()) this->backend->setRTS();
                 }
+                // resumeLevel < sz < fifo_level: hold the current RTS state.
+                afeHolding = !backend->isRTS();
             }
 
-            std::this_thread::sleep_for(std::chrono::nanoseconds(500));
+            // Run the cycle fine-grained while bytes are moving so throughput is
+            // not (FIFO-size / cycle-time) limited; back off when idle so we do
+            // not spin a core at the AT prompt. hires timer -> real ~0.3 ms on
+            // Windows too (std::sleep_for there is 1-15 ms). While AFE is
+            // holding the sender off, stay fine-grained so RTS is re-raised
+            // promptly once the reader drains the FIFO.
+            xi_hires_sleep_us((didWork || afeHolding) ? 300 : 2000);
             if (this->quit)
                 break;
     }
@@ -509,8 +578,11 @@ int serialuartTL16C2550::addrwrite(unsigned char *value, int address){
             } else {
                 IER = 0x0F & (*value);
                 // If ETBEI was just enabled and TX FIFO is already empty,
-                // immediately arm the THRE interrupt.
-                if ((IER & IER_ETBEI) && txFifo.empty()) {
+                // immediately arm the THRE interrupt. (txFifo is drained by the
+                // background thread -- read .empty() under the lock.)
+                bool txEmpty;
+                { std::lock_guard<std::mutex> lock(txMutex); txEmpty = txFifo.empty(); }
+                if ((IER & IER_ETBEI) && txEmpty) {
                     irqThrEmpty = true;
                 }
                 updateIIR();
@@ -573,6 +645,7 @@ int serialuartTL16C2550::addrwrite(unsigned char *value, int address){
                 if (!((*value) & 0x80)) {               // transitioning to DLAB=0
                     requestedDivisor  = DLSB;
                     requestedDivisor |= ((uint16_t)(DMSB) << 8);
+                    divisorProgrammed = true;           // CPU has now set the rate
                     LCRconfigDirty    = true;
                 }
             }
@@ -598,17 +671,17 @@ int serialuartTL16C2550::addrwrite(unsigned char *value, int address){
 
                 // DTR pin
                 if (MCR & MCR_DTR) {
-                    if (!serialPort.isDTR()) this->serialPort.DTR(true);
+                    if (!backend->isDTR()) this->backend->DTR(true);
                 } else {
-                    if ( serialPort.isDTR()) this->serialPort.DTR(false);
+                    if ( backend->isDTR()) this->backend->DTR(false);
                 }
 
                 // RTS pin (only when not in AFE mode; AFE manages it automatically)
                 if (!(MCR & MCR_AFE)) {
                     if (MCR & MCR_RTS) {
-                        if (!serialPort.isRTS()) this->serialPort.RTS(true);
+                        if (!backend->isRTS()) this->backend->RTS(true);
                     } else {
-                        if ( serialPort.isRTS()) this->serialPort.RTS(false);
+                        if ( backend->isRTS()) this->backend->RTS(false);
                     }
                 }
 
@@ -622,7 +695,9 @@ int serialuartTL16C2550::addrwrite(unsigned char *value, int address){
                 }
 
                 // If ETBEI is enabled and TX is now empty, arm THRE
-                if ((IER & IER_ETBEI) && txFifo.empty()) {
+                bool txEmpty;
+                { std::lock_guard<std::mutex> lock(txMutex); txEmpty = txFifo.empty(); }
+                if ((IER & IER_ETBEI) && txEmpty) {
                     irqThrEmpty = true;
                     updateIIR();
                 }
@@ -813,11 +888,11 @@ void serialuartTL16C2550::reconfigureSerial(){
     SerialParity   Parity;
     int wordLength = LCR & 0x03;
 
-    if (this->serialPort.isDeviceOpen()) {
+    if (this->backend && this->backend->isDeviceOpen()) {
         this->quit = true;
         if (t.joinable()) t.join();
         this->quit = false;
-        this->serialPort.closeDevice();
+        this->backend->closeDevice();
     }
 
     // Data bits
@@ -847,9 +922,14 @@ void serialuartTL16C2550::reconfigureSerial(){
     }
 
     unsigned int baudRate = baudCalculator(requestedDivisor);
-    int errorOpening = this->serialPort.openDevice(path.c_str(), baudRate, Databits, Parity, Stopbits);
-    this->serialPort.DTR(MCR & MCR_DTR);
-    this->serialPort.RTS(MCR & MCR_AFE);   // AFE controls RTS dynamically
+    // A virtual modem is handed 0 ("divisor not yet programmed") so it can keep
+    // the link muted -- real hardware has no defined post-reset baud. A physical
+    // port always needs the real speed.
+    unsigned int wireBaud = (this->backend->isVirtualModem() && !divisorProgrammed)
+                                ? 0u : baudRate;
+    int errorOpening = this->backend->openDevice(path.c_str(), wireBaud, Databits, Parity, Stopbits);
+    this->backend->DTR(MCR & MCR_DTR);
+    this->backend->RTS(MCR & MCR_AFE);   // AFE controls RTS dynamically
 
     if (errorOpening != 1) {
         std::cerr << errorOpening << ": Error opening: " << path << std::endl;
@@ -891,6 +971,13 @@ void serialuartTL16C2550::reconfigureSerial(){
 // initialization
 // ===========================================================================
 int serialuartTL16C2550::init(char *port){
+    // Select the serial back end (physical port, or in-process libximodem).
+    if (!this->backend) {
+        this->backend = makeUartBackend(port);
+        if (!this->backend)
+            return -1;
+    }
+
     // Power-on defaults (for instance -> ROMTERM.PRG checks IER/LCR/MCR = 0, and scratch register write, to detect the card)
     IIR            = IIR_NO_INT;
     IER            = 0;
@@ -899,9 +986,10 @@ int serialuartTL16C2550::init(char *port){
     LCR            = 0;
     LSR            = LSR_THRE | LSR_TEMT;
     MSR            = 0;
-    DLSB           = 0x60;   // default on emulator launch/reset: 9600 baud with 14.7456 MHz crystal
+    DLSB           = 0x60;   // placeholder divisor; real 16C550 latches are indeterminate at reset
     DMSB           = 0;
     requestedDivisor = 0x60;
+    divisorProgrammed = false;   // until the CPU writes DLL/DLM + exits DLAB
     loopvalue      = 0;
 
     irqRxLineStatus = false;
@@ -929,11 +1017,11 @@ int serialuartTL16C2550::init(char *port){
         txFifo.clear();
     }//mutex released
 
-    if (this->serialPort.isDeviceOpen()) {
+    if (this->backend && this->backend->isDeviceOpen()) {
         this->quit = true;
         if (t.joinable()) t.join();
         this->quit = false;
-        this->serialPort.closeDevice();
+        this->backend->closeDevice();
     }
 
     // Build the path string (Windows COM >9 requires \\.\\ prefix)
@@ -945,7 +1033,10 @@ int serialuartTL16C2550::init(char *port){
     path += (char *)port;
 
     std::cout << "Trying port: " << path << " - ";
-    int errorOpening = this->serialPort.openDevice(path.c_str(), 9600);
+    // Virtual modem: open with baud 0 (card not configured yet). Physical port:
+    // needs a real speed; 9600 is a harmless placeholder until the CPU reprograms.
+    unsigned int openBaud = this->backend->isVirtualModem() ? 0u : 9600u;
+    int errorOpening = this->backend->openDevice(path.c_str(), openBaud);
 
     if (errorOpening != 1) {
         std::cout << (int)errorOpening << ": ";
@@ -965,8 +1056,8 @@ int serialuartTL16C2550::init(char *port){
     }
 
     printf("Successful connection to %s\n", path.c_str());
-    this->serialPort.clearDTR();
-    this->serialPort.clearRTS();
+    this->backend->clearDTR();
+    this->backend->clearRTS();
 
     baud_delay  = std::chrono::nanoseconds((1000000000 / 9600) / checksperbaud);
 
@@ -979,15 +1070,15 @@ int serialuartTL16C2550::init(char *port){
 // ===========================================================================
 
 int serialuartTL16C2550::write(unsigned char *val){
-    return this->serialPort.writeBytes(val, 1);
+    return this->backend->writeBytes(val, 1);
 }
 
 int serialuartTL16C2550::read(unsigned char *readVal){
-    return this->serialPort.readBytes(readVal, 1, 1000, 1000);
+    return this->backend->readBytes(readVal, 1, 1000, 1000);
 }
 
 int serialuartTL16C2550::dataAvailable(){
-    return this->serialPort.available();
+    return this->backend->available();
 }
 
 int serialuartTL16C2550::baudCalculator(uint16_t divisor){

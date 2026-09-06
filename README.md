@@ -9,6 +9,52 @@
 
 This is an emulator for the Commander X16 computer system. It only depends on SDL2 and should compile on all modern operating systems.
 
+---
+
+## `x16-emulator-uart` branch — in-process virtual modem
+
+This is a branch of **x16-emulator-uart** (which adds `-uart1 <serial port>`
+support for a physical Zimodem). On top of that, it links **libximodem** — the
+Zimodem X16 firmware built as a host library — directly into the emulator, so
+`-uart1 ximodem` gives you a working Zimodem with no ESP32 and no serial cable.
+A real serial port still works exactly as on the base branch
+(`-uart1 /dev/ttyUSB0`, `-uart1 COM3`, …).
+
+### Build
+
+The modem source is the **`extern/libximodem`** submodule, so clone recursively:
+
+```sh
+git clone --recursive <url>
+# or, in an existing checkout:
+git submodule update --init extern/libximodem
+```
+
+Needs SDL2, CMake, a C++17 compiler, and — for the modem — **python3**. Optional:
+OpenSSL (TLS) and libssh2 (SSH client); both degrade gracefully.
+
+```sh
+make                    # builds ./build/x16emu and ./build/libximodem.so
+```
+
+`make` runs CMake, which links the modem in when the submodule and python3 are
+present. To build without it (base `x16-emulator-uart` behaviour): `cmake -S . -B
+build -DUSE_XIMODEM=OFF`. If you keep a sibling `../libximodem` checkout it is
+used instead of the submodule (convenient for working on both at once); override
+explicitly with `-DXIMODEM_DIR=/path`.
+
+### Run
+
+```sh
+./build/x16emu -rom rom.bin -uart1 ximodem
+./build/x16emu -rom rom.bin -uart1 ximodem:/path/to/datadir   # persistent config/phonebook
+```
+
+`x16emu` finds `libximodem` via `$ORIGIN`, so **if you move the binary, copy
+`libximodem.so` into the same directory** (the build reminds you of this).
+
+---
+
 Features
 --------
 

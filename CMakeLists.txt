@@ -205,7 +205,38 @@ set(X16_SOURCES
     src/extern/serialuart/serialib/serialib.cpp
 	src/extern/serialuart/serialuart_wrapper.cpp
     src/extern/serialuart/serialuartTL16C2550.cpp
+    src/extern/serialuart/uart_backend.cpp
 )
+
+# --- optional in-process virtual modem: libximodem ---------------------------
+# Enabled automatically when the ximodem source tree and a python3 are both
+# present (POSIX and Windows/MSYS2 alike). Set USE_XIMODEM=OFF to force it off.
+#
+# The tree is normally the `extern/libximodem` git submodule -- clone with
+# --recursive, or `git submodule update --init extern/libximodem`. A sibling
+# `../libximodem` checkout, if present, is used instead, so you can work on both
+# repos at once without disturbing the submodule pin. Override with -DXIMODEM_DIR.
+option(USE_XIMODEM "Build the in-process libximodem virtual modem (-uart1 ximodem)" ON)
+if(EXISTS "${CMAKE_SOURCE_DIR}/../libximodem/CMakeLists.txt")
+    set(_ximodem_default "${CMAKE_SOURCE_DIR}/../libximodem")
+else()
+    set(_ximodem_default "${CMAKE_SOURCE_DIR}/extern/libximodem")
+endif()
+set(XIMODEM_DIR "${_ximodem_default}" CACHE PATH
+    "Path to the ximodem shared-library source tree")
+if(USE_XIMODEM AND EXISTS "${XIMODEM_DIR}/CMakeLists.txt")
+    find_program(PYTHON3_FOR_XIMODEM NAMES python3 python)
+    if(PYTHON3_FOR_XIMODEM)
+        message(STATUS "libximodem: building from ${XIMODEM_DIR}")
+        add_subdirectory("${XIMODEM_DIR}" "${CMAKE_BINARY_DIR}/ximodem")
+        set(HAVE_XIMODEM ON)
+    else()
+        message(STATUS "libximodem: python3 not found -- '-uart1 ximodem' disabled")
+    endif()
+elseif(USE_XIMODEM)
+    message(STATUS "libximodem: ${XIMODEM_DIR} missing -- run "
+                   "'git submodule update --init extern/libximodem'. '-uart1 ximodem' disabled")
+endif()
 
 if(WIN32)
     list(APPEND X16_SOURCES src/video_win32.c)
@@ -237,6 +268,52 @@ target_link_libraries(x16emu PRIVATE
     SDL2::SDL2
     ZLIB::ZLIB
 )
+
+if(HAVE_XIMODEM)
+    target_compile_definitions(x16emu PRIVATE HAVE_XIMODEM)
+    target_include_directories(x16emu PRIVATE "${XIMODEM_DIR}/include")
+    target_link_libraries(x16emu PRIVATE ximodem)
+
+    # Do NOT bake the absolute build-tree path into x16emu's RPATH (CMake's
+    # default). Instead resolve libximodem the same way every other shared lib
+    # is resolved: relative to the executable, then the system loader path.
+    #   - drop libximodem.so next to x16emu  -> found via $ORIGIN / @loader_path
+    #   - or install it to a system lib dir  -> found via the default search
+    # So the binary is relocatable and works from anywhere it is copied.
+    set_target_properties(ximodem PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")   # sits beside x16emu
+    if(NOT WIN32)
+        if(APPLE)
+            set(_xi_origin_rpath "@loader_path")
+        else()
+            set(_xi_origin_rpath "$ORIGIN")
+        endif()
+        set_target_properties(x16emu PROPERTIES
+            SKIP_BUILD_RPATH ON
+            BUILD_WITH_INSTALL_RPATH ON
+            INSTALL_RPATH "${_xi_origin_rpath}")
+    endif()
+
+    message(STATUS
+        "libximodem: x16emu resolves it relatively (no absolute RPATH). Keep "
+        "'libximodem${CMAKE_SHARED_LIBRARY_SUFFIX}' next to the x16emu binary, "
+        "or install it to a system library directory.")
+
+    # Every build reprints the co-location rule -- the configure-time message
+    # above scrolls past long before the binary is done.
+    if(NOT WIN32)
+        add_custom_command(TARGET x16emu POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E echo
+                "  note: x16emu loads libximodem${CMAKE_SHARED_LIBRARY_SUFFIX} via \$ORIGIN --"
+            COMMAND ${CMAKE_COMMAND} -E echo
+                "  when you copy x16emu elsewhere, copy build/libximodem${CMAKE_SHARED_LIBRARY_SUFFIX} into the same directory."
+            VERBATIM)
+    endif()
+
+    install(TARGETS x16emu ximodem
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib)
+endif()
 
 if(TARGET SDL2::SDL2main)
     target_link_libraries(x16emu PRIVATE SDL2::SDL2main)

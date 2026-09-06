@@ -28,6 +28,7 @@ This is a licence-free software, it can be used by anyone who try to build a bet
 #include <mutex>
 #include <thread>
 #include "serialib/serialib.h"
+#include "uart_backend.hpp"
 
 // ---------------------------------------------------------------------------
 // Hardware FIFO capacity for the TL16C2550
@@ -106,6 +107,10 @@ public:
     int  addrwrite(unsigned char *value, int address);
     int  addrread (unsigned char *value, int address);
 
+    // Test-only: inject a backend before init() so init() skips makeUartBackend().
+    // The model takes ownership (its destructor deletes it).
+    void injectBackend(IUartBackend *b) { if (!backend) backend = b; }
+
     // Returns true when the UART is asserting its IRQ output line.
     // MCR bit 3 (OUT2) must be set for IRQ to be driven.
     // The X16 emulator will poll this to know whether to assert the CPU's IRQ pin.
@@ -124,6 +129,10 @@ private:
     unsigned char DLSB;         // Divisor Latch – Least Significant Byte (DLAB=1)
     unsigned char DMSB;         // Divisor Latch – Most Significant Byte  (DLAB=1)
     uint16_t      requestedDivisor;
+    // Real 16C550 divisor latches are indeterminate at power-on; only becomes
+    // meaningful once the CPU writes DLL/DLM and exits DLAB. Until then a virtual
+    // modem backend is told baud 0 ("card not configured") so it stays muted.
+    bool          divisorProgrammed = false;
 
     // Loopback data register: THR writes -> here; RBR reads <- here in loopback mode
     unsigned char loopvalue;
@@ -131,15 +140,16 @@ private:
     // ---- 16-Byte RX FIFO --------------------------------------------------------
     // Stores received characters together with their per-character error flags.
     // Protected by rxMutex because threadCycleUpdate() pushes from a background thread
-    // while addrread() pops from the emulator thread.
+    // while addrread() pops (and computeLSR() inspects) from the emulator thread.
+    // mutable so the const computeLSR() can take the lock for its read.
     std::deque<UartRxEntry> rxFifo;
-    std::mutex              rxMutex;
+    mutable std::mutex      rxMutex;
 
     // ---- 16-Byte TX FIFO --------------------------------------------------------
     // The emulator thread pushes via addrwrite(); threadCycleUpdate() drains to the host
-    // serial port.
+    // serial port. mutable mutex for the same reason as rxMutex.
     std::deque<unsigned char> txFifo;
-    std::mutex                txMutex;
+    mutable std::mutex        txMutex;
 
     // ---- Interrupt Pending Flags -------------------------------------------------
     // Each flag is set by the event that causes the condition and cleared when the
@@ -165,8 +175,8 @@ private:
     bool prevCTS;
     bool prevDSR;
 
-    // ---- Physical Serial Port ---------------------------------------------------
-    serialib serialPort;
+    // ---- Serial back end (physical port or in-process libximodem) --------------
+    IUartBackend *backend = nullptr;
 
     // Crystal Oscillator Speed on Texelec Serial/Wifi Card
     static const int OSC = 14745600;

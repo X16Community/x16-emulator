@@ -1,0 +1,3 @@
+[submodule "extern/libximodem"]
+	path = extern/libximodem
+	url = https://github.com/morphinejh/libximodem.git
