@@ -17,6 +17,9 @@ This is a branch of **x16-emulator-uart** (which adds `-uart1 <serial port>`
 support for a physical Zimodem). On top of that, it links **libximodem** — the
 Zimodem X16 firmware built as a host library — directly into the emulator, so
 `-uart1 ximodem` gives you a working Zimodem with no ESP32 and no serial cable.
+Windows: (`-uart1 ximodem`, `-uart2 COM3`, …) [*uart2* is optional]
+POSIX: (`-uart1 ximodem`, `-uart2 /dev/ttyACM0`, …) [*uart2* is optional]
+
 A real serial port still works exactly as on the base branch
 (`-uart1 /dev/ttyUSB0`, `-uart1 COM3`, …).
 
@@ -25,10 +28,12 @@ A real serial port still works exactly as on the base branch
 The modem source is the **`extern/libximodem`** submodule, so clone recursively:
 
 ```sh
-git clone --recursive <url>
+git clone --recursive -b zimodem https://github.com/morphinejh/x16-emulator-uart.git
 # or, in an existing checkout:
 git submodule update --init extern/libximodem
 ```
+
+*\*`-b zimodem` is required while this work is under development;*
 
 Needs SDL2, CMake, a C++17 compiler, and — for the modem — **python3**. Optional:
 OpenSSL (TLS) and libssh2 (SSH client); both degrade gracefully.
@@ -46,9 +51,20 @@ explicitly with `-DXIMODEM_DIR=/path`.
 ### Run
 
 ```sh
-./build/x16emu -rom rom.bin -uart1 ximodem
-./build/x16emu -rom rom.bin -uart1 ximodem:/path/to/datadir   # persistent config/phonebook
+./build/x16emu -rom rom.bin -uart1 /dev/ttyUSB0 -uart2 /dev/ttyUSB1   # two physical serial ports
+./build/x16emu -rom rom.bin -uart1 ximodem                            # built-in virtual modem (add :<dir> to choose its data dir)
 ```
+
+The virtual modem is **UART1 only** (as on real hardware) and is a single
+process-wide instance. To run more than one, start **separate emulator
+processes**, each with its **own** `ximodem:<datadir>` — instances that share a
+data directory will corrupt each other's `zconfig.txt` / `zphonebook.txt`.
+
+A machine reset (Ctrl-R, or a guest-requested reset) resets the emulated UART
+card and drops DTR, but does **not** power-cycle the modem: an active call stays
+connected unless the firmware is set to hang up on DTR loss (`AT&D2`, then
+`AT&W`). This matches a real Zimodem, whose ESP32 keeps running through a host
+reset.
 
 `x16emu` finds `libximodem` via `$ORIGIN`, so **if you move the binary, copy
 `libximodem.so` into the same directory** (the build reminds you of this).

@@ -148,6 +148,15 @@ bool has_uart2 = false;
 uint16_t uart2_addr = 0x9fe8;
 serialuartTL16C2550Handle uart2 = NULL;
 
+// True when a -uart target selects the in-process libximodem virtual modem
+// rather than a physical serial port. Must match the routing test in
+// makeUartBackend() (extern/serialuart/uart_backend.cpp).
+static bool
+uart_path_is_ximodem(const char *p)
+{
+	return p && (strcmp(p, "ximodem") == 0 || strncmp(p, "ximodem:", 8) == 0);
+}
+
 bool using_hostfs = true;
 
 uint8_t MHZ = 8;
@@ -354,11 +363,21 @@ machine_reset()
 	midi_serial_init();
 	
 	//User requested Serial UART - need to check
+	//
+	// A physical serial port is safe to tear down and rebuild on every machine
+	// reset. The in-process virtual modem (libximodem) is NOT: it holds
+	// process-wide firmware state that a destroy/create cycle would corrupt, so
+	// keep the object and let uart_init() reset it in place -- that clears the
+	// card registers, bounces the pump thread and drops DTR (which hangs up the
+	// call only if the firmware's AT&D says so), like a real card's reset line.
 	if(has_uart1){
-		if(uart1 != NULL){
+		if(uart1 != NULL && !uart_path_is_ximodem((char*)uart1_path)){
 			uart_destroy(uart1);
+			uart1 = NULL;
 		}
-		uart1 = uartCreate();
+		if(uart1 == NULL){
+			uart1 = uartCreate();
+		}
 		if(uart1 != NULL){
 			if (uart_init( uart1, (char*)uart1_path ) ){
 					has_uart1=false;
@@ -371,11 +390,13 @@ machine_reset()
 		}
 	}
 	if(has_uart2){
-		if(uart2 != NULL){
+		if(uart2 != NULL && !uart_path_is_ximodem((char*)uart2_path)){
 			uart_destroy(uart2);
+			uart2 = NULL;
 		}
-	
-		uart2 = uartCreate();
+		if(uart2 == NULL){
+			uart2 = uartCreate();
+		}
 		if(uart2 != NULL){
 			if (uart_init( uart2, (char*)uart2_path ) ){
 					has_uart2=false;
@@ -600,6 +621,8 @@ usage()
 	printf("\t  ximodem      built-in Zimodem virtual modem; no hardware needed, it\n");
 	printf("\t               dials out over this host computer's own network connection\n");
 	printf("\t  ximodem:<dir> same, storing config/phonebook in <dir> (default ./ximodem-data)\n");
+	printf("\t               UART1 only; a machine reset drops DTR but does not power-cycle\n");
+	printf("\t               the modem, so an active call persists unless set to AT&D2\n");
 #endif
 	printf("\tThis option is experimental.\n");
 	printf("-uart2 <target>\n");
@@ -1312,6 +1335,13 @@ main(int argc, char **argv)
 		if(has_uart2 && uart1_addr>0x9ff0){
 			has_uart2=false;
 			fprintf(stderr, "Warning: Serial UART1 card address must be in the range of 9F60-9FF0 when using two UARTs, Unabled to connect\n");
+		}
+
+		// The libximodem virtual modem is UART1-only (matches the real X16
+		// modem card) and is a single process-wide instance -- refuse it on UART2.
+		if(has_uart2 && uart_path_is_ximodem((char*)uart2_path)){
+			has_uart2=false;
+			fprintf(stderr, "Warning: the ximodem virtual modem is UART1-only (matches the real X16 modem card); ignoring -uart2 ximodem\n");
 		}
 	}
 
