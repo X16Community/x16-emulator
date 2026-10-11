@@ -5,7 +5,7 @@
 #include "vera_pcm.h"
 #include <stdio.h>
 
-static uint8_t  fifo[4096];
+static uint8_t  fifo[4096 - 1]; // Actual hardware FIFO is 4kB, but you can only use 4095 bytes.
 static unsigned fifo_wridx;
 static unsigned fifo_rdidx;
 static unsigned fifo_cnt;
@@ -25,13 +25,6 @@ fifo_reset(void)
 	fifo_wridx = 0;
 	fifo_rdidx = 0;
 	fifo_cnt   = 0;
-}
-
-static void
-fifo_restart(void)
-{
-	fifo_rdidx = 0;
-	fifo_cnt = fifo_wridx;
 }
 
 void
@@ -56,9 +49,6 @@ pcm_write_ctrl(uint8_t val)
 			fifo_reset();
 		}
 	}
-	if (val & 0x40) {
-		fifo_restart();
-	}
 	ctrl = val & 0x3F;
 }
 
@@ -66,7 +56,7 @@ uint8_t
 pcm_read_ctrl(void)
 {
 	uint8_t result = ctrl;
-	if (fifo_cnt == sizeof(fifo) - 1) {
+	if (fifo_cnt == sizeof(fifo)) {
 		result |= 0x80;
 	}
 	if (fifo_cnt == 0) {
@@ -78,7 +68,7 @@ pcm_read_ctrl(void)
 void
 pcm_write_rate(uint8_t val)
 {
-	rate = (val > 128) ? (256 - val) : val;
+	rate = val;
 }
 
 uint8_t
@@ -170,9 +160,6 @@ pcm_render(int16_t *buf, unsigned num_samples)
 						}
 						break;
 					}
-				}
-				if (loop && fifo_cnt == 0) {
-					fifo_restart();
 				}
 			}
 		}
