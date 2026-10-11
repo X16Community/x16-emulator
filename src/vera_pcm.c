@@ -40,13 +40,8 @@ pcm_reset(void)
 void
 pcm_write_ctrl(uint8_t val)
 {
-	if ((val & 0xc0) == 0xc0) {
-		loop = true;
-	} else {
-		loop = false;
-		if (val & 0x80) {
-			fifo_reset();
-		}
+	if (val & 0x80) {
+		fifo_reset();
 	}
 	ctrl = val & 0x3F;
 }
