@@ -294,7 +294,7 @@ jobs:
       - name: Build Emulator
         uses: pguyot/arm-runner-action@v2
         with:
-          base_image: raspios_lite_arm64:2022-04-04
+          base_image: raspios_lite_arm64:latest
           image_additional_mb: 8192
           cpu: cortex-a53
           copy_artifact_path: emu_binaries
