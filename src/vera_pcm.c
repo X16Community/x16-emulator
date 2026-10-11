@@ -12,7 +12,6 @@ static unsigned fifo_cnt;
 
 static uint8_t ctrl;
 static uint8_t rate;
-static uint8_t loop;
 
 static uint8_t volume_lut[16] = {0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 23, 30, 38, 49, 64};
 
