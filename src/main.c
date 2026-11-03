@@ -1414,7 +1414,10 @@ handle_ieee_intercept()
 		return false;
 	}
 
-	uint64_t base_ticks = SDL_GetPerformanceCounter();
+	uint64_t base_ticks = 0;
+	if (!headless) {
+		base_ticks = SDL_GetPerformanceCounter();
+	}
 
 	static int count_unlistn = 0;
 	bool handled = true;
@@ -1555,11 +1558,13 @@ handle_ieee_intercept()
 	}
 
 	if (handled) {
-		// Add the number CPU cycles equivalent to the amount of time that the operation actually took
-		// to prevent the emu from warping after a hostfs load
-		uint64_t perf_diff = SDL_GetPerformanceCounter() - base_ticks;
-		uint32_t missed_ticks = (uint64_t)(perf_diff * 1000000ULL * MHZ) / SDL_GetPerformanceFrequency();
-		clockticks6502 += missed_ticks;
+		if (!headless) {
+			// Add the number CPU cycles equivalent to the amount of time that the operation actually took
+			// to prevent the emu from warping after a hostfs load
+			uint64_t perf_diff = SDL_GetPerformanceCounter() - base_ticks;
+			uint32_t missed_ticks = (uint64_t)(perf_diff * 1000000ULL * MHZ) / SDL_GetPerformanceFrequency();
+			clockticks6502 += missed_ticks;
+		}
 		if (s >= 0) {
 			if (!set_kernal_status(s)) {
 				printf("Warning: Could not set STATUS!\n");
