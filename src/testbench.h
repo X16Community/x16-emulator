@@ -27,6 +27,7 @@ STP                 Sent when STP instruction is executed
 RAM                 Set RAM bank
 ROM                 Set ROM bank
 STM nnnn nn         Set value of memory address nnnn to nn
+STB nnnn nn..       Set values starting at memory address nnnn to hex bytes nn..
 FLM nnnn nnnn nn    Fill memory address range nnnn to nnnn with value nn
 STA nn              Set accumulator value to nn
 STX nn              Set X register value to nn
@@ -35,6 +36,8 @@ SST nn              Set status register value to nn
 SSP nn              Set stack pointer value to nn
 RUN nnnn            Execute code at address nnnn, when done emulator respond with RDY
 RQM nnnn            Request value of memory address nnnn
+RQB nnnn n..        Request n.. (1..10000 hex) bytes starting at memory address nnnn
+RQV n.. n..         Request n.. (1..20000 hex) bytes of VERA VRAM starting at address n..
 RQA                 Request value of accumulator
 RQX                 Request value of X register
 RQY                 Request value of Y register
@@ -50,6 +53,7 @@ Commands sent to the emulator must be formatted precisely as follows:
 - The first three characters is the command in upper case
 - 16 bit values must be written with exactly four digits in hex format
 - 8 bit values must be written with exactly two digits in hex format
+- VRAM addresses and block lengths are 1..5 digits in hex format
 - There is exactly one character separating the command field and each value field; it doesn't matter what character is used as separator
 
 */

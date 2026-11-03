@@ -132,6 +132,13 @@ class X16TestBench:
         self.__writeline("STM " + self.__tohex16(address) + " " + self.__tohex8(value))
         self.waitReady()
 
+    def setMemoryBlock(self, address, data):
+        data = bytes(data)
+        if address < 0 or len(data) < 1 or address + len(data) > 65536:
+            raise Exception("Value out of range")
+        self.__writeline("STB " + self.__tohex16(address) + " " + data.hex().upper())
+        self.waitReady()
+
     def fillMemory(self, address1, address2, value):
         self.__writeline("FLM " + self.__tohex16(address1) + " " + self.__tohex16(address2) + " " + self.__tohex8(value))
         self.waitReady()
@@ -163,6 +170,18 @@ class X16TestBench:
     def getMemory(self, address):
         self.__writeline("RQM " + self.__tohex16(address))
         return self.__toint8(self.__getresponse())
+
+    def getMemoryBlock(self, address, length):
+        if address < 0 or length < 1 or address + length > 65536:
+            raise Exception("Value out of range")
+        self.__writeline("RQB " + self.__tohex16(address) + " %X" % length)
+        return bytes.fromhex(self.__getresponse().strip())
+
+    def getVramBlock(self, address, length):
+        if address < 0 or address > 0x1ffff or length < 1 or address + length > 0x20000:
+            raise Exception("Value out of range")
+        self.__writeline("RQV %0.5X %X" % (address, length))
+        return bytes.fromhex(self.__getresponse().strip())
 
     def getA(self):
         self.__writeline("RQA")
