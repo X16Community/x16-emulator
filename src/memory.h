@@ -14,6 +14,7 @@
 
 #define USE_CURRENT_X16_BANK (-1)
 #define debug_read6502(a, b, x) real_read6502((a), (b), true, (x))
+#define debug_write6502(a, b, v, x) real_write6502((a), (b), (v), true, (x))
 
 // X16 r0-r15
 #define X16_REG_R0L (direct_page_add(2))
@@ -52,6 +53,7 @@
 uint8_t read6502(uint16_t address, uint8_t bank);
 uint8_t real_read6502(uint16_t address, uint8_t bank, bool debugOn, int16_t x16Bank);
 void write6502(uint16_t address, uint8_t bank, uint8_t value);
+void real_write6502(uint16_t address, uint8_t bank, uint8_t value, bool debugOn, uint8_t x16Bank);
 void vp6502();
 
 void memory_init();

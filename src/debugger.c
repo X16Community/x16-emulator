@@ -506,13 +506,9 @@ static void DEBUGExecCmd() {
 				if (dumpmode == DDUMP_RAM) {
 					addr &= 0xFFFFFF;
 					do {
-						if (addr >= 0xC000 && addr < 0x10000) {
-							// Nop.
-						} else if (addr >= 0xA000 && addr < 0xC000) {
-							BRAM[(currentX16Bank << 13) + addr - 0xA000] = number;
-						} else if ((addr >> 16) < num_banks) {
-							RAM[addr] = number;
-						}
+						uint8_t gen2Bank = addr >> 16;
+						uint16_t addr16 = addr & 0xFFFF;
+						debug_write6502(addr16, gen2Bank, number, currentX16Bank);
 						if (incr) {
 							addr += incr;
 						} else {

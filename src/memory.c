@@ -202,6 +202,13 @@ read6502(uint16_t address, uint8_t bank) {
 	return real_read6502(address, bank, false, USE_CURRENT_X16_BANK);
 }
 
+// Low-level read function
+
+// address: 16 bit address
+// bank:    gen2 bank
+// debugOn: true if via debugger
+// x16Bank: rom/ram bank
+
 uint8_t
 real_read6502(uint16_t address, uint8_t bank, bool debugOn, int16_t x16Bank)
 {
@@ -266,19 +273,32 @@ real_read6502(uint16_t address, uint8_t bank, bool debugOn, int16_t x16Bank)
 	}
 }
 
+
+uint8_t get_current_bank_from_address(uint16_t address, uint8_t gen2Bank)
+{
+	if (gen2Bank || address < 0xA000) {
+		return 0;
+	} else if (address < 0xC000) {
+		return memory_get_ram_bank();
+	} else {
+		return memory_get_rom_bank();
+	}
+}
+
 void
 write6502(uint16_t address, uint8_t bank, uint8_t value)
 {
 	if (!is_gen2) bank = 0;
 
+	uint8_t x16Bank = get_current_bank_from_address(address, bank);
 	if(reportUsageStatisticsFilename!=NULL) {
 		if (bank != 0 || address < 0xa000) {
 			RAM_system_writes[bank * BANK_SIZE + address]++;
 		} else if (address < 0xc000) {
-			RAM_banked_writes[memory_get_ram_bank()][address-0xa000]++;
+			RAM_banked_writes[x16Bank][address-0xa000]++;
 		} else {
 			// this is weird, but it does occur. And cartridges can install "Bonk RAM" in place of ROM.
-			ROM_banked_writes[rom_bank][address-0xc000]++;
+			ROM_banked_writes[x16Bank][address-0xc000]++;
 		}
 	}
 
@@ -287,10 +307,26 @@ write6502(uint16_t address, uint8_t bank, uint8_t value)
 		if (bank != 0 || address < 0xa000) {
 			RAM_access_flags[bank * BANK_SIZE + address] = true;
 		} else if (address < 0xc000) {
-			if (memory_get_ram_bank() < num_ram_banks)
-				BRAM_access_flags[(memory_get_ram_bank() << 13) + address - 0xa000] = true;
+			if (x16Bank < num_ram_banks)
+				BRAM_access_flags[(x16Bank << 13) + address - 0xa000] = true;
 		}
 	}
+
+	real_write6502(address, bank, value, false, x16Bank);
+}
+
+// Low-level write function
+
+// address: 16 bit address
+// bank:    gen2 bank
+// value:   value
+// debugOn: true if via debugger
+// x16Bank: rom/ram bank
+
+void
+real_write6502(uint16_t address, uint8_t bank, uint8_t value, bool debugOn, uint8_t x16Bank)
+{
+	if (!is_gen2) bank = 0;
 
 	// Write to memory
 	if (is_gen2 && bank != 0) {
@@ -308,7 +344,7 @@ write6502(uint16_t address, uint8_t bank, uint8_t value)
 	if (address < 0x9f00) { // RAM
 		RAM[address] = value;
 	} else if (address < 0xa000) { // I/O
-		if (address >= 0x9fa0) {
+		if (!debugOn && address >= 0x9fa0) {
 			// slow IO5-7 range
 			clockticks6502 += 3;
 		}
@@ -320,7 +356,9 @@ write6502(uint16_t address, uint8_t bank, uint8_t value)
 			video_write(address & 0x1f, value);
 		} else if (address >= 0x9f40 && address < 0x9f60) {
 			// slow IO2 range
-			clockticks6502 += 3;
+			if (!debugOn) {
+				clockticks6502 += 3;
+			}
 			if ((address & 0x01) == 0) {   // YM reg (partially decoded)
 				addr_ym = value;
 			} else {                       // YM data (partially decoded)
@@ -336,14 +374,18 @@ write6502(uint16_t address, uint8_t bank, uint8_t value)
 			// future expansion
 		}
 	} else if (address < 0xc000) { // banked RAM
-		if (memory_get_ram_bank() < num_ram_banks) {
-			BRAM[(memory_get_ram_bank() << 13) + address - 0xa000] = value;
+		if (x16Bank < num_ram_banks) {
+			BRAM[(x16Bank << 13) + address - 0xa000] = value;
 		}
 	} else { // ROM
-		if (rom_bank >= 32) { // Cartridge ROM/RAM
+		if (x16Bank < 32) {
+			// Base ROM. Ignore, unless via debugger.
+			if (debugOn) {
+				ROM[(x16Bank << 14) + address - 0xc000] = value;
+			}
+		} else { // Cartridge ROM/RAM
 			cartridge_write(address, rom_bank, value);
 		}
-		// ignore if base ROM (banks 0-31)
 	}
 }
 
