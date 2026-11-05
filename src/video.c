@@ -1448,7 +1448,13 @@ video_update()
 				if (event.key.keysym.scancode == SDL_SCANCODE_LALT || event.key.keysym.scancode == SDL_SCANCODE_RALT) {
 					alt_down = true;
 				}
-				handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
+				// -nokbdrepeat: drop host auto-repeat KEYDOWNs so a held key
+				// does not flood the emulated SMC keyboard ring. The make (the
+				// first, non-repeat KEYDOWN) and the eventual break still pass,
+				// which is all a held/not-held reader needs.
+				if (!(suppress_kbd_repeat && event.key.repeat)) {
+					handle_keyboard(true, event.key.keysym.sym, event.key.keysym.scancode);
+				}
 			}
 			continue;
 		}
