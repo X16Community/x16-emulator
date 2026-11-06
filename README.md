@@ -570,26 +570,25 @@ Commander X16 cartridges will occupy the same address space as the Commander's K
 
 ### Header Layout
 
-This is the cartridge header. The first 256 bytes are ASCII data and Human readable. The second 256 bytes are bank data; these are byte integers. Text fields are set to 16 or 32-byte boundaries for ease of formatting.
+This is the cartridge header. The first 160 bytes are ASCII data and Human readable, followed by 96 reserved bytes. Next part of the header is 224 bytes with bank data; these are byte integers. Text fields are set to 16 or 32-byte boundaries for ease of formatting.
 
 | Location | Length | Description                                                                                        |
 |----------|--------|----------------------------------------------------------------------------------------------------|
-| 00-15    | 16     | ASCII text: CX16 CARTRIDGE\r\n                                                                     |
-| 16-31    | 16     | CRT format version. ASCII digits in format 01.02, space padded.                                    |
-| 32-63    | 32     | Name. ASCII text.                                                                                  |
-| 64-95    | 32     | Programmer/Developer. ASCII text.                                                                  |
+| 00-15    | 16     | Magic number for CRT. `CX16 CARTRIDGE\r\n`                                                         |
+| 16-31    | 16     | CRT format version. ASCII text, space padded. `01.00`                                              |
+| 32-63    | 32     | Description. ASCII text.                                                                           |
+| 64-95    | 32     | Author. ASCII text.                                                                                |
 | 96-127   | 32     | Copyright information. ASCII text.                                                                 |
-| 128-191  | 32     | Program version. ASCII text.                                                                       |
-| 192-255  | 64     | Empty.                                                                                             |
-| 256-287  | 32     | Fill with zeros.                                                                                   |
-| 288-511  | 224    | Bank Flags.                                                                                        |
+| 128-159  | 32     | Program version. ASCII text.                                                                       |
+| 160-255  | 96     | Reserved.                                                                                          |
+| 256-479  | 224    | Bank Flags, for ROM banks 32-255.                                                                  |
 |          |        | 00: Not Present. No data is present in the emulator or in the file.                                |
 |          |        | 01: ROM: 16KB of ROM data. Data is write protected in emulator.                                    |
 |          |        | 02: RAM: No data in file. Bank is read/write in emulator.                                          |
 |          |        | 03: RAM: Data present: data is loaded from the file and discarded on shutdown. Useful for testing. |
 |          |        | 04: NVRAM: No Data in file. Memory is writeable. Emulator saves data to NVRAM file.                |
 |          |        | 05: NVRAM: Data present. Memory is writeable. Emulator saves data to NVRAM file.                   |
-| 512-end  |        | Payload data.                                                                                      |
+| 480-end  |        | Payload data.                                                                                      |
 |          |        | 16384 bytes per bank for types 1, 3, and 5.                                                        |
 |          |        | 0 bytes for types 0,2, and 4.                                                                      |
 
@@ -679,13 +678,13 @@ The config file is just a series of command-line switches, with one item per lin
 
 This would create file with
 
-* 512 byte header
+* 480 byte header
 * 5 ROM banks
   * 3 for the 48K ladder.bin
   * 1 for the four 4KB level files.
 * 1 empty NVRAM bank
 
-Since the NVRAM bank is not initialized, it is not included in the file. This makes the file a total of 66,048 bytes long. (512 bytes, plus four 16KB banks.)
+Since the NVRAM bank is not initialized, it is not included in the file. This makes the file a total of 66,016 bytes long. (480 bytes, plus four 16KB banks.)
 
 
 Web Site

@@ -40,7 +40,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2 mingw-w64-x86_64-fluidsynth mingw-w64-x86_64-cmake
+          install: make git mingw-w64-x86_64-toolchain mingw-w64-x86_64-libelf mingw-w64-x86_64-SDL2 mingw-w64-x86_64-fluidsynth mingw-w64-x86_64-cmake mingw-w64-x86_64-glib2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
@@ -266,7 +266,7 @@ jobs:
           path: emu_binaries/*
   build-linux-aarch64:
     needs: [README]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -274,7 +274,7 @@ jobs:
           python-version: '3.9'
       - name: Install Dependencies
         run: |
-          sudo apt-get update 
+          sudo apt-get update --fix-missing
           sudo apt-get install -y build-essential make qemu-user-static
       - name: Fetch latest ROM
         if: startsWith(github.ref, 'refs/tags/r') != true
@@ -294,12 +294,12 @@ jobs:
       - name: Build Emulator
         uses: pguyot/arm-runner-action@v2
         with:
-          base_image: raspios_lite_arm64:2022-04-04
+          base_image: raspios_lite_arm64:latest
           image_additional_mb: 8192
           cpu: cortex-a53
           copy_artifact_path: emu_binaries
           commands: |
-            apt-get update
+            apt-get update --fix-missing
             apt-get install -y build-essential make libsdl2-dev file git libfluidsynth-dev cmake
             mkdir build
             cd build
