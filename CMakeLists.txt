@@ -208,7 +208,7 @@ set(X16_SOURCES
     src/extern/serialuart/uart_backend.cpp
 )
 
-# --- optional in-process virtual modem: libximodem ---------------------------
+# --- optional virtual modem: libximodem --------------------------------------
 # Enabled automatically when the ximodem source tree and a python3 are both
 # present (POSIX and Windows/MSYS2 alike). Set USE_XIMODEM=OFF to force it off.
 #
