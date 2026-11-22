@@ -74,7 +74,7 @@ pcm_read_rate(void)
 void
 pcm_write_fifo(uint8_t val)
 {
-	if (fifo_cnt < sizeof(fifo) - 1) {
+	if (fifo_cnt < sizeof(fifo)) {
 		fifo[fifo_wridx++] = val;
 		if (fifo_wridx == sizeof(fifo)) {
 			fifo_wridx = 0;
