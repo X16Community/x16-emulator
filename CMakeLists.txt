@@ -356,3 +356,6 @@ message(STATUS "================================================================
 message(STATUS "   Fluidsynth Support : ${FLUID_EN_MSG}")
 message(STATUS "   Trace Support      : ${TRACE_EN_MSG}")
 message(STATUS "=========================================================================\n")
+
+# Install rules for people who want to install this in a specific place on their system
+install(TARGETS x16emu makecart DESTINATION bin)
