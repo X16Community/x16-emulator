@@ -101,6 +101,7 @@ uint16_t num_ram_banks = 64; // 512 KB default
 bool log_video = false;
 bool log_speed = false;
 bool log_keyboard = false;
+bool suppress_kbd_repeat = false;
 bool dump_cpu = false;
 bool dump_ram = true;
 bool dump_bank = true;
@@ -536,6 +537,10 @@ usage()
 	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 	printf("-longpwron\n");
 	printf("\tSimulate a long press of the power button at system power-on.\n");
+	printf("-nokbdrepeat\n");
+	printf("\tDo not forward host-OS keyboard auto-repeat into the emulated\n");
+	printf("\tkeyboard. A held key then produces one make and one break only.\n");
+	printf("\tentry (e.g. BASIC line editing). Default: off.\n");
 	printf("-midicard [<address>]\n");
 	printf("\tInstall a serial MIDI card at the specified address, or at $9F60 by default.\n");
 	printf("\tThe -sf2 option must be specified along with this option.\n");
@@ -1084,6 +1089,10 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			no_keyboard_capture = true;
+		} else if (!strcmp(argv[0], "-nokbdrepeat")) {
+			argc--;
+			argv++;
+			suppress_kbd_repeat = true;
 		} else if (!strcmp(argv[0], "-via2")) {
 			argc--;
 			argv++;
