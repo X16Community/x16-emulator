@@ -5,9 +5,10 @@
 ##################################################################################################
 
 BUILD_DIR = build
+WASM_BUILD_DIR = build-wasm
 BUILD_TYPE ?= Release
 
-.PHONY: all clean distclean
+.PHONY: all clean distclean wasm wasm-clean
 
 all:
 	@cmake -E echo "Building with CMake"
@@ -16,8 +17,54 @@ all:
 	cmake --build $(BUILD_DIR) $(ARGS)
 
 	@cmake -E echo "x16emu and makecart executables can be found in ./$(BUILD_DIR)"
-clean:
-	-cmake --build $(BUILD_DIR) --target clean
+clean: wasm-clean
+	-cmake --build $(BUILD_DIR) --target clean 2>/dev/null
 
 distclean:
-	cmake -E remove_directory $(BUILD_DIR)
+	cmake -E remove_directory $(BUILD_DIR) $(WASM_BUILD_DIR)
+
+# CMake needs this toolchain file to know it's cross-compiling for Emscripten.
+# Without it, it would use the host compiler instead of emcc.
+# The CI workflow uses emcmake (which passes this file automatically), but
+# emcmake is not always available locally, so we locate the file ourselves.
+EMSCRIPTEN_TOOLCHAIN ?= $(shell \
+	emcc=$$(command -v emcc 2>/dev/null) && \
+	dir=$$(dirname $$(readlink -f "$$emcc")) && \
+	echo "$$dir/cmake/Modules/Platform/Emscripten.cmake")
+
+wasm:
+	@if [ -z "$(EMSCRIPTEN_TOOLCHAIN)" ] || [ ! -f "$(EMSCRIPTEN_TOOLCHAIN)" ]; then \
+		echo "Error: EMSCRIPTEN_TOOLCHAIN not found or invalid."; \
+		echo "Please ensure Emscripten is installed and in your PATH."; \
+		exit 1; \
+	fi
+	@cmake -E echo "Building WASM target with Emscripten"
+	cmake -E make_directory $(WASM_BUILD_DIR)
+	cp -n rom.bin $(WASM_BUILD_DIR)/ 2>/dev/null || true
+	cp -n build/rom.bin $(WASM_BUILD_DIR)/ 2>/dev/null || true
+	@if [ ! -f $(WASM_BUILD_DIR)/rom.bin ]; then \
+		if [ -n "$(ROM_PATH)" ]; then \
+			if [ -f "$(ROM_PATH)" ]; then \
+				cp "$(ROM_PATH)" $(WASM_BUILD_DIR)/rom.bin; \
+			elif [ -d "$(ROM_PATH)" ] && [ -f "$(ROM_PATH)/rom.bin" ]; then \
+				cp "$(ROM_PATH)/rom.bin" $(WASM_BUILD_DIR)/rom.bin; \
+			else \
+				echo "Error: rom.bin not found at $(ROM_PATH)."; \
+				exit 1; \
+			fi; \
+		else \
+			echo "Error: rom.bin not found in $(WASM_BUILD_DIR)/."; \
+			echo "Please place rom.bin in $(WASM_BUILD_DIR)/ or set ROM_PATH environment variable to the location of your rom.bin."; \
+			exit 1; \
+		fi; \
+	fi
+	cmake -S . -B $(WASM_BUILD_DIR) -DCMAKE_TOOLCHAIN_FILE=$(EMSCRIPTEN_TOOLCHAIN) -DENABLE_FLUIDSYNTH=OFF -DENABLE_TRACE=OFF
+	cmake --build $(WASM_BUILD_DIR) $(ARGS)
+	@cmake -E echo "Packaging WASM artifacts into $(WASM_BUILD_DIR)/emu_binaries"
+	cmake -E make_directory $(WASM_BUILD_DIR)/emu_binaries/webassembly
+	cp $(WASM_BUILD_DIR)/x16emu.data $(WASM_BUILD_DIR)/x16emu.html $(WASM_BUILD_DIR)/x16emu.js $(WASM_BUILD_DIR)/x16emu.wasm $(WASM_BUILD_DIR)/emu_binaries/
+	cp webassembly/styles.css webassembly/main.js webassembly/jszip.min.js $(WASM_BUILD_DIR)/emu_binaries/webassembly/
+	@cmake -E echo "WASM artifacts can be found in ./$(WASM_BUILD_DIR)/emu_binaries"
+
+wasm-clean:
+	-cmake --build $(WASM_BUILD_DIR) --target clean 2>/dev/null
