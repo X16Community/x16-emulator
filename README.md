@@ -58,6 +58,10 @@ The SDL2 development package is available as a distribution package with most ma
 
 Type `make` to build the source. The output will be `x16emu` in the current directory. Remember you will also need a `rom.bin` as described above.
 
+### Tests
+
+Build the emulator first (`ctest` does not build it), then run `cd build && ctest --output-on-failure`. This runs the Python tests in `testbench/` against the built emulator in `-testbench` mode. They need a `rom.bin` (in the repository root, or set `X16_ROM`); without one ctest reports the test as skipped. To run them directly: `cd testbench && X16EMU=../build/x16emu python3 -m unittest selftest example cpu_test`.
+
 ### WebAssembly Build
 
 Steps for compiling WebAssembly/HTML5 can be found [here][webassembly].

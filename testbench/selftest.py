@@ -1,29 +1,31 @@
 import unittest
-from testbench import X16TestBench
+from emutest import EmulatorTestCase
 from testbench import Status
 
-class SelfTest(unittest.TestCase):
-    e = None
+class SelfTest(EmulatorTestCase):
 
-    def __init__(self, *args, **kwargs):
-        super(SelfTest, self).__init__(*args, **kwargs)
-        
-        self.e = X16TestBench("../x16emu", ["-warp"])
-        self.e.waitReady()
-
+    # The bank registers ($00/$01) are no longer memory the testbench writes to, so the banks
+    # are checked through what they map into the address space.
     def test_rombank(self):
-        self.e.setRomBank(0)
-        self.assertEqual(self.e.getMemory(1),0)
+        def window():
+            return [self.e.getMemory(0xc000 + i) for i in range(256)]
 
+        self.e.setRomBank(0)
+        bank0 = window()
         self.e.setRomBank(10)
-        self.assertEqual(self.e.getMemory(1),10)
+        self.assertNotEqual(window(), bank0)
+        self.e.setRomBank(0)
+        self.assertEqual(window(), bank0)
 
     def test_rambank(self):
         self.e.setRamBank(0)
-        self.assertEqual(self.e.getMemory(0),0)
-
+        self.e.setMemory(0xa000, 0x11)
         self.e.setRamBank(10)
-        self.assertEqual(self.e.getMemory(0),10)
+        self.e.setMemory(0xa000, 0x22)
+
+        self.assertEqual(self.e.getMemory(0xa000), 0x22)
+        self.e.setRamBank(0)
+        self.assertEqual(self.e.getMemory(0xa000), 0x11)
 
     def test_mem(self):
         #Set and retrieve value 0

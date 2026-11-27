@@ -11,7 +11,6 @@ class Status:
 
 class X16TestBench:
     emu = None
-    labels = dict()
 
     """
     Class constructor.
@@ -24,17 +23,24 @@ class X16TestBench:
         FileNotFoundError: Happens if emulatorpath not valid
     """
     def __init__(self, emulatorpath, emulatoroptions=[]):
+        self.labels = dict()
         path = [emulatorpath, "-testbench"]
         for o in emulatoroptions:
             path.append(o)
         
         self.emu = subprocess.Popen(path, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     
-    def __del__(self):
+    def close(self):
+        if self.emu is None:
+            return
         self.emu.stdout.close()
         self.emu.stdin.close()
         self.emu.terminate()
         self.emu.wait()
+        self.emu = None
+
+    def __del__(self):
+        self.close()
 
     """
     Waits until the emulator has sent the ready signal ("RDY").
@@ -50,11 +56,15 @@ class X16TestBench:
         signal.signal(signal.SIGALRM, self.__timeout)
         signal.alarm(timeout)
 
-        r = ""
-        while r.startswith("RDY")==False:
-            r = self.__readline()
-            if r.startswith("ERR"):
-                raise Exception(r[3:].strip())
+        try:
+            r = ""
+            while r.startswith("RDY")==False:
+                r = self.__readline()
+                if r.startswith("ERR"):
+                    raise Exception(r[3:].strip())
+        finally:
+            #A pending alarm would otherwise interrupt whatever runs next
+            signal.alarm(0)
 
     def __writeline(self, str):
         self.emu.stdin.write((str + "\n").encode('utf-8'))
@@ -180,6 +190,10 @@ class X16TestBench:
         self.__writeline("RST")
         return self.__toint8(self.__getresponse())
 
+    """
+    The low byte of the stack pointer, as set by setStackPointer(). The emulator reports the
+    whole register (e.g. $01FF), the page is not part of this value.
+    """
     def getStackPointer(self):
         self.__writeline("RSP")
-        return self.__toint8(self.__getresponse())
+        return self.__toint16(self.__getresponse()) & 0xff

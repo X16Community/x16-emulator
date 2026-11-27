@@ -1,15 +1,9 @@
 import unittest
-from testbench import X16TestBench
+from emutest import EmulatorTestCase
 from testbench import Status
 
-class TestTest(unittest.TestCase):
-    e = None
-
-    def __init__(self, *args, **kwargs):
-        super(TestTest, self).__init__(*args, **kwargs)
-        
-        self.e = X16TestBench("../x16emu")
-        self.e.waitReady()
+class TestTest(EmulatorTestCase):
+    options = []
 
     def test_add(self):
         self.e.setMemory(0x6000, 0x18)   #clc
