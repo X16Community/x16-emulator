@@ -1,3 +1,4 @@
+import os
 import unittest
 from testbench import X16TestBench
 from testbench import Status
@@ -8,7 +9,8 @@ class SelfTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(SelfTest, self).__init__(*args, **kwargs)
         
-        self.e = X16TestBench("../x16emu", ["-warp"])
+        emu_path = "../build/x16emu" if os.path.exists("../build/x16emu") else "../x16emu"
+        self.e = X16TestBench(emu_path, ["-warp"])
         self.e.waitReady()
 
     def test_rombank(self):
@@ -58,6 +60,61 @@ class SelfTest(unittest.TestCase):
         self.assertEqual(self.e.getMemory(0x6001), 0xff)
         self.assertEqual(self.e.getMemory(0x61fe), 0xff)
         self.assertEqual(self.e.getMemory(0x61ff), 0x80)
+
+    def test_memblock(self):
+        #Low RAM and page-crossing block read/write
+        data = bytes((i * 19 + 7) & 0xff for i in range(64))
+        self.e.setMemoryBlock(0x04e0, data)
+        self.assertEqual(self.e.getMemoryBlock(0x04e0, len(data)), data)
+        self.assertEqual([self.e.getMemory(0x04e0 + i) for i in range(len(data))], list(data))
+
+        #Banked RAM across two banks
+        bank1 = bytes([0x11, 0x22, 0x33, 0x44])
+        bank2 = bytes([0xaa, 0xbb, 0xcc, 0xdd])
+        self.e.setRamBank(1)
+        self.e.setMemoryBlock(0xa000, bank1)
+        self.e.setRamBank(2)
+        self.e.setMemoryBlock(0xa000, bank2)
+        self.e.setRamBank(1)
+        self.assertEqual(self.e.getMemoryBlock(0xa000, 4), bank1)
+        self.e.setRamBank(2)
+        self.assertEqual(self.e.getMemoryBlock(0xa000, 4), bank2)
+
+        #I/O-adjacent range ($9EF8..$9EFF)
+        io_adj = bytes(range(0xf0, 0xf8))
+        self.e.setMemoryBlock(0x9ef8, io_adj)
+        self.assertEqual(self.e.getMemoryBlock(0x9ef8, 8), io_adj)
+
+        #Out-of-range and wrapping past $FFFF should raise
+        with self.assertRaises(Exception):
+            self.e.getMemoryBlock(0xffff, 2)
+        with self.assertRaises(Exception):
+            self.e.setMemoryBlock(0xffff, b"\x01\x02")
+
+    def test_vramblock(self):
+        #Populate VRAM at $1B000 via VERA data port 0 with auto-increment = 1
+        vram_data = bytes([0x41, 0x61, 0x42, 0x61, 0x43, 0x61, 0x44, 0x61])
+        self.e.setMemory(0x9f25, 0x00)
+        self.e.setMemory(0x9f20, 0x00)
+        self.e.setMemory(0x9f21, 0xb0)
+        self.e.setMemory(0x9f22, 0x11)
+        for b in vram_data:
+            self.e.setMemory(0x9f23, b)
+
+        #Set distinct VERA register state and verify RQV does not disturb it
+        self.e.setMemory(0x9f20, 0x34)
+        self.e.setMemory(0x9f21, 0x12)
+        self.e.setMemory(0x9f22, 0x20)
+        self.e.setMemory(0x9f25, 0x01)
+        self.assertEqual(self.e.getVramBlock(0x1b000, len(vram_data)), vram_data)
+        self.assertEqual(self.e.getMemory(0x9f20), 0x34)
+        self.assertEqual(self.e.getMemory(0x9f21), 0x12)
+        self.assertEqual(self.e.getMemory(0x9f22), 0x20)
+        self.assertEqual(self.e.getMemory(0x9f25), 0x01)
+
+        #Wrapping past $1FFFF should raise
+        with self.assertRaises(Exception):
+            self.e.getVramBlock(0x1ffff, 2)
 
     def test_a(self):
         #Set and retrieve value 0

@@ -2,10 +2,12 @@
 // Copyright (c) 2019 Michael Steil
 // All rights reserved. License: 2-clause BSD
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "memory.h"
+#include "video.h"
 #include "cpu/fake6502.h"
 #include "glue.h"
 #include "testbench.h"
@@ -13,8 +15,12 @@
 int hex_to_int8(char* str);
 int hex_to_int16(char* str);
 bool hex_validate(char* str);
+static int hex_nibble(char c);
+static int read_hex(const char **p, int min_digits, int max_digits);
 void invalid();
 void ready();
+
+static const char hex_digits[] = "0123456789abcdef";
 
 size_t get_testline(char **lineptr, size_t *n, FILE *stream)
 {
@@ -123,6 +129,37 @@ void testbench_init()
                 } else {
                     write6502((uint16_t)iaddr, regs.db, (uint8_t)ival);
                     ready();
+                }
+            }
+        }
+
+        else if (strncmp(line, "STB", 3) == 0) {            //Set memory address block
+            const char *p = line + 4;
+            iaddr = (len >= 12) ? read_hex(&p, 4, 4) : -1;
+            if (iaddr == -1 || *p == '\0' || *p == '\n' || *p == '\r') {
+                invalid();
+            } else {
+                p++;
+                size_t hex_len = strcspn(p, "\r\n");
+                if (hex_len == 0 || (hex_len & 1) != 0 || iaddr + (int)(hex_len >> 1) > 0x10000) {
+                    invalid();
+                } else {
+                    bool ok = true;
+                    for (size_t i = 0; i < hex_len; i++) {
+                        if (!isxdigit((unsigned char)p[i])) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (!ok) {
+                        invalid();
+                    } else {
+                        for (size_t i = 0; i < hex_len; i += 2) {
+                            uint8_t b = (uint8_t)((hex_nibble(p[i]) << 4) | hex_nibble(p[i + 1]));
+                            write6502((uint16_t)(iaddr + (i >> 1)), regs.db, b);
+                        }
+                        ready();
+                    }
                 }
             }
         }
@@ -261,6 +298,50 @@ void testbench_init()
             }
         }
 
+        else if(strncmp(line, "RQB", 3) == 0) {             //Request memory address block
+            const char *p = line + 4;
+            iaddr = (len >= 11) ? read_hex(&p, 4, 4) : -1;
+            if (iaddr == -1 || *p == '\0' || *p == '\n' || *p == '\r') {
+                invalid();
+            } else {
+                p++;
+                ival = read_hex(&p, 1, 5);
+                if (ival < 1 || iaddr + ival > 0x10000 || (*p != '\n' && *p != '\r' && *p != '\0')) {
+                    invalid();
+                } else {
+                    for (int i = 0; i < ival; i++) {
+                        uint8_t b = debug_read6502((uint16_t)(iaddr + i), regs.db, USE_CURRENT_X16_BANK);
+                        putchar(hex_digits[b >> 4]);
+                        putchar(hex_digits[b & 0x0f]);
+                    }
+                    putchar('\n');
+                    fflush(stdout);
+                }
+            }
+        }
+
+        else if(strncmp(line, "RQV", 3) == 0) {             //Request VERA VRAM block
+            const char *p = line + 4;
+            iaddr = (len >= 8) ? read_hex(&p, 1, 5) : -1;
+            if (iaddr == -1 || iaddr > 0x1ffff || *p == '\0' || *p == '\n' || *p == '\r') {
+                invalid();
+            } else {
+                p++;
+                ival = read_hex(&p, 1, 5);
+                if (ival < 1 || iaddr + ival > 0x20000 || (*p != '\n' && *p != '\r' && *p != '\0')) {
+                    invalid();
+                } else {
+                    for (int i = 0; i < ival; i++) {
+                        uint8_t b = video_space_read((uint32_t)(iaddr + i));
+                        putchar(hex_digits[b >> 4]);
+                        putchar(hex_digits[b & 0x0f]);
+                    }
+                    putchar('\n');
+                    fflush(stdout);
+                }
+            }
+        }
+
         else if(strncmp(line, "RQA", 3) == 0) {             //Request accumulator value
             printf("%lx\n", (long)regs.a);
             fflush(stdout);
@@ -333,6 +414,21 @@ bool hex_validate(char* str)
         c = str[i];
     }
     return true;
+}
+
+static int hex_nibble(char c)
+{
+    return c <= '9' ? c - '0' : (c & 0xdf) - 'A' + 10;
+}
+
+static int read_hex(const char **p, int min_digits, int max_digits)
+{
+    int val = 0, digits = 0;
+    while (digits < max_digits && isxdigit((unsigned char)**p)) {
+        val = (val << 4) | hex_nibble(*(*p)++);
+        digits++;
+    }
+    return (digits < min_digits || isxdigit((unsigned char)**p)) ? -1 : val;
 }
 
 void invalid()
