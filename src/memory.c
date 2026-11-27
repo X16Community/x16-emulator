@@ -20,6 +20,14 @@
 #include "iso_8859_15.h"
 #include "midi.h"
 
+#include "extern/serialuart/serialuart_wrapper.h"
+extern bool has_uart1;
+extern bool has_uart2;
+extern uint16_t uart1_addr;
+extern uint16_t uart2_addr;
+extern serialuartTL16C2550Handle uart1;
+extern serialuartTL16C2550Handle uart2;
+
 uint8_t ram_bank;
 uint8_t rom_bank;
 
@@ -242,7 +250,20 @@ real_read6502(uint16_t address, uint8_t bank, bool debugOn, int16_t x16Bank)
 		} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
 			// midi card
 			return midi_serial_read(address & 0xf, debugOn);
-		} else {
+		}
+		//Serial UART1 (serial wifi)
+		else if ( has_uart1 && (address >= uart1_addr && address <= (uart1_addr+7) ) ){
+			uint8_t retVal=0;
+			uart_addrread(uart1, &retVal, address & 0x07 );
+			return retVal;
+		}// END of Serial UART1*/
+		//Serial UART2 (serial wifi)
+		else if ( has_uart2 && (address >= uart2_addr && address <= (uart2_addr+7))  ){
+			uint8_t retVal=0;
+			uart_addrread(uart2, &retVal, address & 0x07 );
+			return retVal;
+		}// END of Serial UART2*/
+		else {
 			// future expansion
 			return 0x9f; // open bus read
 		}
@@ -332,7 +353,15 @@ write6502(uint16_t address, uint8_t bank, uint8_t value)
 			emu_write(address & 0xf, value);
 		} else if (has_midi_card && (address & 0xfff0) == midi_card_addr) {
 			midi_serial_write(address & 0xf, value);
-		} else {
+		}
+		else if (has_uart1 && (address >= uart1_addr && address <= (uart1_addr+7) ) ) {
+			uart_addrwrite(uart1, &value, address & 0x07 );
+		}
+		else if (has_uart2 && (address >= uart2_addr && address <= (uart2_addr+7) ) ) {
+			uart_addrwrite(uart2, &value, address & 0x07 );
+		}
+		//END of UART2
+		else {
 			// future expansion
 		}
 	} else if (address < 0xc000) { // banked RAM

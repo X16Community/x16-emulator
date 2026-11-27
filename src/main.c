@@ -44,6 +44,7 @@
 #include "cartridge.h"
 #include "midi.h"
 #include "git_rev.h"
+#include "extern/serialuart/serialuart_wrapper.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -120,6 +121,8 @@ char *gif_path = NULL;
 char *wav_path = NULL;
 uint8_t *fsroot_path = NULL;
 uint8_t *startin_path = NULL;
+uint8_t *uart1_path = NULL;
+uint8_t *uart2_path = NULL;
 uint8_t keymap = 0; // KERNAL's default
 int window_scale = 1;
 float screen_x_scale = 1.0;
@@ -135,6 +138,24 @@ char *cartridge_path = NULL;
 
 bool has_midi_card = false;
 uint16_t midi_card_addr;
+
+//Serial UART Setup
+bool has_uart1 = false;
+uint16_t uart1_addr = 0x9fe0;
+serialuartTL16C2550Handle uart1 = NULL;
+
+bool has_uart2 = false;
+uint16_t uart2_addr = 0x9fe8;
+serialuartTL16C2550Handle uart2 = NULL;
+
+// True when a -uart target selects the in-process libximodem virtual modem
+// rather than a physical serial port. Must match the routing test in
+// makeUartBackend() (extern/serialuart/uart_backend.cpp).
+static bool
+uart_path_is_ximodem(const char *p)
+{
+	return p && (strcmp(p, "ximodem") == 0 || strncmp(p, "ximodem:", 8) == 0);
+}
 
 bool using_hostfs = true;
 
@@ -340,6 +361,53 @@ machine_reset()
 	mouse_state_init();
 	reset6502(regs.is65c816);
 	midi_serial_init();
+	
+	//User requested Serial UART - need to check
+	//
+	// A physical serial port is safe to tear down and rebuild on every machine
+	// reset. The in-process virtual modem (libximodem) is NOT: it holds
+	// process-wide firmware state that a destroy/create cycle would corrupt, so
+	// keep the object and let uart_init() reset it in place -- that clears the
+	// card registers, bounces the pump thread and drops DTR (which hangs up the
+	// call only if the firmware's AT&D says so), like a real card's reset line.
+	if(has_uart1){
+		if(uart1 != NULL && !uart_path_is_ximodem((char*)uart1_path)){
+			uart_destroy(uart1);
+			uart1 = NULL;
+		}
+		if(uart1 == NULL){
+			uart1 = uartCreate();
+		}
+		if(uart1 != NULL){
+			if (uart_init( uart1, (char*)uart1_path ) ){
+					has_uart1=false;
+			}
+			else{
+				printf("UART1 succesuflly mapped to address: $%04x\n", uart1_addr);
+			}
+		} else {
+			has_uart1=false;
+		}
+	}
+	if(has_uart2){
+		if(uart2 != NULL && !uart_path_is_ximodem((char*)uart2_path)){
+			uart_destroy(uart2);
+			uart2 = NULL;
+		}
+		if(uart2 == NULL){
+			uart2 = uartCreate();
+		}
+		if(uart2 != NULL){
+			if (uart_init( uart2, (char*)uart2_path ) ){
+					has_uart2=false;
+			}
+			else{
+				printf("UART2 succesuflly mapped to address: $%04x\n", uart2_addr);
+			}
+		} else {
+			has_uart2=false;
+		}
+	}
 }
 
 void
@@ -546,6 +614,23 @@ usage()
 	printf("\tConnect the system MIDI input devices to the input of the first UART\n");
 	printf("\tof the emulated MIDI card. The -midicard option is required for this\n");
 	printf("\toption to have any effect.\n");
+	printf("-uart1 <target>\n");
+	printf("\tConnect the first UART ($9FE0) to <target>, one of:\n");
+	printf("\t  <COM port>   a host serial device, e.g. /dev/ttyUSB0 (Posix) or COM1 (Windows)\n");
+#ifdef HAVE_XIMODEM
+	printf("\t  ximodem      built-in Zimodem virtual modem; no hardware needed, it\n");
+	printf("\t               dials out over this host computer's own network connection\n");
+	printf("\t  ximodem:<dir> same, storing config/phonebook in <dir> (default ./ximodem-data)\n");
+	printf("\t               UART1 only; a machine reset drops DTR but does not power-cycle\n");
+	printf("\t               the modem, so an active call persists unless set to AT&D2\n");
+#endif
+	printf("\tThis option is experimental.\n");
+	printf("-uart2 <target>\n");
+	printf("\tConnect the second UART ($9FE8) to <target> (same choices as -uart1).\n");
+	printf("\tThis option is experimental.\n");
+	printf("-uartaddr [<address>]\n");
+	printf("\tIf not specified, defaults to '$9FE0'\n\tUART2 is alwasy UART1 address + 8.\n");
+	printf("\tThis option is experimental.\n");
 #ifdef TRACE
 	printf("-trace [<address>]\n");
 	printf("\tPrint instruction trace. Optionally, a trigger address\n");
@@ -1145,6 +1230,46 @@ main(int argc, char **argv)
 			argc--;
 			argv++;
 			warn_rockwell = false;
+		} else if (!strcmp(argv[0], "-uart1")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			uart1_path = (uint8_t *)argv[0];
+			argc--;
+			argv++;
+			has_uart1=true;
+			
+		} else if (!strcmp(argv[0], "-uartaddr")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			
+			if (argc && argv[0][0] != '-') {
+				//Force to memory mapped addresses only
+				uart1_addr = 0x9f00 | ((uint16_t)strtol(argv[0], NULL, 16) & 0xff);
+				argc--;
+				argv++;
+			} else {
+				uart1_addr = 0x9fe0;
+			}
+			
+			uart2_addr = uart1_addr+8;
+
+		} else if (!strcmp(argv[0], "-uart2")) {
+			argc--;
+			argv++;
+			if (!argc || argv[0][0] == '-') {
+				usage();
+			}
+			uart2_path = (uint8_t *)argv[0];
+			argc--;
+			argv++;
+			has_uart2=true;
+
 		} else {
 			usage();
 		}
@@ -1197,6 +1322,27 @@ main(int argc, char **argv)
 	} else if (sf2_path || has_midi_card) {
 		fprintf(stderr, "Warning: -sf2 and -midicard must be specified together in order to enable the MIDI synth.\n");
 		has_midi_card = false;
+	}
+	
+	if (has_uart2 || has_uart1) {
+		//Techincally cannot be less than 0x9f0 due to above code in argument parsing.
+		if (uart1_addr < 0x9f60 || uart1_addr>0x9ff8) {
+			fprintf(stderr, "Warning: Serial UART card address must be in the range of 9F60-9FF8, Unabled to connect\n");
+			has_uart1 = has_uart2 = false;
+		}
+
+		//Make sure to stay in memory mapped range.
+		if(has_uart2 && uart1_addr>0x9ff0){
+			has_uart2=false;
+			fprintf(stderr, "Warning: Serial UART1 card address must be in the range of 9F60-9FF0 when using two UARTs, Unabled to connect\n");
+		}
+
+		// The libximodem virtual modem is UART1-only (matches the real X16
+		// modem card) and is a single process-wide instance -- refuse it on UART2.
+		if(has_uart2 && uart_path_is_ximodem((char*)uart2_path)){
+			has_uart2=false;
+			fprintf(stderr, "Warning: the ximodem virtual modem is UART1-only (matches the real X16 modem card); ignoring -uart2 ximodem\n");
+		}
 	}
 
 	if (cartridge_path) {
@@ -1768,7 +1914,7 @@ emulator_loop(void *param)
 			audio_render();
 		}
 
-		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq()) || (has_midi_card && midi_serial_irq())) {
+		if (video_get_irq_out() || via1_irq() || (has_via2 && via2_irq()) || (ym2151_irq_support && YM_irq()) || (has_midi_card && midi_serial_irq()) || (has_uart1 && uart_irqPending(uart1)) || (has_uart2 && uart_irqPending(uart2)) ) {
 //			printf("IRQ!\n");
 			irq6502();
 		}
