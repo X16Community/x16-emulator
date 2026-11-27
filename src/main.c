@@ -444,6 +444,8 @@ usage()
 	printf("\tkeyboard.\n");
 	printf("-run\n");
 	printf("\tStart the -prg/-bas program using RUN\n");
+	printf("-test <number>\n");
+	printf("\tRun the specified unit test on startup.\n");
 	printf("-warp\n");
 	printf("\tEnable warp mode, run emulator as fast as possible.\n");
 	printf("-pastewarp\n");
@@ -532,6 +534,8 @@ usage()
 	printf("-c816\n");
 	printf("\tRun the emulator under an emulated 65C816\n");
 	printf("\tThis option is experimental.\n");
+	printf("-gs\n");
+	printf("\tRun the emulator in GS mode (24-bit addressable RAM, 65C816 CPU).\n");
 	printf("-rockwell\n");
 	printf("\tSuppress warning emitted when encountering a Rockwell extension on the 65C02\n");
 	printf("-longpwron\n");
