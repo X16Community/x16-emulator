@@ -984,8 +984,8 @@ render_layer_line_bitmap(uint8_t layer, uint16_t y)
 		// convert tile byte to indexed color
 		uint8_t col_index = (s >> (props->first_color_pos - ((xx & props->color_fields_max) << props->color_depth))) & props->color_mask;
 
-		// Apply Palette Offset
-		if (col_index > 0 && col_index < 16) {
+		// Apply Palette Offset, except in 1bpp mode
+		if (props->bits_per_pixel > 1 && col_index > 0 && col_index < 16) {
 			col_index += palette_offset << 4;
 			if (props->text_mode_256c) {
 				col_index |= 0x80;
